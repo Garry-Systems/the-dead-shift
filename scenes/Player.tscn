@@ -1,0 +1,25 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" uid="uid://tsgkxd5n13jq" path="res://scripts/Player.gd" id="1_player"]
+[ext_resource type="Texture2D" uid="uid://clb35uimfi113" path="res://icon.svg" id="2_tex"]
+[ext_resource type="Script" uid="uid://dbwn6sgo7yndd" path="res://scripts/Gun.gd" id="3_gun"]
+[ext_resource type="PackedScene" path="res://scenes/Bullet.tscn" id="4_bullet"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ply"]
+radius = 24.0
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_player")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_tex")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_ply")
+
+[node name="Gun" type="Node2D" parent="."]
+script = ExtResource("3_gun")
+bullet_scene = ExtResource("4_bullet")
