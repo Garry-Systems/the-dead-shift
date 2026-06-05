@@ -1,10 +1,10 @@
 extends CanvasLayer
 ## The level-up upgrade screen, built entirely in code. When the player levels up
-## it pauses the game, dims the screen, and offers 3 random upgrade cards. Picking
-## one applies it and resumes. Queues multiple level-ups if they happen at once.
+## it pauses the game, dims the screen, and offers 3 random cards. Odd levels offer
+## player-stat cards; even levels offer gun cards. Queues multiple level-ups.
 
 var _player: Player
-var _pending := 0
+var _queue: Array[int] = []        # levels waiting for an upgrade pick
 var _current_cards: Array = []
 
 var _root: Control
@@ -42,7 +42,6 @@ func _build_ui() -> void:
 	center.add_child(vbox)
 
 	_title = Label.new()
-	_title.text = "LEVEL UP — choose an upgrade"
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title)
 
@@ -54,12 +53,14 @@ func _build_ui() -> void:
 		_buttons.append(b)
 
 func _on_player_leveled_up() -> void:
-	_pending += 1
+	_queue.append(_player.level)
 	if not _root.visible:
 		_show_next()
 
 func _show_next() -> void:
-	_current_cards = _pick_three()
+	var lvl: int = _queue.pop_front()
+	_current_cards = _pick_three(lvl)
+	_title.text = "LEVEL %d — choose a %s upgrade" % [lvl, Upgrades.label_for_level(lvl)]
 	for i in 3:
 		var c: Dictionary = _current_cards[i]
 		_buttons[i].text = "%s\n%s" % [c["title"], c["desc"]]
@@ -69,14 +70,13 @@ func _show_next() -> void:
 func _on_card_pressed(index: int) -> void:
 	var card: Dictionary = _current_cards[index]
 	Upgrades.apply(_player, card["id"])
-	_pending -= 1
-	if _pending > 0:
+	if not _queue.is_empty():
 		_show_next()
 	else:
 		_root.visible = false
 		get_tree().paused = false
 
-func _pick_three() -> Array:
-	var pool := Upgrades.player_cards()
+func _pick_three(level: int) -> Array:
+	var pool := Upgrades.cards_for_level(level)
 	pool.shuffle()
 	return pool.slice(0, 3)

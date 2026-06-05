@@ -18,6 +18,9 @@ signal leveled_up
 var move_speed := GameConfig.PLAYER_MOVE_SPEED
 var health_regen := GameConfig.PLAYER_HEALTH_REGEN
 
+## The player's weapon node (gun upgrade cards modify it). Set in _ready.
+var gun: Gun
+
 ## Progression (Phase 2). Gems grant XP; crossing a threshold levels you up.
 var xp := 0
 var level := 0
@@ -27,6 +30,7 @@ var _xp_to_next := 0
 func _ready() -> void:
 	add_to_group("player")
 	_xp_to_next = XpCurve.xp_for_level(0)
+	gun = get_node_or_null("Gun") as Gun
 
 func _physics_process(delta: float) -> void:
 	_dash.tick(delta)
