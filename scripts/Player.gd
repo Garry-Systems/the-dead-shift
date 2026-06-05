@@ -11,6 +11,13 @@ var _last_tap_time := -999.0
 ## Set by the VirtualJoystick. Vector2.ZERO means "no joystick input, use keyboard".
 var joystick_direction := Vector2.ZERO
 
+## Emitted each time the player gains a level (the upgrade UI listens for this).
+signal leveled_up
+
+## Mutable per-run stats (upgrade cards modify these).
+var move_speed := GameConfig.PLAYER_MOVE_SPEED
+var health_regen := GameConfig.PLAYER_HEALTH_REGEN
+
 ## Progression (Phase 2). Gems grant XP; crossing a threshold levels you up.
 var xp := 0
 var level := 0
@@ -31,11 +38,14 @@ func _physics_process(delta: float) -> void:
 	if dir != Vector2.ZERO:
 		_last_move_dir = dir.normalized()
 
-	var speed := GameConfig.DASH_SPEED if _dash.is_dashing() else GameConfig.PLAYER_MOVE_SPEED
+	var speed := GameConfig.DASH_SPEED if _dash.is_dashing() else move_speed
 	var move_dir := _last_move_dir if _dash.is_dashing() else dir
 
 	velocity = move_dir * speed
 	move_and_slide()
+
+	if health_regen > 0.0:
+		_health.heal(health_regen * delta)
 
 ## Reads WASD / arrow keys directly (no Input Map setup needed for Phase 1 testing).
 func _keyboard_dir() -> Vector2:
@@ -88,5 +98,17 @@ func xp_to_next() -> int:
 	return _xp_to_next
 
 func _on_level_up() -> void:
-	# Step 2 replaces this with the 3-card upgrade screen.
-	print("LEVEL UP! Now level %d" % level)
+	leveled_up.emit()
+
+## --- Upgrade hooks (called by Upgrades.apply) ---
+func upgrade_move_speed(pct: float) -> void:
+	move_speed *= (1.0 + pct)
+
+func upgrade_max_health(amount: float) -> void:
+	_health.add_max(amount)
+
+func upgrade_regen(amount: float) -> void:
+	health_regen += amount
+
+func upgrade_pickup_radius(pct: float) -> void:
+	pickup_radius *= (1.0 + pct)

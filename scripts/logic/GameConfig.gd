@@ -5,6 +5,7 @@ class_name GameConfig
 # --- Player ---
 const PLAYER_MOVE_SPEED := 220.0      # px/sec
 const PLAYER_MAX_HEALTH := 100.0
+const PLAYER_HEALTH_REGEN := 0.0      # HP/sec at start (upgrades raise this)
 
 # --- Dash ---
 const DASH_SPEED := 700.0             # px/sec while dashing

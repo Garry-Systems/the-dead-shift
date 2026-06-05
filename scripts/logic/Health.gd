@@ -19,3 +19,14 @@ func take_damage(amount: float) -> void:
 	current -= amount
 	if current < 0.0:
 		current = 0.0
+
+## Restores health, never exceeding the maximum.
+func heal(amount: float) -> void:
+	current += amount
+	if current > maxhp:
+		current = maxhp
+
+## Raises the maximum and grants the same amount as current health.
+func add_max(amount: float) -> void:
+	maxhp += amount
+	current += amount
