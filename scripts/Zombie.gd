@@ -1,5 +1,8 @@
 extends CharacterBody2D
-## A zombie: walks toward the player, has health, and damages the player on contact.
+## A zombie: walks toward the player, has health, damages the player on contact,
+## and drops an XP gem when it dies.
+
+@export var xp_gem_scene: PackedScene
 
 var _health := Health.new(GameConfig.ZOMBIE_MAX_HEALTH)
 var _target: Player
@@ -23,4 +26,12 @@ func _physics_process(delta: float) -> void:
 func take_damage(amount: float) -> void:
 	_health.take_damage(amount)
 	if _health.is_dead():
+		_drop_gem()
 		queue_free()
+
+func _drop_gem() -> void:
+	if xp_gem_scene == null:
+		return
+	var gem = xp_gem_scene.instantiate()
+	get_tree().current_scene.add_child(gem)
+	gem.global_position = global_position

@@ -11,8 +11,15 @@ var _last_tap_time := -999.0
 ## Set by the VirtualJoystick. Vector2.ZERO means "no joystick input, use keyboard".
 var joystick_direction := Vector2.ZERO
 
+## Progression (Phase 2). Gems grant XP; crossing a threshold levels you up.
+var xp := 0
+var level := 0
+var pickup_radius := GameConfig.PICKUP_RADIUS
+var _xp_to_next := 0
+
 func _ready() -> void:
 	add_to_group("player")
+	_xp_to_next = XpCurve.xp_for_level(0)
 
 func _physics_process(delta: float) -> void:
 	_dash.tick(delta)
@@ -66,3 +73,20 @@ func take_damage(amount: float) -> void:
 func _die() -> void:
 	print("PLAYER DIED — Game Over")
 	get_tree().paused = true  # freeze; a proper Game Over screen comes in Phase 7
+
+## Grants XP and resolves any resulting level-ups.
+func add_xp(amount: int) -> void:
+	xp += amount
+	while xp >= _xp_to_next:
+		xp -= _xp_to_next
+		level += 1
+		_xp_to_next = XpCurve.xp_for_level(level)
+		_on_level_up()
+
+## XP needed to reach the next level (used by the HUD bar).
+func xp_to_next() -> int:
+	return _xp_to_next
+
+func _on_level_up() -> void:
+	# Step 2 replaces this with the 3-card upgrade screen.
+	print("LEVEL UP! Now level %d" % level)

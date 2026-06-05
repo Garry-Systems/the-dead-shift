@@ -27,3 +27,11 @@ const ZOMBIE_TOUCH_DAMAGE := 10.0     # damage per second while touching the pla
 # --- Spawner ---
 const SPAWN_INTERVAL := 1.0           # seconds between spawns
 const SPAWN_RADIUS := 700.0           # distance from player to spawn at
+
+# --- XP / Leveling ---
+const XP_BASE := 5                    # XP needed to reach level 1
+const XP_PER_LEVEL := 3               # extra XP required for each later level
+const XP_GEM_VALUE := 1               # XP granted per gem
+const PICKUP_RADIUS := 80.0           # px; gems within this drift to the player
+const GEM_DRIFT_SPEED := 300.0        # px/sec a gem moves toward the player
+const GEM_COLLECT_DISTANCE := 16.0    # px; closer than this = collected

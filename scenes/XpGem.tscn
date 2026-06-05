@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/XpGem.gd" id="1_gem"]
+[ext_resource type="Texture2D" uid="uid://clb35uimfi113" path="res://icon.svg" id="2_tex"]
+
+[node name="XpGem" type="Node2D"]
+script = ExtResource("1_gem")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(0.3, 0.8, 1, 1)
+scale = Vector2(0.06, 0.06)
+texture = ExtResource("2_tex")

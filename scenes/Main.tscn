@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Script" uid="uid://dchqcispiwxbx" path="res://scripts/Spawner.gd" id="2_spawn"]
 [ext_resource type="PackedScene" path="res://scenes/Zombie.tscn" id="3_zomb"]
+[ext_resource type="Script" path="res://scripts/Hud.gd" id="4_hud"]
 
 [node name="Main" type="Node2D"]
 
@@ -11,3 +12,6 @@
 [node name="Spawner" type="Node2D" parent="."]
 script = ExtResource("2_spawn")
 zombie_scene = ExtResource("3_zomb")
+
+[node name="Hud" type="CanvasLayer" parent="."]
+script = ExtResource("4_hud")
