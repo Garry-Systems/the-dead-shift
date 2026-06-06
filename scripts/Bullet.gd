@@ -1,12 +1,21 @@
 extends Area2D
-## A projectile: flies in a fixed direction, damages the first zombie it overlaps,
-## and despawns after a lifetime. Speed and damage are set by the gun that fires it
-## (so gun upgrades carry through to the bullet); they default to the config values.
+## A projectile: flies in a direction, damages zombies it overlaps, and despawns
+## after a lifetime. Speed/damage and the talent payload (pierce, ricochet, burn)
+## are set by the gun that fires it, so weapon talents carry through to the bullet.
 
 var direction := Vector2.RIGHT
 var speed := GameConfig.BULLET_SPEED
 var damage := GameConfig.BULLET_DAMAGE
+
+# Talent payload (set by Gun._spawn_bullet; 0/false = vanilla bullet).
+var pierce_count := 0          # extra zombies the bullet passes through
+var ricochet_count := 0        # times it redirects to the next nearest zombie
+var incendiary := false        # ignites zombies it hits
+var burn_dps := 0.0
+var burn_duration := 0.0
+
 var _life := 0.0
+var _hit: Array = []           # zombies already damaged (so pierce/ricochet don't re-hit)
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
@@ -18,6 +27,35 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 func _on_body_entered(body) -> void:
-	if body.is_in_group("zombies"):
-		body.take_damage(damage)
-		queue_free()
+	if not body.is_in_group("zombies") or body in _hit:
+		return
+
+	_hit.append(body)
+	body.take_damage(damage)
+	if incendiary and is_instance_valid(body):
+		body.ignite(burn_dps, burn_duration)
+
+	# Ricochet redirects toward a fresh target; pierce keeps flying straight.
+	if ricochet_count > 0:
+		ricochet_count -= 1
+		var next := _nearest_unhit_zombie()
+		if next != null:
+			direction = (next.global_position - global_position).normalized()
+		return
+	if pierce_count > 0:
+		pierce_count -= 1
+		return
+	queue_free()
+
+func _nearest_unhit_zombie() -> Node2D:
+	var best: Node2D = null
+	var best_dist := INF
+	for z in get_tree().get_nodes_in_group("zombies"):
+		if z in _hit:
+			continue
+		var node := z as Node2D
+		var d := global_position.distance_squared_to(node.global_position)
+		if d < best_dist:
+			best_dist = d
+			best = node
+	return best

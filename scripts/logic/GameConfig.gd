@@ -20,6 +20,15 @@ const BULLET_SPEED := 800.0           # px/sec
 const BULLET_DAMAGE := 25.0
 const BULLET_LIFETIME := 1.5          # seconds before a bullet despawns
 
+# --- Weapon talents (Phase 3 step 2) ---
+const TALENT_DAMAGE_PCT := 0.20       # "Hollow Points" damage card
+const TALENT_FIRE_RATE_PCT := 0.15    # "Hair Trigger" fire-rate card
+const TALENT_BULLET_SPEED_PCT := 0.15 # "Overpressure" bullet-speed card
+const TALENT_RANGE_PCT := 0.15        # "Long Barrel" range card
+const TALENT_CHOKE_PCT := 0.30        # "Tighter Choke" spread reduction
+const TALENT_BURN_DPS := 8.0          # incendiary damage per second
+const TALENT_BURN_DURATION := 3.0     # incendiary burn duration (seconds)
+
 # --- Zombie ---
 const ZOMBIE_MOVE_SPEED := 70.0       # px/sec
 const ZOMBIE_MAX_HEALTH := 50.0

@@ -13,10 +13,20 @@ var gun_range := GameConfig.GUN_RANGE
 var projectile_count := 1
 var spread := 0.0                  # total fan arc in radians across the projectiles
 
+# Talent payload carried onto every bullet (raised by weapon talent cards).
+var pierce_count := 0
+var ricochet_count := 0
+var incendiary := false
+var burn_dps := 0.0
+var burn_duration := 0.0
+
+var weapon_id := "pistol"         # which Weapons def is equipped (drives the talent pool)
+
 var _cooldown := 0.0
 
 ## Loads a weapon definition from Weapons.all() as this gun's base stats.
 func configure(def: Dictionary) -> void:
+	weapon_id = String(def["id"])
 	damage = float(def["damage"])
 	fire_interval = float(def["fire_interval"])
 	bullet_speed = float(def["bullet_speed"])
@@ -67,6 +77,12 @@ func _spawn_bullet(dir: Vector2) -> void:
 	bullet.direction = dir
 	bullet.speed = bullet_speed
 	bullet.damage = damage
+	bullet.pierce_count = pierce_count
+	bullet.ricochet_count = ricochet_count
+	if incendiary:
+		bullet.incendiary = true
+		bullet.burn_dps = burn_dps
+		bullet.burn_duration = burn_duration
 	get_tree().current_scene.add_child(bullet)
 	bullet.global_position = global_position
 
@@ -82,3 +98,22 @@ func upgrade_bullet_speed(pct: float) -> void:
 
 func upgrade_range(pct: float) -> void:
 	gun_range *= (1.0 + pct)
+
+func upgrade_add_projectile(n: int) -> void:
+	projectile_count += n
+	if spread <= 0.0:               # give single-shot guns a small fan once they multi-fire
+		spread = 0.20
+
+func upgrade_reduce_spread(pct: float) -> void:
+	spread *= (1.0 - pct)
+
+func upgrade_pierce(n: int) -> void:
+	pierce_count += n
+
+func upgrade_ricochet(n: int) -> void:
+	ricochet_count += n
+
+func upgrade_incendiary(dps: float, duration: float) -> void:
+	incendiary = true
+	burn_dps += dps
+	burn_duration = maxf(burn_duration, duration)

@@ -6,12 +6,25 @@ extends CharacterBody2D
 
 var _health := Health.new(GameConfig.ZOMBIE_MAX_HEALTH)
 var _target: Player
+var _burn_dps := 0.0
+var _burn_time := 0.0          # seconds of burn remaining (incendiary talent)
 
 func _ready() -> void:
 	add_to_group("zombies")
 	_target = get_tree().get_first_node_in_group("player") as Player
 
+## Applies (or refreshes) an incendiary burn — damage over time, set by a bullet.
+func ignite(dps: float, duration: float) -> void:
+	_burn_dps = maxf(_burn_dps, dps)
+	_burn_time = maxf(_burn_time, duration)
+
 func _physics_process(delta: float) -> void:
+	if _burn_time > 0.0:
+		_burn_time -= delta
+		take_damage(_burn_dps * delta)
+		if not is_instance_valid(self):
+			return
+
 	if _target == null or not is_instance_valid(_target):
 		return
 

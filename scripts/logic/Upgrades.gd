@@ -11,18 +11,41 @@ static func player_cards() -> Array:
 		{"id": "pickup", "title": "Magnet", "desc": "+25% Pickup Radius"},
 	]
 
-## Gun cards. Improve the currently equipped weapon.
-static func gun_cards() -> Array:
-	return [
-		{"id": "damage", "title": "Hollow Points", "desc": "+20% Damage"},
-		{"id": "fire_rate", "title": "Hair Trigger", "desc": "+15% Fire Rate"},
-		{"id": "bullet_speed", "title": "Overpressure", "desc": "+15% Bullet Speed"},
-		{"id": "range", "title": "Long Barrel", "desc": "+15% Range"},
-	]
+## The full library of gun talent cards, keyed by id. Each weapon's "talents" list
+## (in Weapons.gd) selects a subset of these into its flat per-weapon pool.
+static func gun_card(id: String) -> Dictionary:
+	match id:
+		"damage":
+			return {"id": "damage", "title": "Hollow Points", "desc": "+20% Damage"}
+		"fire_rate":
+			return {"id": "fire_rate", "title": "Hair Trigger", "desc": "+15% Fire Rate"}
+		"bullet_speed":
+			return {"id": "bullet_speed", "title": "Overpressure", "desc": "+15% Bullet Speed"}
+		"range":
+			return {"id": "range", "title": "Long Barrel", "desc": "+15% Range"}
+		"projectile":
+			return {"id": "projectile", "title": "Extra Barrel", "desc": "+1 Projectile"}
+		"choke":
+			return {"id": "choke", "title": "Tighter Choke", "desc": "-30% Spread"}
+		"pierce":
+			return {"id": "pierce", "title": "Armor Piercing", "desc": "Bullets pierce +1 enemy"}
+		"ricochet":
+			return {"id": "ricochet", "title": "Ricochet", "desc": "Bullets bounce to +1 enemy"}
+		"incendiary":
+			return {"id": "incendiary", "title": "Incendiary Rounds", "desc": "Hits set enemies on fire"}
+	return {"id": id, "title": id, "desc": ""}
 
-## Returns the right pool for a given level (odd = stats, even = gun).
-static func cards_for_level(level: int) -> Array:
-	return player_cards() if level % 2 == 1 else gun_cards()
+## The equipped weapon's talent pool, resolved from its talent ids into cards.
+static func gun_cards(player: Player) -> Array:
+	var cards: Array = []
+	if player and player.gun:
+		for id in Weapons.talents_for(player.gun.weapon_id):
+			cards.append(gun_card(id))
+	return cards
+
+## Returns the right pool for a given level (odd = player stats, even = equipped gun).
+static func cards_for_level(level: int, player: Player) -> Array:
+	return player_cards() if level % 2 == 1 else gun_cards(player)
 
 ## Human label for the level's upgrade type (used in the screen title).
 static func label_for_level(level: int) -> String:
@@ -40,10 +63,20 @@ static func apply(player: Player, id: String) -> void:
 		"pickup":
 			player.upgrade_pickup_radius(0.25)
 		"damage":
-			player.gun.upgrade_damage(0.20)
+			player.gun.upgrade_damage(GameConfig.TALENT_DAMAGE_PCT)
 		"fire_rate":
-			player.gun.upgrade_fire_rate(0.15)
+			player.gun.upgrade_fire_rate(GameConfig.TALENT_FIRE_RATE_PCT)
 		"bullet_speed":
-			player.gun.upgrade_bullet_speed(0.15)
+			player.gun.upgrade_bullet_speed(GameConfig.TALENT_BULLET_SPEED_PCT)
 		"range":
-			player.gun.upgrade_range(0.15)
+			player.gun.upgrade_range(GameConfig.TALENT_RANGE_PCT)
+		"projectile":
+			player.gun.upgrade_add_projectile(1)
+		"choke":
+			player.gun.upgrade_reduce_spread(GameConfig.TALENT_CHOKE_PCT)
+		"pierce":
+			player.gun.upgrade_pierce(1)
+		"ricochet":
+			player.gun.upgrade_ricochet(1)
+		"incendiary":
+			player.gun.upgrade_incendiary(GameConfig.TALENT_BURN_DPS, GameConfig.TALENT_BURN_DURATION)
