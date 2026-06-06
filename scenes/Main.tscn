@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Script" uid="uid://dchqcispiwxbx" path="res://scripts/Spawner.gd" id="2_spawn"]
 [ext_resource type="PackedScene" path="res://scenes/Zombie.tscn" id="3_zomb"]
 [ext_resource type="Script" path="res://scripts/Hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://scripts/LevelUpUI.gd" id="5_levelup"]
+[ext_resource type="Script" path="res://scripts/StartUI.gd" id="6_startui"]
 
 [node name="Main" type="Node2D"]
 
@@ -19,3 +20,6 @@ script = ExtResource("4_hud")
 
 [node name="LevelUpUI" type="CanvasLayer" parent="."]
 script = ExtResource("5_levelup")
+
+[node name="StartUI" type="CanvasLayer" parent="."]
+script = ExtResource("6_startui")

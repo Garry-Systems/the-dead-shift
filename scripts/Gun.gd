@@ -10,8 +10,19 @@ var damage := GameConfig.BULLET_DAMAGE
 var fire_interval := GameConfig.GUN_FIRE_INTERVAL
 var bullet_speed := GameConfig.BULLET_SPEED
 var gun_range := GameConfig.GUN_RANGE
+var projectile_count := 1
+var spread := 0.0                  # total fan arc in radians across the projectiles
 
 var _cooldown := 0.0
+
+## Loads a weapon definition from Weapons.all() as this gun's base stats.
+func configure(def: Dictionary) -> void:
+	damage = float(def["damage"])
+	fire_interval = float(def["fire_interval"])
+	bullet_speed = float(def["bullet_speed"])
+	gun_range = float(def["range"])
+	projectile_count = int(def["projectiles"])
+	spread = float(def["spread"])
 
 func _process(delta: float) -> void:
 	_cooldown -= delta
@@ -40,6 +51,18 @@ func _find_nearest_zombie() -> Node2D:
 	return zombies[idx] as Node2D
 
 func _fire(dir: Vector2) -> void:
+	var base_angle := dir.angle()
+	if projectile_count <= 1:
+		var jitter: float = randf_range(-spread, spread) if spread > 0.0 else 0.0
+		_spawn_bullet(Vector2.from_angle(base_angle + jitter))
+		return
+	# Fan multiple pellets evenly across the spread arc, centered on the aim.
+	for i in projectile_count:
+		var t := float(i) / float(projectile_count - 1)
+		var offset := lerpf(-spread * 0.5, spread * 0.5, t)
+		_spawn_bullet(Vector2.from_angle(base_angle + offset))
+
+func _spawn_bullet(dir: Vector2) -> void:
 	var bullet = bullet_scene.instantiate()
 	bullet.direction = dir
 	bullet.speed = bullet_speed
