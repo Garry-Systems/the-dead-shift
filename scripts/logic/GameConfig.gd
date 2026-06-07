@@ -47,6 +47,21 @@ const ENEMY_DMG_GROWTH := 1.05        # per-wave multiplier on enemy touch damag
 const ENEMY_SPEED_GROWTH := 1.02      # per-wave multiplier on enemy move speed
 const ENEMY_SPEED_CAP := 140.0        # px/sec; enemies never move faster than this
 
+# --- Boss (Phase 4 step 2) ---
+const BOSS_WAVE_INTERVAL := 5         # a boss spawns every Nth wave (5, 10, 15, ...)
+const BOSS_BASE_HP := 1500.0          # boss max health on wave 1 (scales with ENEMY_HP_GROWTH)
+const BOSS_TOUCH_DAMAGE := 25.0       # boss contact damage/sec on wave 1 (scales w/ ENEMY_DMG_GROWTH)
+const BOSS_MOVE_SPEED := 45.0         # px/sec; deliberately slow, does not scale
+const BOSS_SPAWN_RATE_MULT := 0.5     # normal spawns run at this fraction of rate while a boss lives
+const BOSS_XP_REWARD := 30            # number of XP gems dropped on boss death
+
+# --- Boss ground slam ---
+const SLAM_INTERVAL := 4.0            # seconds between slams
+const SLAM_WINDUP := 0.8              # telegraph time before the shockwave expands
+const SLAM_RADIUS := 220.0            # max shockwave radius (px)
+const SLAM_EXPAND_TIME := 0.5         # seconds for the ring to grow 0 -> SLAM_RADIUS
+const SLAM_DAMAGE := 35.0             # damage if the player is caught by the ring (once per slam)
+
 # --- XP / Leveling ---
 const XP_BASE := 5                    # XP needed to reach level 1
 const XP_PER_LEVEL := 3               # extra XP required for each later level
