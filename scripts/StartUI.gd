@@ -56,5 +56,6 @@ func _on_weapon_pressed(index: int) -> void:
 	var def: Dictionary = _weapons[index]
 	if _player and _player.gun:
 		_player.gun.configure(def)
+		Characters.apply_weapon(_player, RunConfig.character_id)
 	queue_free()
 	get_tree().paused = false
