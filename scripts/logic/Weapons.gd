@@ -35,6 +35,18 @@ static func all() -> Array:
 			"range": 520.0, "projectiles": 1, "spread": 0.14,
 			"talents": ["damage", "fire_rate", "choke", "bullet_speed", "incendiary", "ricochet"],
 		},
+		{
+			"id": "ak47", "name": "AK-47", "desc": "Assault rifle — fast, punchy, slight kick",
+			"damage": 22.0, "fire_interval": 0.12, "bullet_speed": 900.0,
+			"range": 650.0, "projectiles": 1, "spread": 0.04,
+			"talents": ["damage", "fire_rate", "range", "bullet_speed", "pierce", "incendiary"],
+		},
+		{
+			"id": "sniper", "name": "Sniper", "desc": "Bolt-action — devastating, slow, extreme range",
+			"damage": 120.0, "fire_interval": 0.90, "bullet_speed": 1500.0,
+			"range": 1200.0, "projectiles": 1, "spread": 0.0,
+			"talents": ["damage", "fire_rate", "range", "pierce", "ricochet", "incendiary"],
+		},
 	]
 
 ## The talent id-list for a given weapon id (empty if unknown).
