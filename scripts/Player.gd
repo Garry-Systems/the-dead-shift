@@ -16,6 +16,8 @@ var joystick_direction := Vector2.ZERO
 
 ## Emitted each time the player gains a level (the upgrade UI listens for this).
 signal leveled_up
+## Emitted once when the player dies (the GameOver overlay listens for this).
+signal died
 
 ## Mutable per-run stats (upgrade cards modify these).
 var move_speed := GameConfig.PLAYER_MOVE_SPEED
@@ -118,8 +120,8 @@ func _set_flash(v: float) -> void:
 		_flash_mat.set_shader_parameter("flash", v)
 
 func _die() -> void:
-	print("PLAYER DIED — Game Over")
-	get_tree().paused = true  # freeze; a proper Game Over screen comes in Phase 7
+	get_tree().paused = true
+	died.emit()
 
 ## Grants XP and resolves any resulting level-ups.
 func add_xp(amount: int) -> void:
