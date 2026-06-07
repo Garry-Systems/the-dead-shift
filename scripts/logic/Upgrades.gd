@@ -33,6 +33,10 @@ static func gun_card(id: String) -> Dictionary:
 			return {"id": "ricochet", "title": "Ricochet", "desc": "Bullets bounce to +1 enemy"}
 		"incendiary":
 			return {"id": "incendiary", "title": "Incendiary Rounds", "desc": "Hits set enemies on fire"}
+		"reload":
+			return {"id": "reload", "title": "Fast Hands", "desc": "-20% Reload Time"}
+		"mag":
+			return {"id": "mag", "title": "Extended Mag", "desc": "+50% Magazine"}
 	return {"id": id, "title": id, "desc": ""}
 
 ## The equipped weapon's talent pool, resolved from its talent ids into cards.
@@ -80,3 +84,7 @@ static func apply(player: Player, id: String) -> void:
 			player.gun.upgrade_ricochet(1)
 		"incendiary":
 			player.gun.upgrade_incendiary(GameConfig.TALENT_BURN_DPS, GameConfig.TALENT_BURN_DURATION)
+		"reload":
+			player.gun.upgrade_reload_speed(GameConfig.TALENT_RELOAD_PCT)
+		"mag":
+			player.gun.upgrade_mag_size(GameConfig.TALENT_MAG_PCT)
