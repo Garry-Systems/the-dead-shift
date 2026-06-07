@@ -62,6 +62,17 @@ const SLAM_RADIUS := 220.0            # max shockwave radius (px)
 const SLAM_EXPAND_TIME := 0.5         # seconds for the ring to grow 0 -> SLAM_RADIUS
 const SLAM_DAMAGE := 35.0             # damage if the player is caught by the ring (once per slam)
 
+# --- Relics (Phase 4 step 3) ---
+const MAX_RELIC_SLOTS := 4            # held relic capacity (designed to be raised later)
+const RELIC_DAMAGE_PCT := 0.25        # glass_edge: +% gun damage
+const RELIC_BULLET_SPEED_PCT := 0.30  # heavy_rounds: +% bullet speed
+const RELIC_RANGE_PCT := 0.30         # long_scope: +% gun range
+const RELIC_FIRE_RATE_PCT := 0.15     # hairpin: +% fire rate (reduces fire_interval)
+const RELIC_REGEN := 1.5              # field_kit: +HP/sec
+const RELIC_PICKUP_PCT := 0.40        # lodestone: +% pickup radius
+const RELIC_MOVE_SPEED_PCT := 0.15    # featherweight: +% move speed
+const RELIC_MAX_HEALTH := 40.0        # vital_surge: +max HP (and heals the same)
+
 # --- XP / Leveling ---
 const XP_BASE := 5                    # XP needed to reach level 1
 const XP_PER_LEVEL := 3               # extra XP required for each later level

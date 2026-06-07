@@ -105,6 +105,10 @@ func xp_to_next() -> int:
 func full_heal() -> void:
 	_health.heal(_health.maxhp)
 
+## Relic hook: raise (or lower, when removed) max health. Reversible via a negative amount.
+func relic_add_max_health(amount: float) -> void:
+	_health.add_max(amount)
+
 func _on_level_up() -> void:
 	leveled_up.emit()
 

@@ -26,7 +26,14 @@ func heal(amount: float) -> void:
 	if current > maxhp:
 		current = maxhp
 
-## Raises the maximum and grants the same amount as current health.
+## Adds (or, with a negative amount, removes) maximum health, keeping current health
+## within [1, maxhp]. Negative amounts are used when a relic is removed/swapped out.
 func add_max(amount: float) -> void:
 	maxhp += amount
+	if maxhp < 1.0:
+		maxhp = 1.0
 	current += amount
+	if current > maxhp:
+		current = maxhp
+	if current < 1.0:
+		current = 1.0
