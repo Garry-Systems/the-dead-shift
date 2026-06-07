@@ -89,3 +89,9 @@ const CHAR_JIMBO_SPEED_PCT := 0.50       # Jimbo: +move speed always
 const CHAR_JIMBO_SNIPER_DMG_PCT := 0.25  # Jimbo: +damage when wielding a sniper
 const CHAR_JIMBO_SNIPER_FIRE_PCT := 0.15 # Jimbo: +fire rate when wielding a sniper
 const CHAR_BOB_MAGNET_PCT := 0.25        # Bob: +pickup radius always
+
+# --- Reload (Spec 2) ---
+const RELOAD_TIME_FLOOR := 0.15             # seconds; minimum effective reload after speed bonuses
+const TALENT_RELOAD_PCT := 0.20             # "Fast Hands" gun talent: -% reload time
+const TALENT_MAG_PCT := 0.50                # "Extended Mag" gun talent: +% magazine size
+const CHAR_JIMBO_SNIPER_RELOAD_PCT := 0.20  # Jimbo's sniper perk: -% reload time
