@@ -6,6 +6,8 @@ var _bar: ProgressBar
 var _label: Label
 var _wave_label: Label
 var _boss_bar: ProgressBar
+var _ammo_label: Label
+var _reload_bar: ProgressBar
 var _player: Player
 
 func _ready() -> void:
@@ -48,6 +50,26 @@ func _ready() -> void:
 	_boss_bar.visible = false
 	add_child(_boss_bar)
 
+	_ammo_label = Label.new()
+	_ammo_label.anchor_top = 1.0
+	_ammo_label.anchor_bottom = 1.0
+	_ammo_label.offset_left = 14
+	_ammo_label.offset_top = -40
+	_ammo_label.offset_bottom = -16
+	add_child(_ammo_label)
+
+	_reload_bar = ProgressBar.new()
+	_reload_bar.show_percentage = false
+	_reload_bar.max_value = 1.0
+	_reload_bar.anchor_top = 1.0
+	_reload_bar.anchor_bottom = 1.0
+	_reload_bar.offset_left = 14
+	_reload_bar.offset_right = 140
+	_reload_bar.offset_top = -58
+	_reload_bar.offset_bottom = -44
+	_reload_bar.visible = false
+	add_child(_reload_bar)
+
 func _process(_delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
@@ -69,3 +91,13 @@ func _process(_delta: float) -> void:
 		_boss_bar.value = (boss as Boss).health_fraction()
 	else:
 		_boss_bar.visible = false
+
+	var gun := _player.gun
+	if gun != null:
+		if gun.is_reloading():
+			_ammo_label.text = "Reloading..."
+			_reload_bar.visible = true
+			_reload_bar.value = gun.reload_progress()
+		else:
+			_ammo_label.text = "%d / %d" % [gun.ammo(), gun.mag_size]
+			_reload_bar.visible = false
