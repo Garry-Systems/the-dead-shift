@@ -101,6 +101,10 @@ func add_xp(amount: int) -> void:
 func xp_to_next() -> int:
 	return _xp_to_next
 
+## Restores the player to full health (called by a boss death reward).
+func full_heal() -> void:
+	_health.heal(_health.maxhp)
+
 func _on_level_up() -> void:
 	leveled_up.emit()
 
