@@ -2,9 +2,9 @@ class_name Boss
 extends CharacterBody2D
 ## A brute boss: slow, huge HP, heavy contact damage, with a periodic telegraphed
 ## ground slam. Stats are baked at spawn via configure() (scaled by spawn wave). On
-## death it drops a big XP burst and full-heals the player. (The relic drop is added
-## in Step 3.) It is in the "enemies" group so bullets/auto-aim hit it, and the "boss"
-## group so the HUD can show its health bar.
+## death it drops a big XP burst, full-heals the player, and drops one relic. It is in
+## the "enemies" group so bullets/auto-aim hit it, and the "boss" group so the HUD can
+## show its health bar.
 
 @export var xp_gem_scene: PackedScene
 @export var slam_wave_scene: PackedScene

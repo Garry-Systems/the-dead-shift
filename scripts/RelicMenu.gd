@@ -41,6 +41,9 @@ func _build_root() -> void:
 func open(new_id: String, pickup: Node) -> void:
 	if _root.visible:
 		return                  # already resolving one pickup
+	if _bar == null:
+		pickup.queue_free()    # no relic bar in scene -> can't take; discard safely
+		return
 	_new_id = new_id
 	_pickup = pickup
 	_clear_vbox()
