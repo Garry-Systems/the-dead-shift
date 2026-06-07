@@ -8,6 +8,7 @@ extends CharacterBody2D
 
 @export var xp_gem_scene: PackedScene
 @export var slam_wave_scene: PackedScene
+@export var relic_pickup_scene: PackedScene
 
 var max_health := GameConfig.BOSS_BASE_HP
 var move_speed := GameConfig.BOSS_MOVE_SPEED
@@ -93,4 +94,12 @@ func _reward() -> void:
 	# Full heal.
 	if _target and is_instance_valid(_target):
 		_target.full_heal()
-	# (Step 3 adds a relic drop here.)
+	# Relic drop: one relic that is neither owned nor banned this run.
+	var bar := get_tree().get_first_node_in_group("relic_bar")
+	if bar != null and relic_pickup_scene != null:
+		var id: String = bar.call("roll_drop")
+		if id != "":
+			var pickup = relic_pickup_scene.instantiate()
+			pickup.relic_id = id
+			get_tree().current_scene.add_child(pickup)
+			pickup.global_position = global_position

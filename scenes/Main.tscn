@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Script" uid="uid://dchqcispiwxbx" path="res://scripts/Spawner.gd" id="2_spawn"]
@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://scripts/LevelUpUI.gd" id="5_levelup"]
 [ext_resource type="Script" path="res://scripts/StartUI.gd" id="6_startui"]
 [ext_resource type="PackedScene" path="res://scenes/Boss.tscn" id="7_boss"]
+[ext_resource type="Script" path="res://scripts/RelicBar.gd" id="8_relicbar"]
+[ext_resource type="Script" path="res://scripts/RelicMenu.gd" id="9_relicmenu"]
 
 [node name="Main" type="Node2D"]
 
@@ -25,3 +27,9 @@ script = ExtResource("5_levelup")
 
 [node name="StartUI" type="CanvasLayer" parent="."]
 script = ExtResource("6_startui")
+
+[node name="RelicBar" type="CanvasLayer" parent="."]
+script = ExtResource("8_relicbar")
+
+[node name="RelicMenu" type="CanvasLayer" parent="."]
+script = ExtResource("9_relicmenu")
