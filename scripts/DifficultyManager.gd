@@ -23,6 +23,10 @@ func _process(delta: float) -> void:
 func enemy_stats() -> Dictionary:
 	return DifficultyCurve.enemy_stats(wave)
 
+## Scaled stats for a boss spawned right now.
+func boss_stats() -> Dictionary:
+	return DifficultyCurve.boss_stats(wave)
+
 ## Seconds between spawns right now.
 func spawn_interval() -> float:
 	return DifficultyCurve.spawn_interval(wave)
