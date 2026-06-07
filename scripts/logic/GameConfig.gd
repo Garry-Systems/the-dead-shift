@@ -80,3 +80,12 @@ const XP_GEM_VALUE := 1               # XP granted per gem
 const PICKUP_RADIUS := 80.0           # px; gems within this drift to the player
 const GEM_DRIFT_SPEED := 300.0        # px/sec a gem moves toward the player
 const GEM_COLLECT_DISTANCE := 16.0    # px; closer than this = collected
+
+# --- Characters (Spec 1) ---
+const CHAR_RYAN_HP_BONUS := 50.0         # Ryan starts at 100+50 = 150 HP
+const CHAR_RYAN_AK_DMG_PCT := 0.25       # Ryan: +damage when wielding the AK-47
+const CHAR_RYAN_AK_FIRE_PCT := 0.15      # Ryan: +fire rate when wielding the AK-47
+const CHAR_JIMBO_SPEED_PCT := 0.50       # Jimbo: +move speed always
+const CHAR_JIMBO_SNIPER_DMG_PCT := 0.25  # Jimbo: +damage when wielding a sniper
+const CHAR_JIMBO_SNIPER_FIRE_PCT := 0.15 # Jimbo: +fire rate when wielding a sniper
+const CHAR_BOB_MAGNET_PCT := 0.25        # Bob: +pickup radius always
