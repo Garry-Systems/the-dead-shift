@@ -10,6 +10,7 @@ var _health := Health.new(GameConfig.PLAYER_MAX_HEALTH)
 var _dash := DashState.new(GameConfig.DASH_DURATION, GameConfig.DASH_COOLDOWN)
 var _last_move_dir := Vector2.RIGHT
 var _last_tap_time := -999.0
+var _is_dead := false
 
 ## Set by the VirtualJoystick. Vector2.ZERO means "no joystick input, use keyboard".
 var joystick_direction := Vector2.ZERO
@@ -120,6 +121,9 @@ func _set_flash(v: float) -> void:
 		_flash_mat.set_shader_parameter("flash", v)
 
 func _die() -> void:
+	if _is_dead:
+		return
+	_is_dead = true
 	get_tree().paused = true
 	died.emit()
 

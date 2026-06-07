@@ -39,4 +39,5 @@ func _process(delta: float) -> void:
 	_elapsed += delta
 	_bar.value = clampf(_elapsed / LOAD_TIME, 0.0, 1.0)
 	if _elapsed >= LOAD_TIME:
+		set_process(false)
 		get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
