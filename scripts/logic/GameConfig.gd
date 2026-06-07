@@ -38,6 +38,15 @@ const ENEMY_TOUCH_DAMAGE := 10.0     # damage per second while touching the play
 const SPAWN_INTERVAL := 1.0           # seconds between spawns
 const SPAWN_RADIUS := 700.0           # distance from player to spawn at
 
+# --- Difficulty / Waves (Phase 4 step 1) ---
+const WAVE_DURATION := 30.0           # seconds per wave; wave = floor(run_time/this)+1
+const SPAWN_INTERVAL_FLOOR := 0.20    # fastest the spawner ever gets (seconds)
+const SPAWN_INTERVAL_DECAY := 0.92    # per-wave multiplier on SPAWN_INTERVAL (more enemies)
+const ENEMY_HP_GROWTH := 1.12         # per-wave multiplier on enemy max health
+const ENEMY_DMG_GROWTH := 1.05        # per-wave multiplier on enemy touch damage
+const ENEMY_SPEED_GROWTH := 1.02      # per-wave multiplier on enemy move speed
+const ENEMY_SPEED_CAP := 140.0        # px/sec; enemies never move faster than this
+
 # --- XP / Leveling ---
 const XP_BASE := 5                    # XP needed to reach level 1
 const XP_PER_LEVEL := 3               # extra XP required for each later level
