@@ -20,6 +20,14 @@ var incendiary := false
 var burn_dps := 0.0
 var burn_duration := 0.0
 
+# Magazine / reload (Spec 2). reload_mult is NOT reset by configure (perks apply after it).
+var mag_size := 12
+var reload_time := 1.1
+var reload_mult := 1.0
+var _ammo := 12
+var _reloading := false
+var _reload_timer := 0.0
+
 var weapon_id := "pistol"         # which Weapons def is equipped (drives the talent pool)
 
 const MUZZLE_TIME := 0.05         # seconds the muzzle flash stays visible per shot
@@ -45,9 +53,21 @@ func configure(def: Dictionary) -> void:
 	gun_range = float(def["range"])
 	projectile_count = int(def["projectiles"])
 	spread = float(def["spread"])
+	mag_size = int(def["mag_size"])
+	reload_time = float(def["reload_time"])
+	_ammo = mag_size
+	_reloading = false
+	_reload_timer = 0.0
 
 func _process(delta: float) -> void:
 	_fade_muzzle(delta)
+
+	if _reloading:
+		_reload_timer -= delta
+		if _reload_timer <= 0.0:
+			_ammo = mag_size
+			_reloading = false
+		return
 
 	_cooldown -= delta
 	if _cooldown > 0.0 or bullet_scene == null:
@@ -59,6 +79,24 @@ func _process(delta: float) -> void:
 
 	_fire((target.global_position - global_position).normalized())
 	_cooldown = fire_interval
+	_ammo -= 1
+	if _ammo <= 0:
+		_start_reload()
+
+func _start_reload() -> void:
+	_reloading = true
+	_reload_timer = maxf(reload_time * reload_mult, GameConfig.RELOAD_TIME_FLOOR)
+
+# --- Read access for the HUD (keeps magazine state private) ---
+func ammo() -> int:
+	return _ammo
+
+func is_reloading() -> bool:
+	return _reloading
+
+func reload_progress() -> float:
+	var dur := maxf(reload_time * reload_mult, GameConfig.RELOAD_TIME_FLOOR)
+	return clampf(1.0 - _reload_timer / dur, 0.0, 1.0)
 
 func _find_nearest_enemy() -> Node2D:
 	var enemies := get_tree().get_nodes_in_group("enemies")
@@ -153,3 +191,9 @@ func upgrade_incendiary(dps: float, duration: float) -> void:
 	incendiary = true
 	burn_dps += dps
 	burn_duration = maxf(burn_duration, duration)
+
+func upgrade_reload_speed(pct: float) -> void:
+	reload_mult *= (1.0 - pct)        # smaller mult = faster reload
+
+func upgrade_mag_size(pct: float) -> void:
+	mag_size = int(ceil(mag_size * (1.0 + pct)))   # ceil so small mags still gain >= 1
