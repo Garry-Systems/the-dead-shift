@@ -15,7 +15,7 @@ const DASH_DOUBLE_TAP_WINDOW := 0.30  # max seconds between the two taps
 
 # --- Gun ---
 const GUN_FIRE_INTERVAL := 0.20       # seconds between shots
-const GUN_RANGE := 600.0              # px; ignore zombies farther than this
+const GUN_RANGE := 600.0              # px; ignore enemies farther than this
 const BULLET_SPEED := 800.0           # px/sec
 const BULLET_DAMAGE := 25.0
 const BULLET_LIFETIME := 1.5          # seconds before a bullet despawns
@@ -29,10 +29,10 @@ const TALENT_CHOKE_PCT := 0.30        # "Tighter Choke" spread reduction
 const TALENT_BURN_DPS := 8.0          # incendiary damage per second
 const TALENT_BURN_DURATION := 3.0     # incendiary burn duration (seconds)
 
-# --- Zombie ---
-const ZOMBIE_MOVE_SPEED := 70.0       # px/sec
-const ZOMBIE_MAX_HEALTH := 50.0
-const ZOMBIE_TOUCH_DAMAGE := 10.0     # damage per second while touching the player
+# --- Enemy ---
+const ENEMY_MOVE_SPEED := 70.0       # px/sec
+const ENEMY_MAX_HEALTH := 50.0
+const ENEMY_TOUCH_DAMAGE := 10.0     # damage per second while touching the player
 
 # --- Spawner ---
 const SPAWN_INTERVAL := 1.0           # seconds between spawns

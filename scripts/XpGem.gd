@@ -1,5 +1,5 @@
 extends Node2D
-## An XP gem dropped by a dead zombie. When the player is within pickup range it
+## An XP gem dropped by a dead enemy. When the player is within pickup range it
 ## drifts toward them; on contact it grants XP and disappears.
 
 var value := GameConfig.XP_GEM_VALUE

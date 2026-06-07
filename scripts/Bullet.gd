@@ -1,5 +1,5 @@
 extends Area2D
-## A projectile: flies in a direction, damages zombies it overlaps, and despawns
+## A projectile: flies in a direction, damages enemies it overlaps, and despawns
 ## after a lifetime. Speed/damage and the talent payload (pierce, ricochet, burn)
 ## are set by the gun that fires it, so weapon talents carry through to the bullet.
 
@@ -8,14 +8,14 @@ var speed := GameConfig.BULLET_SPEED
 var damage := GameConfig.BULLET_DAMAGE
 
 # Talent payload (set by Gun._spawn_bullet; 0/false = vanilla bullet).
-var pierce_count := 0          # extra zombies the bullet passes through
-var ricochet_count := 0        # times it redirects to the next nearest zombie
-var incendiary := false        # ignites zombies it hits
+var pierce_count := 0          # extra enemies the bullet passes through
+var ricochet_count := 0        # times it redirects to the next nearest enemy
+var incendiary := false        # ignites enemies it hits
 var burn_dps := 0.0
 var burn_duration := 0.0
 
 var _life := 0.0
-var _hit: Array = []           # zombies already damaged (so pierce/ricochet don't re-hit)
+var _hit: Array = []           # enemies already damaged (so pierce/ricochet don't re-hit)
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
@@ -27,7 +27,7 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 func _on_body_entered(body) -> void:
-	if not body.is_in_group("zombies") or body in _hit:
+	if not body.is_in_group("enemies") or body in _hit:
 		return
 
 	_hit.append(body)
@@ -38,7 +38,7 @@ func _on_body_entered(body) -> void:
 	# Ricochet redirects toward a fresh target; pierce keeps flying straight.
 	if ricochet_count > 0:
 		ricochet_count -= 1
-		var next := _nearest_unhit_zombie()
+		var next := _nearest_unhit_enemy()
 		if next != null:
 			direction = (next.global_position - global_position).normalized()
 		return
@@ -47,10 +47,10 @@ func _on_body_entered(body) -> void:
 		return
 	queue_free()
 
-func _nearest_unhit_zombie() -> Node2D:
+func _nearest_unhit_enemy() -> Node2D:
 	var best: Node2D = null
 	var best_dist := INF
-	for z in get_tree().get_nodes_in_group("zombies"):
+	for z in get_tree().get_nodes_in_group("enemies"):
 		if z in _hit:
 			continue
 		var node := z as Node2D

@@ -78,7 +78,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		_last_tap_time = now
 
-## Called by zombies while they touch the player.
+## Called by enemies while they touch the player.
 func take_damage(amount: float) -> void:
 	_health.take_damage(amount)
 	if _health.is_dead():
