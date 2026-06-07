@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" uid="uid://tsgkxd5n13jq" path="res://scripts/Player.gd" id="1_player"]
-[ext_resource type="Texture2D" uid="uid://clb35uimfi113" path="res://icon.svg" id="2_tex"]
+[ext_resource type="Texture2D" path="res://art/player.png" id="2_tex"]
 [ext_resource type="Script" uid="uid://dbwn6sgo7yndd" path="res://scripts/Gun.gd" id="3_gun"]
 [ext_resource type="PackedScene" path="res://scenes/Bullet.tscn" id="4_bullet"]
 
@@ -12,7 +12,7 @@ radius = 24.0
 script = ExtResource("1_player")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.25, 0.25)
+scale = Vector2(3, 3)
 texture = ExtResource("2_tex")
 
 [node name="Camera2D" type="Camera2D" parent="."]

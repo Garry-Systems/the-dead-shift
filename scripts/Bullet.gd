@@ -32,8 +32,11 @@ func _on_body_entered(body) -> void:
 
 	_hit.append(body)
 	body.take_damage(damage)
-	if incendiary and is_instance_valid(body):
-		body.ignite(burn_dps, burn_duration)
+	if is_instance_valid(body):
+		if body.has_method("flash_hit"):
+			body.flash_hit()
+		if incendiary:
+			body.ignite(burn_dps, burn_duration)
 
 	# Ricochet redirects toward a fresh target; pierce keeps flying straight.
 	if ricochet_count > 0:

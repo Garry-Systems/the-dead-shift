@@ -3,6 +3,9 @@ extends CharacterBody2D
 ## The player avatar: movement (keyboard for desktop testing + joystick for mobile),
 ## health, contact damage, and a double-tap dash.
 
+const FLASH_SHADER := preload("res://shaders/flash.gdshader")
+const HURT_FLASH_COOLDOWN := 0.18   # min gap between red pulses (contact damage is per-frame)
+
 var _health := Health.new(GameConfig.PLAYER_MAX_HEALTH)
 var _dash := DashState.new(GameConfig.DASH_DURATION, GameConfig.DASH_COOLDOWN)
 var _last_move_dir := Vector2.RIGHT
@@ -26,14 +29,29 @@ var xp := 0
 var level := 0
 var pickup_radius := GameConfig.PICKUP_RADIUS
 var _xp_to_next := 0
+var _flash_mat: ShaderMaterial
+var _flash_cd := 0.0
 
 func _ready() -> void:
 	add_to_group("player")
 	_xp_to_next = XpCurve.xp_for_level(0)
 	gun = get_node_or_null("Gun") as Gun
+	_setup_flash()
+
+## Per-instance flash material set to flash RED — the "I'm taking damage" indicator.
+func _setup_flash() -> void:
+	var spr := get_node_or_null("Sprite2D") as Sprite2D
+	if spr == null:
+		return
+	_flash_mat = ShaderMaterial.new()
+	_flash_mat.shader = FLASH_SHADER
+	_flash_mat.set_shader_parameter("flash_color", Color(1.0, 0.2, 0.2, 1.0))
+	spr.material = _flash_mat
 
 func _physics_process(delta: float) -> void:
 	_dash.tick(delta)
+	if _flash_cd > 0.0:
+		_flash_cd -= delta
 
 	var dir := joystick_direction
 	if dir == Vector2.ZERO:
@@ -81,8 +99,23 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Called by enemies while they touch the player.
 func take_damage(amount: float) -> void:
 	_health.take_damage(amount)
+	_hurt_flash()
 	if _health.is_dead():
 		_die()
+
+## Throttled red pulse — contact damage calls this every frame, so we rate-limit
+## it to a periodic "ouch" rather than a solid red wash.
+func _hurt_flash() -> void:
+	if _flash_mat == null or _flash_cd > 0.0:
+		return
+	_flash_cd = HURT_FLASH_COOLDOWN
+	_flash_mat.set_shader_parameter("flash", 1.0)
+	var tw := create_tween()
+	tw.tween_method(_set_flash, 1.0, 0.0, 0.15)
+
+func _set_flash(v: float) -> void:
+	if _flash_mat != null:
+		_flash_mat.set_shader_parameter("flash", v)
 
 func _die() -> void:
 	print("PLAYER DIED — Game Over")

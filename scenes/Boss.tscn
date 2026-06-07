@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/Boss.gd" id="1_boss"]
-[ext_resource type="Texture2D" uid="uid://clb35uimfi113" path="res://icon.svg" id="2_tex"]
+[ext_resource type="Texture2D" path="res://art/enemy.png" id="2_tex"]
 [ext_resource type="PackedScene" path="res://scenes/XpGem.tscn" id="3_gem"]
 [ext_resource type="PackedScene" path="res://scenes/SlamWave.tscn" id="4_slam"]
 [ext_resource type="PackedScene" path="res://scenes/RelicPickup.tscn" id="5_relic"]
@@ -16,8 +16,8 @@ slam_wave_scene = ExtResource("4_slam")
 relic_pickup_scene = ExtResource("5_relic")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-modulate = Color(1, 0.25, 0.25, 1)
-scale = Vector2(0.5, 0.5)
+modulate = Color(1, 0.4, 0.4, 1)
+scale = Vector2(5, 5)
 texture = ExtResource("2_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

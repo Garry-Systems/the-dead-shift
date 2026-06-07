@@ -22,7 +22,19 @@ var burn_duration := 0.0
 
 var weapon_id := "pistol"         # which Weapons def is equipped (drives the talent pool)
 
+const MUZZLE_TIME := 0.05         # seconds the muzzle flash stays visible per shot
+
 var _cooldown := 0.0
+var _muzzle: Sprite2D
+var _muzzle_time := 0.0
+
+func _ready() -> void:
+	_muzzle = Sprite2D.new()
+	_muzzle.texture = preload("res://art/muzzle.png")
+	_muzzle.scale = Vector2(1.5, 1.5)
+	_muzzle.z_index = 1            # above the player sprite
+	_muzzle.visible = false
+	add_child(_muzzle)
 
 ## Loads a weapon definition from Weapons.all() as this gun's base stats.
 func configure(def: Dictionary) -> void:
@@ -35,6 +47,8 @@ func configure(def: Dictionary) -> void:
 	spread = float(def["spread"])
 
 func _process(delta: float) -> void:
+	_fade_muzzle(delta)
+
 	_cooldown -= delta
 	if _cooldown > 0.0 or bullet_scene == null:
 		return
@@ -62,6 +76,7 @@ func _find_nearest_enemy() -> Node2D:
 
 func _fire(dir: Vector2) -> void:
 	var base_angle := dir.angle()
+	_show_muzzle(base_angle)
 	if projectile_count <= 1:
 		var jitter: float = randf_range(-spread, spread) if spread > 0.0 else 0.0
 		_spawn_bullet(Vector2.from_angle(base_angle + jitter))
@@ -71,6 +86,27 @@ func _fire(dir: Vector2) -> void:
 		var t := float(i) / float(projectile_count - 1)
 		var offset := lerpf(-spread * 0.5, spread * 0.5, t)
 		_spawn_bullet(Vector2.from_angle(base_angle + offset))
+
+## Pops the muzzle flash at the gun's muzzle, oriented along the shot.
+func _show_muzzle(angle: float) -> void:
+	if _muzzle == null:
+		return
+	_muzzle.position = Vector2.from_angle(angle) * 22.0
+	_muzzle.rotation = angle
+	_muzzle.modulate = Color(1, 1, 1, 1)
+	_muzzle.visible = true
+	_muzzle_time = MUZZLE_TIME
+
+## Fades the muzzle flash out over MUZZLE_TIME; runs every frame regardless of fire state.
+func _fade_muzzle(delta: float) -> void:
+	if _muzzle == null or _muzzle_time <= 0.0:
+		return
+	_muzzle_time -= delta
+	var c := _muzzle.modulate
+	c.a = clampf(_muzzle_time / MUZZLE_TIME, 0.0, 1.0)
+	_muzzle.modulate = c
+	if _muzzle_time <= 0.0:
+		_muzzle.visible = false
 
 func _spawn_bullet(dir: Vector2) -> void:
 	var bullet = bullet_scene.instantiate()

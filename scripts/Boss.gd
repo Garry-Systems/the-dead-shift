@@ -6,6 +6,8 @@ extends CharacterBody2D
 ## the "enemies" group so bullets/auto-aim hit it, and the "boss" group so the HUD can
 ## show its health bar.
 
+const FLASH_SHADER := preload("res://shaders/flash.gdshader")
+
 @export var xp_gem_scene: PackedScene
 @export var slam_wave_scene: PackedScene
 @export var relic_pickup_scene: PackedScene
@@ -19,6 +21,7 @@ var _target: Player
 var _slam_cd := GameConfig.SLAM_INTERVAL
 var _burn_dps := 0.0
 var _burn_time := 0.0
+var _flash_mat: ShaderMaterial
 
 ## Bakes scaled stats at spawn (called by the Spawner).
 func configure(stats: Dictionary) -> void:
@@ -33,6 +36,29 @@ func _ready() -> void:
 	_target = get_tree().get_first_node_in_group("player") as Player
 	if _health == null:
 		_health = Health.new(max_health)
+	_setup_flash()
+
+## Own flash material; base_tint keeps the boss red since the shader replaces modulate.
+func _setup_flash() -> void:
+	var spr := get_node_or_null("Sprite2D") as Sprite2D
+	if spr == null:
+		return
+	_flash_mat = ShaderMaterial.new()
+	_flash_mat.shader = FLASH_SHADER
+	_flash_mat.set_shader_parameter("base_tint", Color(1.0, 0.4, 0.4, 1.0))
+	spr.material = _flash_mat
+
+## Brief white pop on bullet impact (called by Bullet, not by burn ticks).
+func flash_hit() -> void:
+	if _flash_mat == null:
+		return
+	_flash_mat.set_shader_parameter("flash", 1.0)
+	var tw := create_tween()
+	tw.tween_method(_set_flash, 1.0, 0.0, 0.12)
+
+func _set_flash(v: float) -> void:
+	if _flash_mat != null:
+		_flash_mat.set_shader_parameter("flash", v)
 
 ## Fraction of health remaining (0..1) for the HUD bar.
 func health_fraction() -> float:

@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/RelicPickup.gd" id="1_pick"]
-[ext_resource type="Texture2D" uid="uid://clb35uimfi113" path="res://icon.svg" id="2_tex"]
+[ext_resource type="Texture2D" path="res://art/relic.png" id="2_tex"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_pick"]
 radius = 24.0
@@ -10,8 +10,7 @@ radius = 24.0
 script = ExtResource("1_pick")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-modulate = Color(1, 0.9, 0.2, 1)
-scale = Vector2(0.12, 0.12)
+scale = Vector2(2.5, 2.5)
 texture = ExtResource("2_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

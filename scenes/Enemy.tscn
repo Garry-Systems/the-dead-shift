@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" uid="uid://pqm1ch7wugtm" path="res://scripts/Enemy.gd" id="1_zomb"]
-[ext_resource type="Texture2D" uid="uid://clb35uimfi113" path="res://icon.svg" id="2_tex"]
+[ext_resource type="Texture2D" path="res://art/enemy.png" id="2_tex"]
 [ext_resource type="PackedScene" path="res://scenes/XpGem.tscn" id="3_gem"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_zomb"]
@@ -12,8 +12,7 @@ script = ExtResource("1_zomb")
 xp_gem_scene = ExtResource("3_gem")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-modulate = Color(0.4, 1, 0.4, 1)
-scale = Vector2(0.2, 0.2)
+scale = Vector2(2, 2)
 texture = ExtResource("2_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

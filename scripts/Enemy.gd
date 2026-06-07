@@ -4,6 +4,8 @@ extends CharacterBody2D
 ## (the project's "roll once, store forever" pattern) so a wave-8 enemy keeps wave-8
 ## stats even into wave 9.
 
+const FLASH_SHADER := preload("res://shaders/flash.gdshader")
+
 @export var xp_gem_scene: PackedScene
 
 # Baked per-enemy stats (set by configure(); fall back to base config if spawned raw).
@@ -15,6 +17,7 @@ var _health: Health
 var _target: Player
 var _burn_dps := 0.0
 var _burn_time := 0.0          # seconds of burn remaining (incendiary talent)
+var _flash_mat: ShaderMaterial
 
 ## Bakes scaled stats at spawn. Called by the Spawner before/at add_child.
 ## Cast every Variant out of the dict explicitly to dodge the GDScript typing traps.
@@ -29,6 +32,28 @@ func _ready() -> void:
 	_target = get_tree().get_first_node_in_group("player") as Player
 	if _health == null:                       # spawned without configure() -> base stats
 		_health = Health.new(max_health)
+	_setup_flash()
+
+## Gives this sprite its own flash material so a hit flashes only this enemy.
+func _setup_flash() -> void:
+	var spr := get_node_or_null("Sprite2D") as Sprite2D
+	if spr == null:
+		return
+	_flash_mat = ShaderMaterial.new()
+	_flash_mat.shader = FLASH_SHADER
+	spr.material = _flash_mat
+
+## Brief white pop on bullet impact (called by Bullet, not by burn ticks).
+func flash_hit() -> void:
+	if _flash_mat == null:
+		return
+	_flash_mat.set_shader_parameter("flash", 1.0)
+	var tw := create_tween()
+	tw.tween_method(_set_flash, 1.0, 0.0, 0.12)
+
+func _set_flash(v: float) -> void:
+	if _flash_mat != null:
+		_flash_mat.set_shader_parameter("flash", v)
 
 ## Applies (or refreshes) an incendiary burn — damage over time, set by a bullet.
 func ignite(dps: float, duration: float) -> void:
