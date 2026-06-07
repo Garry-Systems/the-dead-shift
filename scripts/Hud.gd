@@ -54,7 +54,14 @@ func _process(_delta: float) -> void:
 	_bar.max_value = _player.xp_to_next()
 	_bar.value = _player.xp
 	_label.text = "Level %d" % _player.level
-	_wave_label.text = "Wave %d   %s" % [DifficultyManager.wave, DifficultyManager.time_string()]
+	if RunConfig.mode == "boss_rush":
+		var spawner := get_tree().get_first_node_in_group("spawner")
+		var n := 0
+		if spawner != null:
+			n = int(spawner.boss_rush_count)
+		_wave_label.text = "Boss #%d" % n
+	else:
+		_wave_label.text = "Wave %d   %s" % [DifficultyManager.wave, DifficultyManager.time_string()]
 
 	var boss := get_tree().get_first_node_in_group("boss")
 	if boss != null:
