@@ -52,6 +52,6 @@ static func apply_weapon(player: Player, id: String) -> void:
 			if weapon_id == "sniper":
 				player.gun.upgrade_damage(GameConfig.CHAR_JIMBO_SNIPER_DMG_PCT)
 				player.gun.upgrade_fire_rate(GameConfig.CHAR_JIMBO_SNIPER_FIRE_PCT)
-				# (reload-speed perk activates in Spec 2 when a reload system exists)
+				player.gun.upgrade_reload_speed(GameConfig.CHAR_JIMBO_SNIPER_RELOAD_PCT)
 		"bob":
 			pass
