@@ -39,7 +39,7 @@ var _muzzle_time := 0.0
 func _ready() -> void:
 	_muzzle = Sprite2D.new()
 	_muzzle.texture = preload("res://art/muzzle.png")
-	_muzzle.scale = Vector2(1.5, 1.5)
+	_muzzle.scale = Vector2(0.75, 0.75)
 	_muzzle.z_index = 1            # above the player sprite
 	_muzzle.visible = false
 	add_child(_muzzle)

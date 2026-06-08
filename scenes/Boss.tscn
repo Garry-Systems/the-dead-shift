@@ -17,7 +17,7 @@ relic_pickup_scene = ExtResource("5_relic")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 modulate = Color(1, 0.4, 0.4, 1)
-scale = Vector2(5, 5)
+scale = Vector2(2.5, 2.5)
 texture = ExtResource("2_tex")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
