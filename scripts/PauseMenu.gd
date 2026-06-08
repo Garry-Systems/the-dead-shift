@@ -14,6 +14,9 @@ func _ready() -> void:
 	_build_overlay()
 	_overlay.visible = false
 
+func _process(_delta: float) -> void:
+	_pause_btn.visible = not get_tree().paused
+
 func _build_button() -> void:
 	_pause_btn = Button.new()
 	_pause_btn.text = "II"
