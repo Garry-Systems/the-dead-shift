@@ -140,6 +140,18 @@ func add_xp(amount: int) -> void:
 func xp_to_next() -> int:
 	return _xp_to_next
 
+## Health readouts for the HUD (keeps _health private).
+func health_fraction() -> float:
+	if _health == null or _health.maxhp <= 0.0:
+		return 0.0
+	return _health.current / _health.maxhp
+
+func hp() -> float:
+	return _health.current if _health != null else 0.0
+
+func max_hp() -> float:
+	return _health.maxhp if _health != null else 0.0
+
 ## Restores the player to full health (called by a boss death reward).
 func full_heal() -> void:
 	_health.heal(_health.maxhp)
