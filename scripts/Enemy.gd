@@ -18,6 +18,7 @@ var _target: Player
 var _burn_dps := 0.0
 var _burn_time := 0.0          # seconds of burn remaining (incendiary talent)
 var _flash_mat: ShaderMaterial
+var _health_bar: EnemyHealthBar
 
 ## Bakes scaled stats at spawn. Called by the Spawner before/at add_child.
 ## Cast every Variant out of the dict explicitly to dodge the GDScript typing traps.
@@ -33,6 +34,10 @@ func _ready() -> void:
 	if _health == null:                       # spawned without configure() -> base stats
 		_health = Health.new(max_health)
 	_setup_flash()
+	_health_bar = EnemyHealthBar.new()
+	_health_bar.position = Vector2(0, -28)
+	_health_bar.z_index = 1
+	add_child(_health_bar)
 
 ## Gives this sprite its own flash material so a hit flashes only this enemy.
 func _setup_flash() -> void:
@@ -60,6 +65,12 @@ func ignite(dps: float, duration: float) -> void:
 	_burn_dps = maxf(_burn_dps, dps)
 	_burn_time = maxf(_burn_time, duration)
 
+## Remaining-health fraction (for the above-head bar).
+func health_fraction() -> float:
+	if _health == null or _health.maxhp <= 0.0:
+		return 0.0
+	return _health.current / _health.maxhp
+
 func _physics_process(delta: float) -> void:
 	if _burn_time > 0.0:
 		_burn_time -= delta
@@ -83,6 +94,8 @@ func take_damage(amount: float) -> void:
 	if _health.is_dead():
 		_drop_gem()
 		queue_free()
+	elif _health_bar != null:
+		_health_bar.set_fraction(health_fraction())
 
 func _drop_gem() -> void:
 	if xp_gem_scene == null:
