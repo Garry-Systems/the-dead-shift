@@ -10,6 +10,7 @@ var _current_cards: Array = []
 var _root: Control
 var _title: Label
 var _buttons: Array[Button] = []
+var _descs: Array[Label] = []
 
 func _ready() -> void:
 	# Keep this UI alive and clickable while the rest of the tree is paused.
@@ -29,7 +30,7 @@ func _build_ui() -> void:
 	add_child(_root)
 
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.6)
+	dim.color = PixelTheme.OVERLAY_DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
 
@@ -37,20 +38,37 @@ func _build_ui() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(center)
 
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	center.add_child(card)
+
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 16)
-	center.add_child(vbox)
+	vbox.add_theme_constant_override("separation", 14)
+	card.add_child(vbox)
 
 	_title = Label.new()
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title.custom_minimum_size = Vector2(460, 0)
+	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	PixelTheme.style_label(_title, 18, PixelTheme.ACCENT)
 	vbox.add_child(_title)
 
 	for i in 3:
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 2)
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(340, 72)
+		PixelTheme.style_button(b, Vector2(460, 64), 20)
 		b.pressed.connect(_on_card_pressed.bind(i))
-		vbox.add_child(b)
+		row.add_child(b)
 		_buttons.append(b)
+		var desc := Label.new()
+		desc.custom_minimum_size = Vector2(460, 0)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelTheme.style_label(desc, 13, PixelTheme.TEXT_DIM)
+		row.add_child(desc)
+		_descs.append(desc)
+		vbox.add_child(row)
 
 func _on_player_leveled_up() -> void:
 	_queue.append(_player.level)
@@ -63,7 +81,8 @@ func _show_next() -> void:
 	_title.text = "LEVEL %d — choose a %s upgrade" % [lvl, Upgrades.label_for_level(lvl)]
 	for i in 3:
 		var c: Dictionary = _current_cards[i]
-		_buttons[i].text = "%s\n%s" % [c["title"], c["desc"]]
+		_buttons[i].text = String(c["title"]).to_upper()
+		_descs[i].text = String(c["desc"])
 	_root.visible = true
 	get_tree().paused = true
 

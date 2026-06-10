@@ -1,8 +1,8 @@
 extends Control
 ## Main menu hub over the dusk background. Hosts PLAY (mode picker), CHARACTERS
 ## (select 1 of 3 — stored in RunConfig for the session), and INVENTORY (view-only
-## collection of guns + characters). All UI built in code; sub-screens are toggled
-## panels in this one scene.
+## collection of guns + characters). All UI built in code with the shared PixelTheme;
+## sub-screens are toggled panels in this one scene.
 
 var _hub: Control
 var _mode_panel: Control
@@ -23,7 +23,14 @@ func _add_background() -> void:
 	bg.texture = load("res://art/menu_background.jpg")
 	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
+	# Darken the busy farmstead so pixel text stays readable.
+	var vignette := ColorRect.new()
+	vignette.color = Color(0.04, 0.03, 0.06, 0.35)
+	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(vignette)
 
 # --- shared UI helpers ---
 func _make_panel() -> Control:
@@ -32,19 +39,30 @@ func _make_panel() -> Control:
 	add_child(p)
 	return p
 
-func _centered_vbox(parent: Control) -> VBoxContainer:
+## A centered translucent card with a VBox inside it for the menu content.
+func _card_vbox(parent: Control, separation: int = 18) -> VBoxContainer:
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	parent.add_child(center)
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	center.add_child(card)
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 16)
-	center.add_child(vbox)
+	vbox.add_theme_constant_override("separation", separation)
+	card.add_child(vbox)
 	return vbox
+
+func _make_title(parent: VBoxContainer, text: String, size: int = 44) -> void:
+	var title := Label.new()
+	title.text = text
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_title(title, size)
+	parent.add_child(title)
 
 func _make_button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(360, 64)
 	b.text = text
+	PixelTheme.style_button(b)
 	b.pressed.connect(cb)
 	return b
 
@@ -57,32 +75,38 @@ func _show_only(panel: Control) -> void:
 # --- hub ---
 func _build_hub() -> void:
 	_hub = _make_panel()
-	var vbox := _centered_vbox(_hub)
-	var title := Label.new()
-	title.text = "SURVIVOR"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 56)
-	vbox.add_child(title)
+	var vbox := _card_vbox(_hub, 20)
+	_make_title(vbox, "SURVIVOR", 48)
+	var tagline := Label.new()
+	tagline.text = "stand still. stay alive."
+	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(tagline, 16, PixelTheme.TEXT_DIM)
+	vbox.add_child(tagline)
+	vbox.add_child(_spacer(8))
 	vbox.add_child(_make_button("PLAY", func(): _show_only(_mode_panel)))
 	vbox.add_child(_make_button("CHARACTERS", func(): _show_only(_char_panel)))
 	vbox.add_child(_make_button("INVENTORY", func(): _show_only(_inv_panel)))
 
+func _spacer(h: int) -> Control:
+	var s := Control.new()
+	s.custom_minimum_size = Vector2(0, h)
+	return s
+
 # --- mode picker ---
 func _build_mode_panel() -> void:
 	_mode_panel = _make_panel()
-	var vbox := _centered_vbox(_mode_panel)
-	var title := Label.new()
-	title.text = "SELECT MODE"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(title)
-	vbox.add_child(_make_button("Endless", func(): _start_run("endless")))
-	vbox.add_child(_make_button("Boss Rush", func(): _start_run("boss_rush")))
+	var vbox := _card_vbox(_mode_panel)
+	_make_title(vbox, "SELECT MODE", 30)
+	vbox.add_child(_spacer(4))
+	vbox.add_child(_make_button("ENDLESS", func(): _start_run("endless")))
+	vbox.add_child(_make_button("BOSS RUSH", func(): _start_run("boss_rush")))
 	var soon := Label.new()
-	soon.text = "More modes coming soon"
+	soon.text = "more modes coming soon"
 	soon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	soon.modulate = Color(1, 1, 1, 0.5)
+	PixelTheme.style_label(soon, 14, PixelTheme.TEXT_DIM)
 	vbox.add_child(soon)
-	vbox.add_child(_make_button("Back", func(): _show_only(_hub)))
+	vbox.add_child(_spacer(4))
+	vbox.add_child(_make_button("BACK", func(): _show_only(_hub)))
 
 func _start_run(mode: String) -> void:
 	RunConfig.mode = mode
@@ -91,17 +115,26 @@ func _start_run(mode: String) -> void:
 # --- character select ---
 func _build_char_panel() -> void:
 	_char_panel = _make_panel()
-	var vbox := _centered_vbox(_char_panel)
-	var title := Label.new()
-	title.text = "CHOOSE CHARACTER"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(title)
+	var vbox := _card_vbox(_char_panel, 14)
+	_make_title(vbox, "CHARACTER", 30)
+	vbox.add_child(_spacer(4))
 	for c in Characters.all():
 		var cid: String = c["id"]
-		var btn := _make_button("%s\n%s" % [c["name"], c["desc"]], func(): _select_character(cid))
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 2)
+		var btn := _make_button(String(c["name"]).to_upper(), func(): _select_character(cid))
 		_char_buttons[cid] = btn
-		vbox.add_child(btn)
-	vbox.add_child(_make_button("Back", func(): _show_only(_hub)))
+		row.add_child(btn)
+		var desc := Label.new()
+		desc.text = String(c["desc"])
+		desc.custom_minimum_size = Vector2(460, 0)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelTheme.style_label(desc, 13, PixelTheme.TEXT_DIM)
+		row.add_child(desc)
+		vbox.add_child(row)
+	vbox.add_child(_spacer(4))
+	vbox.add_child(_make_button("BACK", func(): _show_only(_hub)))
 	_refresh_char_labels()
 
 func _select_character(id: String) -> void:
@@ -111,32 +144,30 @@ func _select_character(id: String) -> void:
 func _refresh_char_labels() -> void:
 	for id in _char_buttons:
 		var selected: bool = id == RunConfig.character_id
-		(_char_buttons[id] as Button).modulate = Color(0.4, 1.0, 0.4) if selected else Color(1, 1, 1)
+		var b := _char_buttons[id] as Button
+		b.add_theme_color_override("font_color", PixelTheme.SELECT if selected else PixelTheme.TEXT)
 
 # --- inventory (view-only collection) ---
 func _build_inventory_panel() -> void:
 	_inv_panel = _make_panel()
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 24)
-	margin.add_theme_constant_override("margin_right", 24)
-	margin.add_theme_constant_override("margin_top", 24)
-	margin.add_theme_constant_override("margin_bottom", 24)
-	_inv_panel.add_child(margin)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_inv_panel.add_child(center)
+
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	card.custom_minimum_size = Vector2(620, 760)
+	center.add_child(card)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
-	margin.add_child(vbox)
+	vbox.add_theme_constant_override("separation", 10)
+	card.add_child(vbox)
 
-	var title := Label.new()
-	title.text = "INVENTORY"
-	title.add_theme_font_size_override("font_size", 40)
-	vbox.add_child(title)
-	vbox.add_child(_make_button("Back", func(): _show_only(_hub)))
+	_make_title(vbox, "INVENTORY", 28)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(0, 560)
+	scroll.custom_minimum_size = Vector2(0, 600)
 	vbox.add_child(scroll)
 
 	var list := VBoxContainer.new()
@@ -146,21 +177,29 @@ func _build_inventory_panel() -> void:
 
 	_add_inv_header(list, "WEAPONS")
 	for w in Weapons.all():
-		var line: String = "%s — dmg %d · rate %.2fs · range %d · proj %d" % [
-			String(w["name"]), int(w["damage"]), float(w["fire_interval"]), int(w["range"]), int(w["projectiles"])]
-		_add_inv_row(list, line, String(w["desc"]))
+		var stats: String = "dmg %d  rate %.2fs  rng %d  proj %d  -  %s" % [
+			int(w["damage"]), float(w["fire_interval"]), int(w["range"]), int(w["projectiles"]), String(w["desc"])]
+		_add_inv_row(list, String(w["name"]), stats)
 
 	_add_inv_header(list, "CHARACTERS")
 	for c in Characters.all():
 		_add_inv_row(list, String(c["name"]), String(c["desc"]))
 
+	vbox.add_child(_make_button("BACK", func(): _show_only(_hub)))
+
 func _add_inv_header(parent: VBoxContainer, text: String) -> void:
 	var l := Label.new()
 	l.text = text
-	l.add_theme_font_size_override("font_size", 28)
+	PixelTheme.style_label(l, 22, PixelTheme.ACCENT)
 	parent.add_child(l)
 
 func _add_inv_row(parent: VBoxContainer, head: String, sub: String) -> void:
 	var l := Label.new()
-	l.text = "%s\n   %s" % [head, sub]
+	l.text = head
+	PixelTheme.style_label(l, 16, PixelTheme.TEXT)
 	parent.add_child(l)
+	var s := Label.new()
+	s.text = "   " + sub
+	s.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	PixelTheme.style_label(s, 13, PixelTheme.TEXT_DIM)
+	parent.add_child(s)

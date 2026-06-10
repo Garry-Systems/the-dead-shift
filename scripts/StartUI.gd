@@ -26,7 +26,7 @@ func _build_ui() -> void:
 	add_child(_root)
 
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.75)
+	dim.color = PixelTheme.OVERLAY_DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
 
@@ -34,23 +34,49 @@ func _build_ui() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(center)
 
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	card.custom_minimum_size = Vector2(560, 720)
+	center.add_child(card)
+
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 16)
-	center.add_child(vbox)
+	vbox.add_theme_constant_override("separation", 12)
+	card.add_child(vbox)
 
 	var title := Label.new()
 	title.text = "CHOOSE YOUR WEAPON"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_title(title, 26)
 	vbox.add_child(title)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, 600)
+	vbox.add_child(scroll)
+
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 10)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
 
 	for i in _weapons.size():
 		var def: Dictionary = _weapons[i]
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 2)
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(360, 64)
-		b.text = "%s\n%s" % [def["name"], def["desc"]]
+		b.text = String(def["name"]).to_upper()
+		PixelTheme.style_button(b, Vector2(460, 64), 20)
 		b.pressed.connect(_on_weapon_pressed.bind(i))
-		vbox.add_child(b)
+		row.add_child(b)
 		_buttons.append(b)
+		var desc := Label.new()
+		desc.text = String(def["desc"])
+		desc.custom_minimum_size = Vector2(460, 0)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelTheme.style_label(desc, 13, PixelTheme.TEXT_DIM)
+		row.add_child(desc)
+		list.add_child(row)
 
 func _on_weapon_pressed(index: int) -> void:
 	var def: Dictionary = _weapons[index]

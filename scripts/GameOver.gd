@@ -22,7 +22,7 @@ func _build_ui() -> void:
 	add_child(_root)
 
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.75)
+	dim.color = PixelTheme.OVERLAY_DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
 
@@ -30,25 +30,38 @@ func _build_ui() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(center)
 
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	center.add_child(card)
+
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 16)
-	center.add_child(vbox)
+	vbox.add_theme_constant_override("separation", 18)
+	card.add_child(vbox)
 
 	var title := Label.new()
 	title.text = "YOU DIED"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 56)
+	PixelTheme.style_title(title, 40)
+	title.add_theme_color_override("font_color", PixelTheme.DANGER)
 	vbox.add_child(title)
 
 	_label = Label.new()
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(_label, 18, PixelTheme.TEXT)
 	vbox.add_child(_label)
 
+	vbox.add_child(_spacer(6))
+
 	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(320, 64)
-	btn.text = "Back to Menu"
+	btn.text = "BACK TO MENU"
+	PixelTheme.style_button(btn, Vector2(420, 72), 20)
 	btn.pressed.connect(_on_back_pressed)
 	vbox.add_child(btn)
+
+func _spacer(h: int) -> Control:
+	var s := Control.new()
+	s.custom_minimum_size = Vector2(0, h)
+	return s
 
 func _on_player_died() -> void:
 	if RunConfig.mode == "boss_rush":

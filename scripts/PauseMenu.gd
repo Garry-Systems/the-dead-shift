@@ -20,6 +20,7 @@ func _process(_delta: float) -> void:
 func _build_button() -> void:
 	_pause_btn = Button.new()
 	_pause_btn.text = "II"
+	PixelTheme.style_button(_pause_btn, Vector2(56, 56), 22)
 	_pause_btn.anchor_left = 1.0
 	_pause_btn.anchor_right = 1.0
 	_pause_btn.offset_left = -68
@@ -35,7 +36,7 @@ func _build_overlay() -> void:
 	add_child(_overlay)
 
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.7)
+	dim.color = PixelTheme.OVERLAY_DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_overlay.add_child(dim)
 
@@ -43,24 +44,34 @@ func _build_overlay() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_overlay.add_child(center)
 
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	center.add_child(card)
+
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 16)
-	center.add_child(vbox)
+	card.add_child(vbox)
 
 	var title := Label.new()
 	title.text = "PAUSED"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 56)
+	PixelTheme.style_title(title, 36)
 	vbox.add_child(title)
+	vbox.add_child(_spacer(6))
 
-	vbox.add_child(_menu_button("Resume", _on_resume))
-	vbox.add_child(_menu_button("Restart Run", _on_restart))
-	vbox.add_child(_menu_button("Back to Menu", _on_back))
+	vbox.add_child(_menu_button("RESUME", _on_resume))
+	vbox.add_child(_menu_button("RESTART RUN", _on_restart))
+	vbox.add_child(_menu_button("BACK TO MENU", _on_back))
+
+func _spacer(h: int) -> Control:
+	var s := Control.new()
+	s.custom_minimum_size = Vector2(0, h)
+	return s
 
 func _menu_button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(320, 64)
 	b.text = text
+	PixelTheme.style_button(b, Vector2(420, 72), 20)
 	b.pressed.connect(cb)
 	return b
 

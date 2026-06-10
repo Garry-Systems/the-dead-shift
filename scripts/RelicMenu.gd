@@ -25,7 +25,7 @@ func _build_root() -> void:
 	add_child(_root)
 
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.6)
+	dim.color = PixelTheme.OVERLAY_DIM
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
 
@@ -33,9 +33,13 @@ func _build_root() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(center)
 
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	center.add_child(card)
+
 	_vbox = VBoxContainer.new()
 	_vbox.add_theme_constant_override("separation", 12)
-	center.add_child(_vbox)
+	card.add_child(_vbox)
 
 ## Called by a RelicPickup when the player walks into it.
 func open(new_id: String, pickup: Node) -> void:
@@ -87,12 +91,15 @@ func _clear_vbox() -> void:
 func _add_label(text: String) -> void:
 	var l := Label.new()
 	l.text = text
+	l.custom_minimum_size = Vector2(440, 0)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(l, 16, PixelTheme.TEXT)
 	_vbox.add_child(l)
 
 func _add_button(text: String, cb: Callable) -> void:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(340, 56)
-	b.text = text
+	b.text = text.to_upper()
+	PixelTheme.style_button(b, Vector2(440, 64), 18)
 	b.pressed.connect(cb)
 	_vbox.add_child(b)
