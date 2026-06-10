@@ -6,6 +6,20 @@ extends CharacterBody2D
 const FLASH_SHADER := preload("res://shaders/flash.gdshader")
 const HURT_FLASH_COOLDOWN := 0.18   # min gap between red pulses (contact damage is per-frame)
 
+## Ryan's 8 directional rotations, indexed by 45° sector of the facing angle.
+## Godot 2D angles: +x = east, +y = south (down), so the order below maps
+## round(angle/45) -> sprite. Index 0 = east, going clockwise.
+const DIR_TEX: Array[Texture2D] = [
+	preload("res://art/ryan/east.png"),        # 0
+	preload("res://art/ryan/south-east.png"),  # 1
+	preload("res://art/ryan/south.png"),       # 2
+	preload("res://art/ryan/south-west.png"),  # 3
+	preload("res://art/ryan/west.png"),        # 4
+	preload("res://art/ryan/north-west.png"),  # 5
+	preload("res://art/ryan/north.png"),       # 6
+	preload("res://art/ryan/north-east.png"),  # 7
+]
+
 var _health := Health.new(GameConfig.PLAYER_MAX_HEALTH)
 var _dash := DashState.new(GameConfig.DASH_DURATION, GameConfig.DASH_COOLDOWN)
 var _last_move_dir := Vector2.RIGHT
@@ -34,6 +48,8 @@ var pickup_radius := GameConfig.PICKUP_RADIUS
 var _xp_to_next := 0
 var _flash_mat: ShaderMaterial
 var _flash_cd := 0.0
+var _sprite: Sprite2D
+var _facing := 2          # index into DIR_TEX; 2 = south (faces the camera at start)
 
 func _ready() -> void:
 	add_to_group("player")
@@ -46,6 +62,7 @@ func _setup_flash() -> void:
 	var spr := get_node_or_null("Sprite2D") as Sprite2D
 	if spr == null:
 		return
+	_sprite = spr
 	_flash_mat = ShaderMaterial.new()
 	_flash_mat.shader = FLASH_SHADER
 	_flash_mat.set_shader_parameter("flash_color", Color(1.0, 0.2, 0.2, 1.0))
@@ -63,6 +80,11 @@ func _physics_process(delta: float) -> void:
 	if dir != Vector2.ZERO:
 		_last_move_dir = dir.normalized()
 
+	# Face the enemy we're auto-aiming at; fall back to movement direction.
+	var face_dir: Vector2 = gun.aim_direction if (gun != null and gun.aim_direction != Vector2.ZERO) else dir
+	if face_dir != Vector2.ZERO:
+		_face(face_dir)
+
 	var speed := GameConfig.DASH_SPEED if _dash.is_dashing() else move_speed
 	var move_dir := _last_move_dir if _dash.is_dashing() else dir
 
@@ -71,6 +93,17 @@ func _physics_process(delta: float) -> void:
 
 	if health_regen > 0.0:
 		_health.heal(health_regen * delta)
+
+## Swaps Ryan's sprite to the directional rotation nearest the move vector.
+func _face(dir: Vector2) -> void:
+	if _sprite == null:
+		return
+	var idx := int(round(rad_to_deg(dir.angle()) / 45.0)) % 8
+	if idx < 0:
+		idx += 8
+	if idx != _facing:
+		_facing = idx
+		_sprite.texture = DIR_TEX[idx]
 
 ## Reads WASD / arrow keys directly (no Input Map setup needed for Phase 1 testing).
 func _keyboard_dir() -> Vector2:

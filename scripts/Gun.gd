@@ -36,6 +36,10 @@ var _cooldown := 0.0
 var _muzzle: Sprite2D
 var _muzzle_time := 0.0
 
+## Unit vector toward the nearest enemy (Vector2.ZERO when none in range).
+## Updated every frame so the player can face who it's auto-aiming at.
+var aim_direction := Vector2.ZERO
+
 func _ready() -> void:
 	_muzzle = Sprite2D.new()
 	_muzzle.texture = preload("res://art/muzzle.png")
@@ -62,6 +66,11 @@ func configure(def: Dictionary) -> void:
 func _process(delta: float) -> void:
 	_fade_muzzle(delta)
 
+	# Track the nearest enemy every frame (even while reloading / between shots)
+	# so aim_direction stays current for the player's facing.
+	var target := _find_nearest_enemy()
+	aim_direction = (target.global_position - global_position).normalized() if target != null else Vector2.ZERO
+
 	if _reloading:
 		_reload_timer -= delta
 		if _reload_timer <= 0.0:
@@ -73,11 +82,10 @@ func _process(delta: float) -> void:
 	if _cooldown > 0.0 or bullet_scene == null:
 		return
 
-	var target := _find_nearest_enemy()
 	if target == null:
 		return
 
-	_fire((target.global_position - global_position).normalized())
+	_fire(aim_direction)
 	_cooldown = fire_interval
 	_ammo -= 1
 	if _ammo <= 0:
