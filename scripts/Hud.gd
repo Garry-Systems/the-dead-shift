@@ -36,7 +36,6 @@ func _ready() -> void:
 	_hp_bar.offset_right = 214
 	_hp_bar.offset_top = 54
 	_hp_bar.offset_bottom = 72
-	_hp_bar.modulate = Color(1.0, 0.45, 0.45)   # red-ish, distinct from the XP bar
 	add_child(_hp_bar)
 
 	_hp_label = Label.new()
@@ -86,6 +85,42 @@ func _ready() -> void:
 	_reload_bar.offset_bottom = -44
 	_reload_bar.visible = false
 	add_child(_reload_bar)
+
+	_apply_pixel_style()
+
+## Applies the shared PixelTheme look to every HUD label and bar.
+func _apply_pixel_style() -> void:
+	_label_px(_label, 18, PixelTheme.TEXT)
+	_label_px(_hp_label, 13, PixelTheme.TEXT)
+	_label_px(_wave_label, 16, PixelTheme.TEXT)
+	_label_px(_ammo_label, 18, PixelTheme.ACCENT)
+	_style_bar(_bar, PixelTheme.SELECT)        # XP — green, matches gameplay gems
+	_style_bar(_hp_bar, PixelTheme.DANGER)     # health — red
+	_style_bar(_boss_bar, PixelTheme.DANGER)   # boss — red
+	_style_bar(_reload_bar, PixelTheme.ACCENT) # reload — amber
+
+## Pixel font + a hard 1px drop shadow so readouts stay legible over gameplay.
+func _label_px(l: Label, size: int, col: Color) -> void:
+	PixelTheme.style_label(l, size, col)
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	l.add_theme_constant_override("shadow_offset_x", 2)
+	l.add_theme_constant_override("shadow_offset_y", 2)
+	l.add_theme_constant_override("shadow_outline_size", 0)
+
+## Hard-cornered, anti-alias-off progress bar matching the menu styleboxes.
+func _style_bar(bar: ProgressBar, fill_color: Color) -> void:
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = PixelTheme.BTN_BG
+	bg.border_color = PixelTheme.ACCENT_DIM
+	bg.set_border_width_all(2)
+	bg.set_corner_radius_all(0)
+	bg.anti_aliasing = false
+	bar.add_theme_stylebox_override("background", bg)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = fill_color
+	fill.set_corner_radius_all(0)
+	fill.anti_aliasing = false
+	bar.add_theme_stylebox_override("fill", fill)
 
 func _process(_delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
