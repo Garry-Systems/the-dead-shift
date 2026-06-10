@@ -40,6 +40,10 @@ var _muzzle_time := 0.0
 ## Updated every frame so the player can face who it's auto-aiming at.
 var aim_direction := Vector2.ZERO
 
+## Set by the Player each frame: true while moving. When true the gun tracks/aims
+## but holds fire (the "shoot only while standing still" rule).
+var hold_fire := false
+
 func _ready() -> void:
 	_muzzle = Sprite2D.new()
 	_muzzle.texture = preload("res://art/muzzle.png")
@@ -83,6 +87,11 @@ func _process(delta: float) -> void:
 		return
 
 	if target == null:
+		return
+
+	# Standing-still-to-shoot rule: hold fire (but keep cooldown at 0) while moving,
+	# so the player fires the instant they stop.
+	if hold_fire:
 		return
 
 	_fire(aim_direction)

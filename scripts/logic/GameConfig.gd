@@ -14,6 +14,7 @@ const DASH_COOLDOWN := 1.5            # seconds before next dash
 const DASH_DOUBLE_TAP_WINDOW := 0.30  # max seconds between the two taps
 
 # --- Gun ---
+const SHOOT_ONLY_WHILE_STILL := true  # gun only fires while the player is standing still (raises difficulty)
 const GUN_FIRE_INTERVAL := 0.20       # seconds between shots
 const GUN_RANGE := 600.0              # px; ignore enemies farther than this
 const BULLET_SPEED := 800.0           # px/sec

@@ -89,6 +89,12 @@ func _physics_process(delta: float) -> void:
 	var move_dir := _last_move_dir if _dash.is_dashing() else dir
 
 	velocity = move_dir * speed
+
+	# Shoot-only-while-still rule: tell the gun to hold fire whenever we're moving
+	# (or dashing). It keeps aiming/facing — it just won't pull the trigger.
+	if gun != null:
+		gun.hold_fire = GameConfig.SHOOT_ONLY_WHILE_STILL and velocity != Vector2.ZERO
+
 	move_and_slide()
 
 	if health_regen > 0.0:
