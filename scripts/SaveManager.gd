@@ -36,10 +36,24 @@ func load_game() -> void:
 	if typeof(parsed) != TYPE_DICTIONARY:
 		_handle_corrupt(text)
 		return
-	# Merge: copy known keys whose type matches the default, ignore everything else.
+	# Merge known keys, coercing numbers to the default's type. JSON has no int/float
+	# distinction, so Godot parses whole numbers back as float — without coercion an
+	# int default would reject every saved value and silently reset progress.
 	for key in DEFAULTS:
-		if parsed.has(key) and typeof(parsed[key]) == typeof(DEFAULTS[key]):
-			_data[key] = parsed[key]
+		if not parsed.has(key):
+			continue
+		var def_val = DEFAULTS[key]
+		var val = parsed[key]
+		match typeof(def_val):
+			TYPE_INT:
+				if val is int or val is float:
+					_data[key] = int(val)
+			TYPE_FLOAT:
+				if val is int or val is float:
+					_data[key] = float(val)
+			_:
+				if typeof(val) == typeof(def_val):
+					_data[key] = val
 	_data["version"] = DEFAULTS["version"]
 
 ## Writes _data to disk atomically (temp file, then replace). Never crashes the game.
