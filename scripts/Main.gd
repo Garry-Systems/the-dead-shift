@@ -11,7 +11,26 @@ func _ready() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Player
 	if player != null:
 		Characters.apply_base(player, RunConfig.character_id)
+		_equip_loadout(player)
 
 	var spawner := get_tree().get_first_node_in_group("spawner")
 	if spawner != null:
 		spawner.mode = RunConfig.mode
+
+## Configures the gun from the player's equipped loot weapon, then applies the character's
+## weapon-specific perk (this is what the old weapon-select StartUI used to do). The menu
+## guarantees a weapon is equipped before a run starts; the grant_starter fallback only
+## matters when launching Main.tscn directly in the editor.
+func _equip_loadout(player: Player) -> void:
+	if player.gun == null:
+		return
+	var inst := Inventory.equipped_instance()
+	if inst.is_empty():
+		Inventory.grant_starter()
+		inst = Inventory.equipped_instance()
+	if not inst.is_empty():
+		var base := WeaponInstance.base_def(inst)
+		if not base.is_empty():
+			player.gun.configure(base)
+			player.gun.apply_loot(inst)
+	Characters.apply_weapon(player, RunConfig.character_id)

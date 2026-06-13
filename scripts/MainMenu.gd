@@ -9,8 +9,12 @@ var _mode_panel: Control
 var _char_panel: Control
 var _inv_panel: Control
 var _char_buttons := {}        # character id -> Button (to highlight the selected one)
+var _inv_vbox: VBoxContainer   # inventory card content (rebuilt by _populate_inventory)
+var _hub_coins: Label          # hub coin readout (refreshed when returning to hub)
+var _inv_from_play := false    # true when the inventory was opened by PLAY (no weapon equipped)
 
 func _ready() -> void:
+	Inventory.grant_starter()  # first-launch seed so the inventory is never empty
 	_add_background()
 	_build_hub()
 	_build_mode_panel()
@@ -71,6 +75,8 @@ func _show_only(panel: Control) -> void:
 	_mode_panel.visible = panel == _mode_panel
 	_char_panel.visible = panel == _char_panel
 	_inv_panel.visible = panel == _inv_panel
+	if panel == _hub and _hub_coins != null:
+		_hub_coins.text = "COINS: %d" % SaveManager.coins()
 
 # --- hub ---
 func _build_hub() -> void:
@@ -82,15 +88,23 @@ func _build_hub() -> void:
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	PixelTheme.style_label(tagline, 16, PixelTheme.TEXT_DIM)
 	vbox.add_child(tagline)
-	var coins := Label.new()
-	coins.text = "COINS: %d" % SaveManager.coins()
-	coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(coins, 20, PixelTheme.ACCENT)
-	vbox.add_child(coins)
+	_hub_coins = Label.new()
+	_hub_coins.text = "COINS: %d" % SaveManager.coins()
+	_hub_coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(_hub_coins, 20, PixelTheme.ACCENT)
+	vbox.add_child(_hub_coins)
 	vbox.add_child(_spacer(8))
-	vbox.add_child(_make_button("PLAY", func(): _show_only(_mode_panel)))
+	vbox.add_child(_make_button("PLAY", _on_play))
 	vbox.add_child(_make_button("CHARACTERS", func(): _show_only(_char_panel)))
-	vbox.add_child(_make_button("INVENTORY", func(): _show_only(_inv_panel)))
+	vbox.add_child(_make_button("INVENTORY", func(): _show_inventory(false)))
+
+## PLAY: only proceed to the mode picker if a weapon is equipped; otherwise force the
+## player into the inventory to pick one (Cancel there returns here to the menu).
+func _on_play() -> void:
+	if Inventory.equipped_instance().is_empty():
+		_show_inventory(true)
+	else:
+		_show_only(_mode_panel)
 
 func _spacer(h: int) -> Control:
 	var s := Control.new()
@@ -152,7 +166,7 @@ func _refresh_char_labels() -> void:
 		var b := _char_buttons[id] as Button
 		b.add_theme_color_override("font_color", PixelTheme.SELECT if selected else PixelTheme.TEXT)
 
-# --- inventory (view-only collection) ---
+# --- inventory: owned rolled weapons (tap to equip) + crates ---
 func _build_inventory_panel() -> void:
 	_inv_panel = _make_panel()
 	var center := CenterContainer.new()
@@ -161,50 +175,112 @@ func _build_inventory_panel() -> void:
 
 	var card := PanelContainer.new()
 	PixelTheme.style_card(card)
-	card.custom_minimum_size = Vector2(620, 760)
+	card.custom_minimum_size = Vector2(620, 780)
 	center.add_child(card)
 
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 10)
-	card.add_child(vbox)
+	_inv_vbox = VBoxContainer.new()
+	_inv_vbox.add_theme_constant_override("separation", 10)
+	card.add_child(_inv_vbox)
+	# Contents are (re)built on every show by _populate_inventory().
 
-	_make_title(vbox, "INVENTORY", 28)
+## Opens the inventory. from_play=true means PLAY sent us here with no weapon equipped:
+## picking a weapon then proceeds to the mode picker, and the bottom button reads CANCEL.
+func _show_inventory(from_play: bool) -> void:
+	_inv_from_play = from_play
+	_populate_inventory()
+	_show_only(_inv_panel)
 
+func _populate_inventory() -> void:
+	for c in _inv_vbox.get_children():
+		c.queue_free()
+
+	_make_title(_inv_vbox, "INVENTORY", 28)
+
+	var coins := Label.new()
+	coins.text = "COINS: %d" % Inventory.coins()
+	coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(coins, 16, PixelTheme.ACCENT)
+	_inv_vbox.add_child(coins)
+
+	if _inv_from_play:
+		var prompt := Label.new()
+		prompt.text = "Equip a weapon to play"
+		prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelTheme.style_label(prompt, 14, PixelTheme.SELECT)
+		_inv_vbox.add_child(prompt)
+
+	# Crate buttons (disabled when you can't afford it / inventory full).
+	var crate_row := HBoxContainer.new()
+	crate_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	crate_row.add_theme_constant_override("separation", 10)
+	_inv_vbox.add_child(crate_row)
+	for crate in Crates.all():
+		var cb := Button.new()
+		cb.text = "%s (%d)" % [String(crate["name"]).to_upper(), int(crate["price"])]
+		PixelTheme.style_button(cb, Vector2(250, 50), 14)
+		cb.disabled = Inventory.coins() < int(crate["price"]) or Inventory.is_full()
+		cb.pressed.connect(_on_crate.bind(String(crate["id"])))
+		crate_row.add_child(cb)
+
+	# Owned weapons, best rarity first; tap to equip.
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(0, 600)
-	vbox.add_child(scroll)
-
+	scroll.custom_minimum_size = Vector2(0, 540)
+	_inv_vbox.add_child(scroll)
 	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 6)
+	list.add_theme_constant_override("separation", 8)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list)
 
-	_add_inv_header(list, "WEAPONS")
-	for w in Weapons.all():
-		var stats: String = "dmg %d  rate %.2fs  rng %d  proj %d  -  %s" % [
-			int(w["damage"]), float(w["fire_interval"]), int(w["range"]), int(w["projectiles"]), String(w["desc"])]
-		_add_inv_row(list, String(w["name"]), stats)
+	var owned := Inventory.weapons().duplicate()
+	owned.sort_custom(func(a, b): return int(a.get("rarity", 1)) > int(b.get("rarity", 1)))
+	var equipped_uid := Inventory.equipped_uid()
 
-	_add_inv_header(list, "CHARACTERS")
-	for c in Characters.all():
-		_add_inv_row(list, String(c["name"]), String(c["desc"]))
+	if owned.is_empty():
+		var none := Label.new()
+		none.text = "No weapons yet — open a crate."
+		none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelTheme.style_label(none, 14, PixelTheme.TEXT_DIM)
+		list.add_child(none)
 
-	vbox.add_child(_make_button("BACK", func(): _show_only(_hub)))
+	for inst in owned:
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 2)
+		var is_equipped: bool = String(inst.get("uid", "")) == equipped_uid
+		var b := Button.new()
+		b.text = WeaponInstance.display_name(inst).to_upper() + ("  ◀ EQUIPPED" if is_equipped else "")
+		PixelTheme.style_button(b, Vector2(520, 56), 16)
+		b.add_theme_color_override("font_color", PixelTheme.SELECT if is_equipped else WeaponInstance.color(inst))
+		b.pressed.connect(_on_equip.bind(inst))
+		row.add_child(b)
+		var desc := Label.new()
+		var dtext := "%s  ·  %s" % [WeaponInstance.rarity_name(inst), WeaponInstance.stat_summary(inst)]
+		var tsum: String = WeaponInstance.talent_summary(inst)
+		if tsum != "":
+			dtext += "\n⟡ " + tsum
+		desc.text = dtext
+		desc.custom_minimum_size = Vector2(520, 0)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelTheme.style_label(desc, 12, PixelTheme.TEXT_DIM)
+		row.add_child(desc)
+		list.add_child(row)
 
-func _add_inv_header(parent: VBoxContainer, text: String) -> void:
-	var l := Label.new()
-	l.text = text
-	PixelTheme.style_label(l, 22, PixelTheme.ACCENT)
-	parent.add_child(l)
+	# Bottom button: CANCEL (forced-from-PLAY) or BACK — both return to the main menu.
+	_inv_vbox.add_child(_make_button("CANCEL" if _inv_from_play else "BACK", _on_inv_back))
 
-func _add_inv_row(parent: VBoxContainer, head: String, sub: String) -> void:
-	var l := Label.new()
-	l.text = head
-	PixelTheme.style_label(l, 16, PixelTheme.TEXT)
-	parent.add_child(l)
-	var s := Label.new()
-	s.text = "   " + sub
-	s.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	PixelTheme.style_label(s, 13, PixelTheme.TEXT_DIM)
-	parent.add_child(s)
+func _on_crate(crate_id: String) -> void:
+	Inventory.open_crate(crate_id)
+	_populate_inventory()
+
+func _on_equip(inst: Dictionary) -> void:
+	Inventory.equip(String(inst.get("uid", "")))
+	if _inv_from_play:
+		_inv_from_play = false
+		_show_only(_mode_panel)   # weapon chosen → continue to the mode picker
+	else:
+		_populate_inventory()     # browsing → just refresh the EQUIPPED highlight
+
+func _on_inv_back() -> void:
+	_inv_from_play = false
+	_show_only(_hub)
