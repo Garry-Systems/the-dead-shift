@@ -21,14 +21,14 @@ const BULLET_SPEED := 800.0           # px/sec
 const BULLET_DAMAGE := 25.0
 const BULLET_LIFETIME := 1.5          # seconds before a bullet despawns
 
-# --- Weapon talents (Phase 3 step 2) ---
-const TALENT_DAMAGE_PCT := 0.20       # "Hollow Points" damage card
-const TALENT_FIRE_RATE_PCT := 0.15    # "Hair Trigger" fire-rate card
-const TALENT_BULLET_SPEED_PCT := 0.15 # "Overpressure" bullet-speed card
-const TALENT_RANGE_PCT := 0.15        # "Long Barrel" range card
-const TALENT_CHOKE_PCT := 0.30        # "Tighter Choke" spread reduction
-const TALENT_BURN_DPS := 8.0          # incendiary damage per second
-const TALENT_BURN_DURATION := 3.0     # incendiary burn duration (seconds)
+# --- Weapon upgrade cards (Phase 3 step 2; distinct from loot "talents") ---
+const UPGRADE_DAMAGE_PCT := 0.20       # "Hollow Points" damage card
+const UPGRADE_FIRE_RATE_PCT := 0.15    # "Hair Trigger" fire-rate card
+const UPGRADE_BULLET_SPEED_PCT := 0.15 # "Overpressure" bullet-speed card
+const UPGRADE_RANGE_PCT := 0.15        # "Long Barrel" range card
+const UPGRADE_CHOKE_PCT := 0.30        # "Tighter Choke" spread reduction
+const UPGRADE_BURN_DPS := 8.0          # incendiary damage per second
+const UPGRADE_BURN_DURATION := 3.0     # incendiary burn duration (seconds)
 
 # --- Enemy ---
 const ENEMY_MOVE_SPEED := 70.0       # px/sec
@@ -93,8 +93,8 @@ const CHAR_BOB_MAGNET_PCT := 0.25        # Bob: +pickup radius always
 
 # --- Reload (Spec 2) ---
 const RELOAD_TIME_FLOOR := 0.15             # seconds; minimum effective reload after speed bonuses
-const TALENT_RELOAD_PCT := 0.20             # "Fast Hands" gun talent: -% reload time
-const TALENT_MAG_PCT := 0.50                # "Extended Mag" gun talent: +% magazine size
+const UPGRADE_RELOAD_PCT := 0.20            # "Fast Hands" upgrade card: -% reload time
+const UPGRADE_MAG_PCT := 0.50               # "Extended Mag" upgrade card: +% magazine size
 const CHAR_JIMBO_SNIPER_RELOAD_PCT := 0.20  # Jimbo's sniper perk: -% reload time
 
 # --- Coins / economy (Phase 6 Spec 1) ---
