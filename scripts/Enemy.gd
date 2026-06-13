@@ -92,6 +92,7 @@ func _physics_process(delta: float) -> void:
 func take_damage(amount: float) -> void:
 	_health.take_damage(amount)
 	if _health.is_dead():
+		RunStats.add_kill()
 		_drop_gem()
 		queue_free()
 	elif _health_bar != null:

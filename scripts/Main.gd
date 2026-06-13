@@ -6,6 +6,7 @@ extends Node2D
 
 func _ready() -> void:
 	DifficultyManager.reset()
+	RunStats.reset()
 
 	var player := get_tree().get_first_node_in_group("player") as Player
 	if player != null:

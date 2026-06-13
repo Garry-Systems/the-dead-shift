@@ -110,6 +110,7 @@ func _die() -> void:
 	queue_free()
 
 func _reward() -> void:
+	RunStats.add_boss()
 	# Big XP burst — scattered around the boss, enough to pop a level-up.
 	if xp_gem_scene != null:
 		for i in GameConfig.BOSS_XP_REWARD:
