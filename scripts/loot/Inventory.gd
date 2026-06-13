@@ -131,8 +131,9 @@ func add_run_xp(amount: int) -> void:
 	SaveManager.save_game()
 	inventory_changed.emit()
 
-## First-launch seed so the weapon-select screen is never empty: one Worn weapon for each
-## base, plus a small coin float to try a crate. Idempotent (no-op once any weapon exists).
+## First-launch seed so the inventory isn't empty: one starter weapon per base, plus a
+## small coin float to try a crate. Deliberately does NOT auto-equip — the menu forces
+## the player to pick a weapon on their first PLAY. Idempotent (no-op once any weapon exists).
 func grant_starter() -> void:
 	if count() > 0:
 		return
@@ -140,8 +141,6 @@ func grant_starter() -> void:
 	for def in Weapons.all():
 		list.append(LootRoller.roll(1, String(def["id"])))
 	SaveManager.set_weapons(list)
-	if equipped_uid() == "" and not list.is_empty():
-		SaveManager.set_equipped_weapon(String(list[0].get("uid", "")))
 	if coins() < 150:
 		SaveManager.add_coins(150 - coins())
 	SaveManager.save_game()

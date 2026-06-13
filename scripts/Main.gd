@@ -26,7 +26,11 @@ func _equip_loadout(player: Player) -> void:
 		return
 	var inst := Inventory.equipped_instance()
 	if inst.is_empty():
+		# Direct editor launch (bypassing the menu's equip gate): seed + take the first gun.
 		Inventory.grant_starter()
+		var owned := Inventory.weapons()
+		if not owned.is_empty():
+			Inventory.equip(String(owned[0].get("uid", "")))
 		inst = Inventory.equipped_instance()
 	if not inst.is_empty():
 		var base := WeaponInstance.base_def(inst)
