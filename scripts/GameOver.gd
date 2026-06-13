@@ -64,14 +64,21 @@ func _spacer(h: int) -> Control:
 	return s
 
 func _on_player_died() -> void:
+	var wave := DifficultyManager.wave
+	var bosses := RunStats.bosses_killed
+	var earned := CoinReward.payout(wave, bosses, RunStats.kills)
+
+	SaveManager.add_coins(earned)
+	SaveManager.record_run(wave, bosses)
+	SaveManager.save_game()
+
+	var result := ""
 	if RunConfig.mode == "boss_rush":
-		var spawner := get_tree().get_first_node_in_group("spawner")
-		var n := 0
-		if spawner != null:
-			n = int(spawner.boss_rush_count)
-		_label.text = "Bosses defeated: %d" % maxi(n - 1, 0)
+		result = "Bosses defeated: %d   (best %d)" % [bosses, SaveManager.best_bosses()]
 	else:
-		_label.text = "Wave reached: %d" % DifficultyManager.wave
+		result = "Wave reached: %d   (best %d)" % [wave, SaveManager.best_wave()]
+
+	_label.text = "%s\nCoins earned: +%d\nTotal coins: %d" % [result, earned, SaveManager.coins()]
 	_root.visible = true
 
 func _on_back_pressed() -> void:
