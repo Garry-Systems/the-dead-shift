@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 DifficultyManager="*res://scripts/DifficultyManager.gd"
 RunConfig="*res://scripts/RunConfig.gd"
+RunStats="*res://scripts/RunStats.gd"
 
 [dotnet]
 
