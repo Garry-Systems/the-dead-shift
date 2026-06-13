@@ -72,6 +72,9 @@ func _on_player_died() -> void:
 	SaveManager.record_run(wave, bosses)
 	SaveManager.save_game()
 
+	# Weapon-loot: award XP to the equipped weapon so its talents unlock over time.
+	Inventory.add_run_xp(RunStats.kills + wave * 10 + bosses * 50)
+
 	var result := ""
 	if RunConfig.mode == "boss_rush":
 		result = "Bosses defeated: %d   (best %d)" % [bosses, SaveManager.best_bosses()]

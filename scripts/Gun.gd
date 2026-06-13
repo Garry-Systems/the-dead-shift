@@ -30,6 +30,13 @@ var _reload_timer := 0.0
 
 var weapon_id := "pistol"         # which Weapons def is equipped (drives the talent pool)
 
+# Weapon-loot identity (set by apply_loot; 0/"" when firing a plain base weapon).
+var loot_rarity := 0
+var loot_name := ""
+var talent_payload := {}           # resolved active-talent effects (see TalentEngine)
+var _frenzy_mult := 0.0            # Bloodrush fire-rate surge (fraction; 0 = none)
+var _frenzy_time := 0.0
+
 const MUZZLE_TIME := 0.05         # seconds the muzzle flash stays visible per shot
 
 var _cooldown := 0.0
@@ -67,8 +74,40 @@ func configure(def: Dictionary) -> void:
 	_reloading = false
 	_reload_timer = 0.0
 
+## Applies a rolled loot instance's stats ON TOP of the already-configured base weapon.
+## Reuses the per-run upgrade_* hooks so loot and upgrade cards share one stat path.
+## Call right after configure(), before Characters.apply_weapon().
+func apply_loot(inst: Dictionary) -> void:
+	if inst.is_empty():
+		return
+	loot_rarity = int(inst.get("rarity", 0))
+	loot_name = WeaponInstance.display_name(inst)
+	var stats := WeaponInstance.resolved_stats(inst)
+	for stat_id in stats:
+		var v: float = stats[stat_id]
+		match stat_id:
+			"damage": upgrade_damage(v / 100.0)
+			"fire_rate": upgrade_fire_rate(v / 100.0)
+			"bullet_speed": upgrade_bullet_speed(v / 100.0)
+			"range": upgrade_range(v / 100.0)
+			"reload": upgrade_reload_speed(v / 100.0)
+			"mag": upgrade_mag_size(v / 100.0)
+			"multishot": upgrade_add_projectile(int(v))
+			"pierce": upgrade_pierce(int(v))
+			"ricochet": upgrade_ricochet(int(v))
+	# Resolve the talents unlocked at this weapon's level into a per-shot combat payload.
+	talent_payload = TalentEngine.resolve_payload(WeaponInstance.active_talents(inst))
+	_ammo = mag_size   # start the run with a full (boosted) magazine
+
+## Talent (Bloodrush): temporary fire-rate surge, refreshed on each kill.
+func add_frenzy(pct: float, duration: float) -> void:
+	_frenzy_mult = maxf(_frenzy_mult, pct)
+	_frenzy_time = maxf(_frenzy_time, duration)
+
 func _process(delta: float) -> void:
 	_fade_muzzle(delta)
+	if _frenzy_time > 0.0:
+		_frenzy_time -= delta
 
 	# Track the nearest enemy every frame (even while reloading / between shots)
 	# so aim_direction stays current for the player's facing.
@@ -95,7 +134,7 @@ func _process(delta: float) -> void:
 		return
 
 	_fire(aim_direction)
-	_cooldown = fire_interval
+	_cooldown = (fire_interval * (1.0 - _frenzy_mult)) if _frenzy_time > 0.0 else fire_interval
 	_ammo -= 1
 	if _ammo <= 0:
 		_start_reload()
@@ -170,6 +209,8 @@ func _spawn_bullet(dir: Vector2) -> void:
 	bullet.damage = damage
 	bullet.pierce_count = pierce_count
 	bullet.ricochet_count = ricochet_count
+	bullet.talent_payload = talent_payload
+	bullet.talent_player = get_parent() as Player
 	if incendiary:
 		bullet.incendiary = true
 		bullet.burn_dps = burn_dps

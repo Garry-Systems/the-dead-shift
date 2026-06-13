@@ -14,6 +14,8 @@ const DEFAULTS := {
 	"coins": 0,
 	"best_wave": 0,
 	"best_bosses": 0,
+	"weapons": [],            # rolled weapon-loot instances (see LootRoller)
+	"equipped_weapon": "",    # uid of the equipped instance
 }
 
 var _data: Dictionary = {}
@@ -103,3 +105,17 @@ func best_bosses() -> int:
 func record_run(wave: int, bosses: int) -> void:
 	_data["best_wave"] = maxi(best_wave(), wave)
 	_data["best_bosses"] = maxi(best_bosses(), bosses)
+
+# --- Weapon-loot inventory (managed by the Inventory autoload) ---
+
+func weapons_raw() -> Array:
+	return _data.get("weapons", [])
+
+func set_weapons(list: Array) -> void:
+	_data["weapons"] = list
+
+func equipped_weapon() -> String:
+	return String(_data.get("equipped_weapon", ""))
+
+func set_equipped_weapon(uid: String) -> void:
+	_data["equipped_weapon"] = uid

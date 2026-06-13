@@ -14,6 +14,10 @@ var incendiary := false        # ignites enemies it hits
 var burn_dps := 0.0
 var burn_duration := 0.0
 
+# Weapon-loot talents: resolved combat payload + the firing player (for lifesteal/frenzy).
+var talent_payload := {}       # {} = no talents on this weapon
+var talent_player: Player = null
+
 var _life := 0.0
 var _hit: Array = []           # enemies already damaged (so pierce/ricochet don't re-hit)
 
@@ -31,12 +35,27 @@ func _on_body_entered(body) -> void:
 		return
 
 	_hit.append(body)
-	body.take_damage(damage)
-	if is_instance_valid(body):
+	var hit_pos := global_position
+
+	# Crit (Killshot) decides the damage dealt this impact.
+	var roll := TalentEngine.roll_damage(damage, talent_payload)
+	body.take_damage(float(roll["damage"]))
+	var killed := not is_instance_valid(body)
+
+	if not killed:
 		if body.has_method("flash_hit"):
 			body.flash_hit()
-		if incendiary:
+		if incendiary and body.has_method("ignite"):
 			body.ignite(burn_dps, burn_duration)
+
+	# Fire talent procs: on-hit statuses, lifesteal, chain, on-kill explode/frenzy.
+	if not talent_payload.is_empty():
+		TalentEngine.process_hit(body, hit_pos, damage, killed, talent_payload, {
+			"player": talent_player,
+			"gun": (talent_player.gun if (talent_player != null and is_instance_valid(talent_player)) else null),
+			"dir": direction,
+			"tree": get_tree(),
+		})
 
 	# Ricochet redirects toward a fresh target; pierce keeps flying straight.
 	if ricochet_count > 0:
