@@ -96,3 +96,9 @@ const RELOAD_TIME_FLOOR := 0.15             # seconds; minimum effective reload 
 const TALENT_RELOAD_PCT := 0.20             # "Fast Hands" gun talent: -% reload time
 const TALENT_MAG_PCT := 0.50                # "Extended Mag" gun talent: +% magazine size
 const CHAR_JIMBO_SNIPER_RELOAD_PCT := 0.20  # Jimbo's sniper perk: -% reload time
+
+# --- Coins / economy (Phase 6 Spec 1) ---
+const COIN_BASE := 10          # flat coins for finishing any run
+const COIN_PER_WAVE := 5       # coins per wave reached
+const COIN_PER_BOSS := 25      # coins per boss defeated
+const COIN_PER_KILL := 1       # coins per trash enemy killed
