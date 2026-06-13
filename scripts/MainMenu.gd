@@ -82,6 +82,11 @@ func _build_hub() -> void:
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	PixelTheme.style_label(tagline, 16, PixelTheme.TEXT_DIM)
 	vbox.add_child(tagline)
+	var coins := Label.new()
+	coins.text = "COINS: %d" % SaveManager.coins()
+	coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(coins, 20, PixelTheme.ACCENT)
+	vbox.add_child(coins)
 	vbox.add_child(_spacer(8))
 	vbox.add_child(_make_button("PLAY", func(): _show_only(_mode_panel)))
 	vbox.add_child(_make_button("CHARACTERS", func(): _show_only(_char_panel)))
