@@ -29,9 +29,9 @@ func _add_background() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
-	# Darken the busy farmstead so pixel text stays readable.
+	# Heavy void (C1) scrim so the background reads as the dark palette, not the photo.
 	var vignette := ColorRect.new()
-	vignette.color = Color(0.04, 0.03, 0.06, 0.35)
+	vignette.color = Color(0.039, 0.0, 0.102, 0.86)
 	vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(vignette)
@@ -164,7 +164,8 @@ func _refresh_char_labels() -> void:
 	for id in _char_buttons:
 		var selected: bool = id == RunConfig.character_id
 		var b := _char_buttons[id] as Button
-		b.add_theme_color_override("font_color", PixelTheme.SELECT if selected else PixelTheme.TEXT)
+		# SELECT (C4 lavender) vs TEXT_DIM (C3 gray-tan) — bright = chosen, dim = not.
+		b.add_theme_color_override("font_color", PixelTheme.SELECT if selected else PixelTheme.TEXT_DIM)
 
 # --- inventory: owned rolled weapons (tap to equip) + crates ---
 func _build_inventory_panel() -> void:

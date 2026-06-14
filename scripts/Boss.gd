@@ -45,7 +45,7 @@ func _setup_flash() -> void:
 		return
 	_flash_mat = ShaderMaterial.new()
 	_flash_mat.shader = FLASH_SHADER
-	_flash_mat.set_shader_parameter("base_tint", Color(1.0, 0.4, 0.4, 1.0))
+	_flash_mat.set_shader_parameter("base_tint", Color(1.0, 1.0, 1.0, 1.0))   # show the gray-tan (C3) art; size + HP bar mark it as the boss
 	spr.material = _flash_mat
 
 ## Brief white pop on bullet impact (called by Bullet, not by burn ticks).
