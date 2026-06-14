@@ -18,6 +18,7 @@ var _store_vbox: VBoxContainer
 var _store_result: Label
 var _last_unbox := ""                       # last crate outcome, shown in the store
 var _last_unbox_color: Color = PixelTheme.TEXT
+var _char_vbox: VBoxContainer    # character panel content (rebuilt by _populate_characters)
 
 func _ready() -> void:
 	Inventory.grant_starter()  # first-launch seed so the inventory is never empty
@@ -27,6 +28,7 @@ func _ready() -> void:
 	_build_char_panel()
 	_build_inventory_panel()
 	_build_store_panel()
+	_ensure_valid_character()
 	_show_only(_hub)
 
 func _add_background() -> void:
@@ -104,7 +106,7 @@ func _build_hub() -> void:
 	vbox.add_child(_spacer(8))
 	vbox.add_child(_make_button("PLAY", _on_play))
 	vbox.add_child(_make_button("STORE", func(): _show_store()))
-	vbox.add_child(_make_button("CHARACTERS", func(): _show_only(_char_panel)))
+	vbox.add_child(_make_button("CHARACTERS", func(): _show_characters()))
 	vbox.add_child(_make_button("INVENTORY", func(): _show_inventory(false)))
 
 ## PLAY: only proceed to the mode picker if a weapon is equipped; otherwise force the
@@ -143,31 +145,54 @@ func _start_run(mode: String) -> void:
 # --- character select ---
 func _build_char_panel() -> void:
 	_char_panel = _make_panel()
-	var vbox := _card_vbox(_char_panel, 14)
-	_make_title(vbox, "CHARACTER", 30)
-	vbox.add_child(_spacer(4))
+	_char_vbox = _card_vbox(_char_panel, 14)
+	# Contents (re)built on show by _populate_characters() so store purchases show up.
+
+func _show_characters() -> void:
+	_ensure_valid_character()
+	_populate_characters()
+	_show_only(_char_panel)
+
+func _populate_characters() -> void:
+	for c in _char_vbox.get_children():
+		c.queue_free()
+	_char_buttons.clear()
+	_make_title(_char_vbox, "CHARACTER", 30)
+	_char_vbox.add_child(_spacer(4))
 	for c in Characters.all():
 		var cid: String = c["id"]
+		var unlocked: bool = SaveManager.is_character_unlocked(cid)
 		var row := VBoxContainer.new()
 		row.add_theme_constant_override("separation", 2)
-		var btn := _make_button(String(c["name"]).to_upper(), func(): _select_character(cid))
+		var label_text: String = String(c["name"]).to_upper()
+		if not unlocked:
+			label_text = "🔒 " + label_text
+		var btn := _make_button(label_text, func(): _select_character(cid))
+		btn.disabled = not unlocked
 		_char_buttons[cid] = btn
 		row.add_child(btn)
 		var desc := Label.new()
-		desc.text = String(c["desc"])
+		desc.text = String(c["desc"]) if unlocked else "Unlock in the Store"
 		desc.custom_minimum_size = Vector2(460, 0)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		PixelTheme.style_label(desc, 13, PixelTheme.TEXT_DIM)
 		row.add_child(desc)
-		vbox.add_child(row)
-	vbox.add_child(_spacer(4))
-	vbox.add_child(_make_button("BACK", func(): _show_only(_hub)))
+		_char_vbox.add_child(row)
+	_char_vbox.add_child(_spacer(4))
+	_char_vbox.add_child(_make_button("BACK", func(): _show_only(_hub)))
 	_refresh_char_labels()
 
 func _select_character(id: String) -> void:
+	if not SaveManager.is_character_unlocked(id):
+		return
 	RunConfig.character_id = id
 	_refresh_char_labels()
+
+## Resets the chosen character to Ryan if the current one isn't unlocked.
+func _ensure_valid_character() -> void:
+	if not SaveManager.is_character_unlocked(RunConfig.character_id):
+		RunConfig.character_id = "ryan"
 
 func _refresh_char_labels() -> void:
 	for id in _char_buttons:
@@ -229,19 +254,6 @@ func _populate_inventory() -> void:
 		PixelTheme.style_label(prompt, 14, PixelTheme.SELECT)
 		_inv_vbox.add_child(prompt)
 
-	# Crate buttons (disabled when you can't afford it / inventory full).
-	var crate_row := HBoxContainer.new()
-	crate_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	crate_row.add_theme_constant_override("separation", 10)
-	_inv_vbox.add_child(crate_row)
-	for crate in Crates.all():
-		var cb := Button.new()
-		cb.text = "%s (%d)" % [String(crate["name"]).to_upper(), int(crate["price"])]
-		PixelTheme.style_button(cb, Vector2(250, 50), 14)
-		cb.disabled = Inventory.coins() < int(crate["price"]) or Inventory.is_full()
-		cb.pressed.connect(_on_crate.bind(String(crate["id"])))
-		crate_row.add_child(cb)
-
 	# Owned weapons as a tile grid, best rarity first; tap a tile for the detail popup.
 	var owned := Inventory.weapons().duplicate()
 	owned.sort_custom(func(a, b): return int(a.get("rarity", 1)) > int(b.get("rarity", 1)))
@@ -278,10 +290,6 @@ func _populate_inventory() -> void:
 
 	# Bottom button: CANCEL (forced-from-PLAY) or BACK — both return to the main menu.
 	_inv_vbox.add_child(_make_button("CANCEL" if _inv_from_play else "BACK", _on_inv_back))
-
-func _on_crate(crate_id: String) -> void:
-	Inventory.open_crate(crate_id)
-	_populate_inventory()
 
 func _on_equip(inst: Dictionary) -> void:
 	Inventory.equip(String(inst.get("uid", "")))
