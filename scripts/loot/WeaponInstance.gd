@@ -76,3 +76,11 @@ static func _base_def(inst: Dictionary) -> Dictionary:
 		if def["id"] == String(inst.get("base", "")):
 			return def
 	return {}
+
+## The tile icon for this instance: per-weapon art if present, else the shared placeholder.
+static func icon(inst: Dictionary) -> Texture2D:
+	var id := String(base_def(inst).get("id", ""))
+	var path := "res://art/weapons/%s.png" % id
+	if ResourceLoader.exists(path):
+		return load(path)
+	return load("res://art/weapons/_placeholder.png")
