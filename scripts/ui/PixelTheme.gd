@@ -70,6 +70,7 @@ static func style_button(b: Button, min_size: Vector2 = Vector2(460, 80), font_s
 	b.add_theme_color_override("font_hover_color", Color(1, 1, 1))
 	b.add_theme_color_override("font_pressed_color", DARK)
 	b.add_theme_color_override("font_focus_color", TEXT)
+	b.add_theme_color_override("font_disabled_color", TEXT_DIM)  # OWNED / locked / unaffordable read as C3
 
 ## Title text: Press Start 2P, amber, with a hard 1:1 pixel drop shadow.
 static func style_title(l: Label, size: int = 40) -> void:

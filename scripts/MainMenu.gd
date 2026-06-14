@@ -196,6 +196,8 @@ func _ensure_valid_character() -> void:
 
 func _refresh_char_labels() -> void:
 	for id in _char_buttons:
+		if not SaveManager.is_character_unlocked(id):
+			continue   # locked buttons are disabled — let the disabled styling show
 		var selected: bool = id == RunConfig.character_id
 		var b := _char_buttons[id] as Button
 		# SELECT (C4 lavender) vs TEXT_DIM (C3 gray-tan) — bright = chosen, dim = not.
