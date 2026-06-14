@@ -37,7 +37,7 @@ static func apply_base(player: Player, id: String) -> void:
 		"bob":
 			player.upgrade_pickup_radius(GameConfig.CHAR_BOB_MAGNET_PCT)
 
-## Weapon-conditional perks — applied after the gun is configured (StartUI), and only
+## Weapon-conditional perks — applied after the gun is configured (Main.gd), and only
 ## if the equipped weapon matches.
 static func apply_weapon(player: Player, id: String) -> void:
 	if player == null or player.gun == null:

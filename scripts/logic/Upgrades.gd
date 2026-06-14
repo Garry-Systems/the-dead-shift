@@ -11,7 +11,7 @@ static func player_cards() -> Array:
 		{"id": "pickup", "title": "Magnet", "desc": "+25% Pickup Radius"},
 	]
 
-## The full library of gun talent cards, keyed by id. Each weapon's "talents" list
+## The full library of gun upgrade cards, keyed by id. Each weapon's "upgrades" list
 ## (in Weapons.gd) selects a subset of these into its flat per-weapon pool.
 static func gun_card(id: String) -> Dictionary:
 	match id:
@@ -39,11 +39,11 @@ static func gun_card(id: String) -> Dictionary:
 			return {"id": "mag", "title": "Extended Mag", "desc": "+50% Magazine"}
 	return {"id": id, "title": id, "desc": ""}
 
-## The equipped weapon's talent pool, resolved from its talent ids into cards.
+## The equipped weapon's upgrade-card pool, resolved from its upgrade ids into cards.
 static func gun_cards(player: Player) -> Array:
 	var cards: Array = []
 	if player and player.gun:
-		for id in Weapons.talents_for(player.gun.weapon_id):
+		for id in Weapons.upgrades_for(player.gun.weapon_id):
 			cards.append(gun_card(id))
 	return cards
 
@@ -67,24 +67,24 @@ static func apply(player: Player, id: String) -> void:
 		"pickup":
 			player.upgrade_pickup_radius(0.25)
 		"damage":
-			player.gun.upgrade_damage(GameConfig.TALENT_DAMAGE_PCT)
+			player.gun.upgrade_damage(GameConfig.UPGRADE_DAMAGE_PCT)
 		"fire_rate":
-			player.gun.upgrade_fire_rate(GameConfig.TALENT_FIRE_RATE_PCT)
+			player.gun.upgrade_fire_rate(GameConfig.UPGRADE_FIRE_RATE_PCT)
 		"bullet_speed":
-			player.gun.upgrade_bullet_speed(GameConfig.TALENT_BULLET_SPEED_PCT)
+			player.gun.upgrade_bullet_speed(GameConfig.UPGRADE_BULLET_SPEED_PCT)
 		"range":
-			player.gun.upgrade_range(GameConfig.TALENT_RANGE_PCT)
+			player.gun.upgrade_range(GameConfig.UPGRADE_RANGE_PCT)
 		"projectile":
 			player.gun.upgrade_add_projectile(1)
 		"choke":
-			player.gun.upgrade_reduce_spread(GameConfig.TALENT_CHOKE_PCT)
+			player.gun.upgrade_reduce_spread(GameConfig.UPGRADE_CHOKE_PCT)
 		"pierce":
 			player.gun.upgrade_pierce(1)
 		"ricochet":
 			player.gun.upgrade_ricochet(1)
 		"incendiary":
-			player.gun.upgrade_incendiary(GameConfig.TALENT_BURN_DPS, GameConfig.TALENT_BURN_DURATION)
+			player.gun.upgrade_incendiary(GameConfig.UPGRADE_BURN_DPS, GameConfig.UPGRADE_BURN_DURATION)
 		"reload":
-			player.gun.upgrade_reload_speed(GameConfig.TALENT_RELOAD_PCT)
+			player.gun.upgrade_reload_speed(GameConfig.UPGRADE_RELOAD_PCT)
 		"mag":
-			player.gun.upgrade_mag_size(GameConfig.TALENT_MAG_PCT)
+			player.gun.upgrade_mag_size(GameConfig.UPGRADE_MAG_PCT)

@@ -195,6 +195,11 @@ func max_hp() -> float:
 func full_heal() -> void:
 	_health.heal(_health.maxhp)
 
+## Talent hook (Bloodthirst lifesteal): restore a flat amount, clamped to max by Health.
+func heal(amount: float) -> void:
+	if _health != null:
+		_health.heal(amount)
+
 ## Relic hook: raise (or lower, when removed) max health. Reversible via a negative amount.
 func relic_add_max_health(amount: float) -> void:
 	_health.add_max(amount)

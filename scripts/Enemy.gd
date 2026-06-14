@@ -5,6 +5,7 @@ extends CharacterBody2D
 ## stats even into wave 9.
 
 const FLASH_SHADER := preload("res://shaders/flash.gdshader")
+const KNOCKBACK_DECAY := 900.0    # px/s^2 the talent knockback impulse bleeds off
 
 @export var xp_gem_scene: PackedScene
 
@@ -17,6 +18,11 @@ var _health: Health
 var _target: Player
 var _burn_dps := 0.0
 var _burn_time := 0.0          # seconds of burn remaining (incendiary talent)
+var _dot_dps := 0.0            # stacking poison DoT (Venom talent)
+var _dot_time := 0.0
+var _slow_factor := 1.0        # move-speed multiplier (Frostbite talent); 1.0 = unslowed
+var _slow_time := 0.0
+var _knockback := Vector2.ZERO # decaying impulse (Concussive talent)
 var _flash_mat: ShaderMaterial
 var _health_bar: EnemyHealthBar
 
@@ -65,6 +71,20 @@ func ignite(dps: float, duration: float) -> void:
 	_burn_dps = maxf(_burn_dps, dps)
 	_burn_time = maxf(_burn_time, duration)
 
+## Talent (Frostbite): cut move speed by `factor` (0..1) for `duration`s. Strongest wins.
+func apply_slow(factor: float, duration: float) -> void:
+	_slow_factor = minf(_slow_factor, clampf(1.0 - factor, 0.05, 1.0))
+	_slow_time = maxf(_slow_time, duration)
+
+## Talent (Venom): stacking poison DoT — adds to any existing tick.
+func apply_dot(dps: float, duration: float) -> void:
+	_dot_dps += dps
+	_dot_time = maxf(_dot_time, duration)
+
+## Talent (Concussive): shove the enemy with an impulse that decays over time.
+func apply_knockback(impulse: Vector2) -> void:
+	_knockback += impulse
+
 ## Remaining-health fraction (for the above-head bar).
 func health_fraction() -> float:
 	if _health == null or _health.maxhp <= 0.0:
@@ -78,11 +98,29 @@ func _physics_process(delta: float) -> void:
 		if not is_instance_valid(self):
 			return
 
+	if _dot_time > 0.0:
+		_dot_time -= delta
+		take_damage(_dot_dps * delta)
+		if not is_instance_valid(self):
+			return
+		if _dot_time <= 0.0:
+			_dot_dps = 0.0
+
+	if _slow_time > 0.0:
+		_slow_time -= delta
+		if _slow_time <= 0.0:
+			_slow_factor = 1.0
+
 	if _target == null or not is_instance_valid(_target):
 		return
 
 	var dir := (_target.global_position - global_position).normalized()
-	velocity = dir * move_speed
+	velocity = dir * (move_speed * _slow_factor)
+
+	if _knockback != Vector2.ZERO:
+		velocity += _knockback
+		_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
+
 	move_and_slide()
 
 	# Deal damage-per-second while overlapping the player (simple distance check).
