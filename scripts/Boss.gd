@@ -85,7 +85,7 @@ func _physics_process(delta: float) -> void:
 	velocity = dir * move_speed
 	move_and_slide()
 
-	if global_position.distance_to(_target.global_position) < 60.0:
+	if _touching_player():
 		_target.take_damage(touch_damage * delta)
 
 	_slam_cd -= delta
@@ -99,6 +99,17 @@ func _slam() -> void:
 	var wave = slam_wave_scene.instantiate()
 	get_tree().current_scene.add_child(wave)
 	wave.global_position = global_position
+
+## True if this body's move_and_slide hit the player this frame — a robust contact
+## check (a fixed distance failed because collisions de-penetrate us to the sum of the
+## collider radii, just outside any small threshold).
+func _touching_player() -> bool:
+	if _target == null or not is_instance_valid(_target):
+		return false
+	for i in get_slide_collision_count():
+		if get_slide_collision(i).get_collider() == _target:
+			return true
+	return false
 
 func take_damage(amount: float) -> void:
 	_health.take_damage(amount)

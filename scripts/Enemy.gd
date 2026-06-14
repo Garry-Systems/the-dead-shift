@@ -123,9 +123,22 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-	# Deal damage-per-second while overlapping the player (simple distance check).
-	if global_position.distance_to(_target.global_position) < 40.0:
+	# Deal damage-per-second whenever we're actually colliding with the player. A fixed
+	# distance check failed here: move_and_slide de-penetrates us to the sum of the
+	# collider radii (24+20=44), which sat just outside the old 40px threshold.
+	if _touching_player():
 		_target.take_damage(touch_damage * delta)
+
+## True if this body's move_and_slide hit the player this frame — a robust contact
+## check (a fixed distance failed because collisions de-penetrate us to the sum of the
+## collider radii, just outside any small threshold).
+func _touching_player() -> bool:
+	if _target == null or not is_instance_valid(_target):
+		return false
+	for i in get_slide_collision_count():
+		if get_slide_collision(i).get_collider() == _target:
+			return true
+	return false
 
 func take_damage(amount: float) -> void:
 	_health.take_damage(amount)
