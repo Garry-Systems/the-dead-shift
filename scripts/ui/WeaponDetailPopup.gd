@@ -125,7 +125,9 @@ func _show_scrap_confirm() -> void:
 	no.text = "NO"
 	PixelTheme.style_button(no, Vector2(220, 56), 16)
 	no.pressed.connect(func():
+		_confirm_row.visible = false
 		_confirm_row.queue_free()
+		_confirm_row = null
 		_action_row.visible = true)
 	hb.add_child(no)
 	_confirm_row.add_child(hb)

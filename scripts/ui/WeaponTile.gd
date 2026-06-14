@@ -75,13 +75,14 @@ func _add_equipped_badge() -> void:
 	badge.add_theme_color_override("font_color", PixelTheme.DARK)
 	badge_panel.add_child(badge)
 	add_child(badge_panel)
-	# Pin to top-right, growing leftward to its min size.
+	# Pin to the top-right corner with an explicit small rect (anchors all at the
+	# parent's top-right; offsets define a real ~34x22 box). Avoids the zero-size
+	# trap of equal left/right offsets; mirrors the corner-element pattern elsewhere.
 	badge_panel.anchor_left = 1.0
-	badge_panel.anchor_right = 1.0
 	badge_panel.anchor_top = 0.0
+	badge_panel.anchor_right = 1.0
 	badge_panel.anchor_bottom = 0.0
-	badge_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	badge_panel.grow_vertical = Control.GROW_DIRECTION_END
-	badge_panel.offset_left = -6
-	badge_panel.offset_right = -6
+	badge_panel.offset_left = -40
 	badge_panel.offset_top = 6
+	badge_panel.offset_right = -6
+	badge_panel.offset_bottom = 28
