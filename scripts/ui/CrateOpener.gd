@@ -12,9 +12,11 @@ const TILE_H := 180.0
 const ITEM_PX := 148.0      # TILE_W + 8 gap
 const REEL_COUNT := 50
 const LAND_INDEX := 42      # winner slot (7 decoys trail it)
-const FAST_SPEED := 3000.0  # px/sec linear phase
-const SLOW_DIST := 2400.0   # switch to ease-out this far out — long, drawn-out decel
-const SLOWDOWN := 2.0       # gentle lerp factor (x delta) — low = slow creep, AfterDark-style
+const FAST_SPEED := 3000.0   # px/sec linear phase
+const SLOW_DIST := 2400.0    # begin ease-out this far from target — long, drawn-out decel
+const SLOWDOWN := 2.0        # mid ease-out lerp factor (x delta)
+const CRAWL_DIST := 280.0    # final crawl begins ~1.9 tiles out — the tease zone
+const CRAWL_SLOWDOWN := 1.5  # very gentle final creep — slow-rolls past the flanking special
 const TICK_PX := 148.0      # one tile-width per tick
 const TICK_CD := 0.03       # min seconds between ticks
 
@@ -112,8 +114,19 @@ func _build_reel() -> void:
 	for ch in _reel.get_children():
 		ch.queue_free()
 	var crate := Crates.get_crate(_crate_id)
+	var ceil_rarity := int(crate.get("rarity_ceil", Rarity.MAX_ID))
+	# Salt the reel with top-of-crate "tease" tiles: a few fly by as eye candy, plus ones
+	# flanking the winner so a special slowly rolls THROUGH the reticle right before the
+	# real drop lands (the "so close" heartbreak), with another sitting just off-center.
+	var tease := {10: true, 19: true, 28: true, 36: true, (LAND_INDEX - 1): true, (LAND_INDEX + 1): true}
 	for i in REEL_COUNT:
-		var inst: Dictionary = _winner if i == LAND_INDEX else LootRoller.roll_from_crate(crate)
+		var inst: Dictionary
+		if i == LAND_INDEX:
+			inst = _winner
+		elif tease.has(i):
+			inst = LootRoller.roll(ceil_rarity, "")   # a top-of-crate decoy to tease with
+		else:
+			inst = LootRoller.roll_from_crate(crate)
 		var tile := _reel_tile(inst)
 		tile.position = Vector2(i * ITEM_PX, 0.0)
 		_reel.add_child(tile)
@@ -158,10 +171,13 @@ func _process(delta: float) -> void:
 		return
 	_tick_cd = maxf(0.0, _tick_cd - delta)
 	var dist := _target_x - _scroll_x
-	if absf(dist) > SLOW_DIST:
+	var ad := absf(dist)
+	if ad > SLOW_DIST:
 		_scroll_x += signf(dist) * FAST_SPEED * delta
-	else:
+	elif ad > CRAWL_DIST:
 		_scroll_x = lerpf(_scroll_x, _target_x, clampf(SLOWDOWN * delta, 0.0, 1.0))
+	else:
+		_scroll_x = lerpf(_scroll_x, _target_x, clampf(CRAWL_SLOWDOWN * delta, 0.0, 1.0))
 	if absf(_scroll_x - _last_tick_x) >= TICK_PX and _tick_cd <= 0.0:
 		_play_tick()
 		_last_tick_x = _scroll_x
