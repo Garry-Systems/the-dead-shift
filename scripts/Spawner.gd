@@ -5,6 +5,7 @@ extends Node2D
 ##    its boss number.
 
 @export var enemy_scene: PackedScene
+@export var ranged_enemy_scene: PackedScene   # "spitter"; mixed in from RANGED_ENEMY_MIN_WAVE
 
 var mode := "endless"
 var boss_rush_count := 0      # bosses spawned so far in boss_rush (drives scaling + HUD)
@@ -63,7 +64,11 @@ func _boss_alive() -> bool:
 func _spawn_enemy() -> void:
 	var angle := randf_range(0.0, TAU)
 	var offset := Vector2(cos(angle), sin(angle)) * GameConfig.SPAWN_RADIUS
-	var enemy = enemy_scene.instantiate()
+	# From RANGED_ENEMY_MIN_WAVE on, a fraction of trash spawns are ranged "spitters".
+	var scene := enemy_scene
+	if ranged_enemy_scene != null and DifficultyManager.wave >= GameConfig.RANGED_ENEMY_MIN_WAVE and randf() < GameConfig.RANGED_ENEMY_SPAWN_CHANCE:
+		scene = ranged_enemy_scene
+	var enemy = scene.instantiate()
 	enemy.configure(DifficultyManager.enemy_stats())
 	get_tree().current_scene.add_child(enemy)
 	enemy.global_position = _player.global_position + offset
