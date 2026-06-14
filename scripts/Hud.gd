@@ -94,10 +94,10 @@ func _apply_pixel_style() -> void:
 	_label_px(_hp_label, 13, PixelTheme.TEXT)
 	_label_px(_wave_label, 16, PixelTheme.TEXT)
 	_label_px(_ammo_label, 18, PixelTheme.ACCENT)
-	_style_bar(_bar, PixelTheme.SELECT)        # XP — green, matches gameplay gems
-	_style_bar(_hp_bar, PixelTheme.DANGER)     # health — red
-	_style_bar(_boss_bar, PixelTheme.DANGER)   # boss — red
-	_style_bar(_reload_bar, PixelTheme.ACCENT) # reload — amber
+	_style_bar(_bar, PixelTheme.SELECT)        # XP — C4 lavender (full-width strip up top)
+	_style_bar(_hp_bar, PixelTheme.ACCENT)     # health — C4 lavender (player/action color)
+	_style_bar(_boss_bar, PixelTheme.DANGER)   # boss — C3 gray-tan (the enemy/threat color)
+	_style_bar(_reload_bar, PixelTheme.ACCENT) # reload — C4 lavender
 
 ## Pixel font + a hard 1px drop shadow so readouts stay legible over gameplay.
 func _label_px(l: Label, size: int, col: Color) -> void:
