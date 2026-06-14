@@ -13,6 +13,11 @@ var _inv_vbox: VBoxContainer   # inventory card content (rebuilt by _populate_in
 var _hub_coins: Label          # hub coin readout (refreshed when returning to hub)
 var _inv_from_play := false    # true when the inventory was opened by PLAY (no weapon equipped)
 var _detail_popup: WeaponDetailPopup   # reused modal shown when a tile is tapped
+var _store_panel: Control
+var _store_vbox: VBoxContainer
+var _store_result: Label
+var _last_unbox := ""                       # last crate outcome, shown in the store
+var _last_unbox_color: Color = PixelTheme.TEXT
 
 func _ready() -> void:
 	Inventory.grant_starter()  # first-launch seed so the inventory is never empty
@@ -21,6 +26,7 @@ func _ready() -> void:
 	_build_mode_panel()
 	_build_char_panel()
 	_build_inventory_panel()
+	_build_store_panel()
 	_show_only(_hub)
 
 func _add_background() -> void:
@@ -76,6 +82,7 @@ func _show_only(panel: Control) -> void:
 	_mode_panel.visible = panel == _mode_panel
 	_char_panel.visible = panel == _char_panel
 	_inv_panel.visible = panel == _inv_panel
+	_store_panel.visible = panel == _store_panel
 	if panel == _hub and _hub_coins != null:
 		_hub_coins.text = "COINS: %d" % SaveManager.coins()
 
@@ -96,6 +103,7 @@ func _build_hub() -> void:
 	vbox.add_child(_hub_coins)
 	vbox.add_child(_spacer(8))
 	vbox.add_child(_make_button("PLAY", _on_play))
+	vbox.add_child(_make_button("STORE", func(): _show_store()))
 	vbox.add_child(_make_button("CHARACTERS", func(): _show_only(_char_panel)))
 	vbox.add_child(_make_button("INVENTORY", func(): _show_inventory(false)))
 
@@ -292,6 +300,121 @@ func _on_tile_pressed(inst: Dictionary) -> void:
 func _on_scrap(inst: Dictionary) -> void:
 	Inventory.deconstruct(String(inst.get("uid", "")))
 	_populate_inventory()
+
+# --- store: spend coins to unlock characters + buy crates ---
+func _build_store_panel() -> void:
+	_store_panel = _make_panel()
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		margin.add_theme_constant_override(side, 24)
+	_store_panel.add_child(margin)
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	margin.add_child(card)
+	_store_vbox = VBoxContainer.new()
+	_store_vbox.add_theme_constant_override("separation", 10)
+	card.add_child(_store_vbox)
+
+func _show_store() -> void:
+	_last_unbox = ""
+	_populate_store()
+	_show_only(_store_panel)
+
+func _store_header(parent: VBoxContainer, text: String) -> void:
+	var h := Label.new()
+	h.text = text
+	h.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(h, 18, PixelTheme.ACCENT)
+	parent.add_child(h)
+
+func _populate_store() -> void:
+	for c in _store_vbox.get_children():
+		c.queue_free()
+
+	_make_title(_store_vbox, "STORE", 28)
+
+	var coins := Label.new()
+	coins.text = "COINS: %d" % SaveManager.coins()
+	coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(coins, 16, PixelTheme.ACCENT)
+	_store_vbox.add_child(coins)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_store_vbox.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 8)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
+
+	# Characters
+	_store_header(list, "CHARACTERS")
+	for c in Characters.all():
+		var cid: String = c["id"]
+		var price: int = int(c.get("price", 0))
+		var owned: bool = SaveManager.is_character_unlocked(cid)
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 2)
+		var b := Button.new()
+		if owned:
+			b.text = "%s — OWNED" % String(c["name"]).to_upper()
+			b.disabled = true
+		else:
+			b.text = "%s — UNLOCK %d" % [String(c["name"]).to_upper(), price]
+			b.disabled = SaveManager.coins() < price
+			b.pressed.connect(_on_buy_character.bind(cid, price))
+		PixelTheme.style_button(b, Vector2(520, 56), 16)
+		row.add_child(b)
+		var desc := Label.new()
+		desc.text = String(c["desc"])
+		desc.custom_minimum_size = Vector2(520, 0)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelTheme.style_label(desc, 12, PixelTheme.TEXT_DIM)
+		row.add_child(desc)
+		list.add_child(row)
+
+	# Crates
+	_store_header(list, "CRATES")
+	for crate in Crates.all():
+		var cb := Button.new()
+		cb.text = "%s — %d" % [String(crate["name"]).to_upper(), int(crate["price"])]
+		PixelTheme.style_button(cb, Vector2(520, 52), 15)
+		cb.disabled = SaveManager.coins() < int(crate["price"]) or Inventory.is_full()
+		cb.pressed.connect(_on_buy_crate.bind(String(crate["id"])))
+		list.add_child(cb)
+
+	_store_result = Label.new()
+	_store_result.text = _last_unbox
+	_store_result.custom_minimum_size = Vector2(520, 0)
+	_store_result.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_store_result.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(_store_result, 13, _last_unbox_color)
+	list.add_child(_store_result)
+
+	_store_vbox.add_child(_make_button("BACK", func(): _show_only(_hub)))
+
+func _on_buy_character(id: String, price: int) -> void:
+	if SaveManager.is_character_unlocked(id):
+		return
+	if not SaveManager.spend_coins(price):
+		return
+	SaveManager.unlock_character(id)
+	SaveManager.save_game()
+	_populate_store()
+
+func _on_buy_crate(crate_id: String) -> void:
+	var inst := Inventory.open_crate(crate_id)   # spends coins, rolls, adds to inventory, saves
+	if inst.is_empty():
+		_last_unbox = "Can't open that crate."
+		_last_unbox_color = PixelTheme.TEXT_DIM
+	else:
+		_last_unbox = "Unboxed: %s (%s)" % [WeaponInstance.display_name(inst), WeaponInstance.rarity_name(inst)]
+		_last_unbox_color = WeaponInstance.color(inst)
+	_populate_store()
 
 func _on_inv_back() -> void:
 	_inv_from_play = false
