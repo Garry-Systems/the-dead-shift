@@ -46,7 +46,14 @@ const SPAWN_INTERVAL_DECAY := 0.92    # per-wave multiplier on SPAWN_INTERVAL (m
 const ENEMY_HP_GROWTH := 1.12         # per-wave multiplier on enemy max health
 const ENEMY_DMG_GROWTH := 1.05        # per-wave multiplier on enemy touch damage
 const ENEMY_SPEED_GROWTH := 1.02      # per-wave multiplier on enemy move speed
-const ENEMY_SPEED_CAP := 140.0        # px/sec; enemies never move faster than this
+const ENEMY_SPEED_CAP := 240.0        # px/sec; raised above the player's 220 so late enemies catch you
+
+# After wave 10 enemies accelerate (Larry 2026-06-14): the gentle early growth freezes at
+# ENEMY_LATE_WAVE and a steeper per-wave multiplier takes over, so HP keeps climbing and move
+# speed eventually out-paces the player (PLAYER_MOVE_SPEED 220) — you must dash to escape.
+const ENEMY_LATE_WAVE := 10            # wave after which the steeper ramp applies
+const ENEMY_LATE_HP_GROWTH := 1.15     # per-wave HP multiplier past ENEMY_LATE_WAVE
+const ENEMY_LATE_SPEED_GROWTH := 1.15  # per-wave speed multiplier past ENEMY_LATE_WAVE
 
 # --- Boss (Phase 4 step 2) ---
 const BOSS_WAVE_INTERVAL := 5         # a boss spawns every Nth wave (5, 10, 15, ...)
