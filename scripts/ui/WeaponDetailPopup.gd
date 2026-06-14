@@ -27,7 +27,9 @@ func _ready() -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(560, 0)
+	# Cap width to the viewport so the modal fits a narrow (portrait) screen too.
+	var card_w: float = minf(560.0, get_viewport_rect().size.x - 48.0)
+	card.custom_minimum_size = Vector2(card_w, 0)
 	PixelTheme.style_card(card)
 	center.add_child(card)
 	_card_vbox = VBoxContainer.new()
@@ -75,10 +77,12 @@ func _rebuild() -> void:
 func _build_action_row() -> Control:
 	var row := VBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var equip_btn := Button.new()
 	equip_btn.text = "EQUIPPED" if _is_equipped else "EQUIP"
-	PixelTheme.style_button(equip_btn, Vector2(480, 60), 18)
+	PixelTheme.style_button(equip_btn, Vector2(0, 60), 18)
+	equip_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	equip_btn.disabled = _is_equipped
 	equip_btn.pressed.connect(func():
 		equip_requested.emit(_inst)
@@ -88,7 +92,8 @@ func _build_action_row() -> Control:
 	var band: Array = Rarity.tier(int(_inst.get("rarity", 1))).scrap
 	var scrap_btn := Button.new()
 	scrap_btn.text = "SCRAP (%d-%d)" % [int(band[0]), int(band[1])]
-	PixelTheme.style_button(scrap_btn, Vector2(480, 56), 16)
+	PixelTheme.style_button(scrap_btn, Vector2(0, 56), 16)
+	scrap_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scrap_btn.disabled = _is_equipped
 	scrap_btn.add_theme_color_override("font_color", PixelTheme.DANGER)
 	scrap_btn.pressed.connect(_show_scrap_confirm)
@@ -96,7 +101,8 @@ func _build_action_row() -> Control:
 
 	var close_btn := Button.new()
 	close_btn.text = "CLOSE"
-	PixelTheme.style_button(close_btn, Vector2(480, 56), 16)
+	PixelTheme.style_button(close_btn, Vector2(0, 56), 16)
+	close_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	close_btn.pressed.connect(_close)
 	row.add_child(close_btn)
 	return row
@@ -106,6 +112,7 @@ func _show_scrap_confirm() -> void:
 	var band: Array = Rarity.tier(int(_inst.get("rarity", 1))).scrap
 	_confirm_row = VBoxContainer.new()
 	_confirm_row.add_theme_constant_override("separation", 10)
+	_confirm_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var q := Label.new()
 	q.text = "Scrap for %d-%d coins?" % [int(band[0]), int(band[1])]
 	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -114,16 +121,19 @@ func _show_scrap_confirm() -> void:
 	var hb := HBoxContainer.new()
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	hb.add_theme_constant_override("separation", 12)
+	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var yes := Button.new()
 	yes.text = "YES"
-	PixelTheme.style_button(yes, Vector2(220, 56), 16)
+	PixelTheme.style_button(yes, Vector2(0, 56), 16)
+	yes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	yes.pressed.connect(func():
 		scrap_confirmed.emit(_inst)
 		_close())
 	hb.add_child(yes)
 	var no := Button.new()
 	no.text = "NO"
-	PixelTheme.style_button(no, Vector2(220, 56), 16)
+	PixelTheme.style_button(no, Vector2(0, 56), 16)
+	no.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	no.pressed.connect(func():
 		_confirm_row.visible = false
 		_confirm_row.queue_free()

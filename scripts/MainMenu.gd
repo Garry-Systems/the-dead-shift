@@ -170,14 +170,18 @@ func _refresh_char_labels() -> void:
 # --- inventory: owned rolled weapons (tap to equip) + crates ---
 func _build_inventory_panel() -> void:
 	_inv_panel = _make_panel()
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_inv_panel.add_child(center)
+
+	# The card fills the screen minus a margin, so it always fits the viewport no
+	# matter how tall/short the window is (no fixed height that can overflow).
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		margin.add_theme_constant_override(side, 24)
+	_inv_panel.add_child(margin)
 
 	var card := PanelContainer.new()
 	PixelTheme.style_card(card)
-	card.custom_minimum_size = Vector2(640, 800)
-	center.add_child(card)
+	margin.add_child(card)
 
 	_inv_vbox = VBoxContainer.new()
 	_inv_vbox.add_theme_constant_override("separation", 10)
@@ -241,16 +245,22 @@ func _populate_inventory() -> void:
 		PixelTheme.style_label(none, 14, PixelTheme.TEXT_DIM)
 		_inv_vbox.add_child(none)
 	else:
+		# Scroll fills the remaining card height (so the grid never overflows the
+		# screen), scrolls vertically only; the 3-column block is centered.
 		var scroll := ScrollContainer.new()
 		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		scroll.custom_minimum_size = Vector2(0, 560)
+		scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 		_inv_vbox.add_child(scroll)
+		var grid_center := HBoxContainer.new()
+		grid_center.alignment = BoxContainer.ALIGNMENT_CENTER
+		grid_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.add_child(grid_center)
 		var grid := GridContainer.new()
 		grid.columns = 3
 		grid.add_theme_constant_override("h_separation", 12)
 		grid.add_theme_constant_override("v_separation", 12)
-		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		scroll.add_child(grid)
+		grid_center.add_child(grid)
 		for inst in owned:
 			var tile := WeaponTile.new()
 			grid.add_child(tile)
