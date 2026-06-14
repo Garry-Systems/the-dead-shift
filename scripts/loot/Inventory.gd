@@ -96,22 +96,30 @@ func deconstruct(uid: String) -> int:
 	inventory_changed.emit()
 	return payout
 
-## Buys + opens a crate: spends coins, rolls an instance, adds it. Returns the instance
-## (empty dict on failure: unknown crate, not enough coins, or inventory full).
-func open_crate(crate_id: String) -> Dictionary:
+## Store purchase: spend coins and add an UNOPENED crate to the collection.
+## Returns false on unknown crate or not enough coins. (Crates don't count against the
+## weapon cap, so inventory-full does not block buying.)
+func buy_crate(crate_id: String) -> bool:
 	var crate := Crates.get_crate(crate_id)
 	if crate.is_empty():
-		return {}
-	if coins() < int(crate["price"]):
-		return {}
-	if is_full():
-		return {}
+		return false
 	if not SaveManager.spend_coins(int(crate["price"])):
-		return {}
-	var inst := LootRoller.roll_from_crate(crate)
-	add(inst)                              # add() saves + emits item_added/inventory_changed
+		return false
+	SaveManager.add_crate(crate_id)
+	SaveManager.save_game()
 	coins_changed.emit(coins())
-	return inst
+	inventory_changed.emit()
+	return true
+
+## Finalize an opened crate: consume one crate + add the rolled winner. Atomic.
+## Returns false if no crate owned / inventory full / empty roll. The opener supplies the
+## winner so the reel and the award are the same instance.
+func commit_crate(crate_id: String, winner: Dictionary) -> bool:
+	if SaveManager.crate_count(crate_id) <= 0 or is_full() or winner.is_empty():
+		return false
+	SaveManager.remove_crate(crate_id)
+	add(winner)   # appends, auto-equips if none, saves, emits
+	return true
 
 ## Awards XP to the equipped weapon (call at end of run). Levels up on the level*100 curve.
 ## v1 has no talents gated on level yet, but this keeps the meta-progression data real.
