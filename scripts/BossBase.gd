@@ -1,0 +1,187 @@
+class_name BossBase
+extends CharacterBody2D
+## Base class for all bosses. Carries the generic boss behavior (scaled stats, health, hit
+## flash, incendiary burn, contact damage, chase, death reward) AND a phase/pattern engine.
+## A concrete boss is just a .tscn (Sprite + Collision + the two scene exports) plus a script
+## that overrides _build_phases(). It is in the "enemies" group (bullets/auto-aim hit it) and
+## the "boss" group (the HUD shows its health bar).
+
+const FLASH_SHADER := preload("res://shaders/flash.gdshader")
+
+@export var xp_gem_scene: PackedScene
+@export var relic_pickup_scene: PackedScene
+
+var max_health := GameConfig.BOSS_BASE_HP
+var move_speed := GameConfig.BOSS_MOVE_SPEED
+var touch_damage := GameConfig.BOSS_TOUCH_DAMAGE
+
+var _health: Health
+var _target: Player
+var _burn_dps := 0.0
+var _burn_time := 0.0
+var _flash_mat: ShaderMaterial
+
+# --- Phase / pattern engine ---
+var phases: Array = []     # built by _build_phases(); phases[0].at must be 1.0
+var _phase_idx := -1
+var _speed_mult := 1.0
+var _pat_clock := 0.0      # counts down to the next pattern cast
+var _pat_i := 0            # round-robin index into the current phase's patterns
+
+## Bakes scaled stats at spawn (called by the Spawner). Applies the per-boss HP multiplier.
+func configure(stats: Dictionary) -> void:
+	max_health = float(stats["max_health"]) * _hp_mult()
+	move_speed = float(stats["move_speed"])
+	touch_damage = float(stats["touch_damage"])
+	_health = Health.new(max_health)
+
+## Per-boss HP multiplier on the wave-scaled base (1.0 = the brute). Override per boss.
+func _hp_mult() -> float:
+	return 1.0
+
+## Per-boss base flash tint (default white = show the C3 enemy art). Override to recolor.
+func _base_tint() -> Color:
+	return Color(1.0, 1.0, 1.0, 1.0)
+
+## Override per boss: returns the phase table. Each entry is a Dictionary:
+##   { "at": float,           # enter when health_fraction() <= at; phases[0].at MUST be 1.0
+##     "patterns": Array,     # entries: { "scene": PackedScene, "params": Dictionary }
+##     "cadence": float,      # seconds between casts (default 4.0)
+##     "speed_mult": float,   # chase-speed multiplier this phase (default 1.0)
+##     "on_enter": Callable } # optional one-shot when the phase begins
+func _build_phases() -> Array:
+	return []
+
+func _ready() -> void:
+	add_to_group("enemies")
+	add_to_group("boss")
+	_target = get_tree().get_first_node_in_group("player") as Player
+	if _health == null:
+		_health = Health.new(max_health)
+	_setup_flash()
+	phases = _build_phases()
+	_enter_phase(0)
+
+func _enter_phase(i: int) -> void:
+	if i < 0 or i >= phases.size():
+		return
+	_phase_idx = i
+	var ph: Dictionary = phases[i]
+	_speed_mult = float(ph.get("speed_mult", 1.0))
+	_pat_i = 0
+	_pat_clock = float(ph.get("first_delay", GameConfig.BOSS_FIRST_CAST_DELAY))
+	var cb = ph.get("on_enter", null)
+	if cb is Callable and cb.is_valid():
+		cb.call()
+
+func _setup_flash() -> void:
+	var spr := get_node_or_null("Sprite2D") as Sprite2D
+	if spr == null:
+		return
+	_flash_mat = ShaderMaterial.new()
+	_flash_mat.shader = FLASH_SHADER
+	_flash_mat.set_shader_parameter("base_tint", _base_tint())
+	spr.material = _flash_mat
+
+func flash_hit() -> void:
+	if _flash_mat == null:
+		return
+	_flash_mat.set_shader_parameter("flash", 1.0)
+	var tw := create_tween()
+	tw.tween_method(_set_flash, 1.0, 0.0, 0.12)
+
+func _set_flash(v: float) -> void:
+	if _flash_mat != null:
+		_flash_mat.set_shader_parameter("flash", v)
+
+func health_fraction() -> float:
+	if _health == null or _health.maxhp <= 0.0:
+		return 0.0
+	return _health.current / _health.maxhp
+
+func ignite(dps: float, duration: float) -> void:
+	_burn_dps = maxf(_burn_dps, dps)
+	_burn_time = maxf(_burn_time, duration)
+
+func _physics_process(delta: float) -> void:
+	if _burn_time > 0.0:
+		_burn_time -= delta
+		take_damage(_burn_dps * delta)
+		if not is_instance_valid(self):
+			return
+
+	if _target == null or not is_instance_valid(_target):
+		return
+
+	# Advance through phases whose threshold we've crossed (while, in case of a big burst).
+	while _phase_idx + 1 < phases.size() and health_fraction() <= float(phases[_phase_idx + 1].get("at", 0.0)):
+		_enter_phase(_phase_idx + 1)
+
+	# Chase + contact damage. Contact uses the actual slide collision (robust vs collider
+	# radii / sprite scale), matching the 2026-06-14 fix in Enemy/Boss.
+	var dir := (_target.global_position - global_position).normalized()
+	velocity = dir * (move_speed * _speed_mult)
+	move_and_slide()
+	if _touching_player():
+		_target.take_damage(touch_damage * delta)
+
+	# Cast the next pattern when the clock runs out.
+	_pat_clock -= delta
+	if _pat_clock <= 0.0:
+		_cast_next_pattern()
+		var ph: Dictionary = phases[_phase_idx]
+		_pat_clock = float(ph.get("cadence", 4.0))
+
+func _cast_next_pattern() -> void:
+	if _phase_idx < 0 or _phase_idx >= phases.size():
+		return
+	var pats: Array = phases[_phase_idx].get("patterns", [])
+	if pats.is_empty():
+		return
+	var entry: Dictionary = pats[_pat_i % pats.size()]
+	_pat_i += 1
+	var p = (entry["scene"] as PackedScene).instantiate()
+	# Position BEFORE add_child so the pattern's _ready (and any subclass _ready) sees the
+	# real spawn point, not the scene origin. setup() runs after and may reposition further.
+	p.global_position = global_position
+	get_tree().current_scene.add_child(p)
+	p.setup(self, _target, entry.get("params", {}))
+
+func _touching_player() -> bool:
+	if _target == null or not is_instance_valid(_target):
+		return false
+	for i in get_slide_collision_count():
+		if get_slide_collision(i).get_collider() == _target:
+			return true
+	return false
+
+func take_damage(amount: float) -> void:
+	_health.take_damage(amount)
+	if _health.is_dead():
+		_die()
+
+func _die() -> void:
+	_reward()
+	queue_free()
+
+func _reward() -> void:
+	RunStats.add_boss()
+	# Big XP burst — scattered around the boss, enough to pop a level-up.
+	if xp_gem_scene != null:
+		for i in GameConfig.BOSS_XP_REWARD:
+			var gem = xp_gem_scene.instantiate()
+			get_tree().current_scene.add_child(gem)
+			var a := randf_range(0.0, TAU)
+			gem.global_position = global_position + Vector2(cos(a), sin(a)) * randf_range(8.0, 64.0)
+	# Full heal.
+	if _target and is_instance_valid(_target):
+		_target.full_heal()
+	# Relic drop: one relic neither owned nor banned this run.
+	var bar := get_tree().get_first_node_in_group("relic_bar")
+	if bar != null and relic_pickup_scene != null:
+		var id: String = bar.call("roll_drop")
+		if id != "":
+			var pickup = relic_pickup_scene.instantiate()
+			pickup.relic_id = id
+			get_tree().current_scene.add_child(pickup)
+			pickup.global_position = global_position
