@@ -96,6 +96,8 @@ func _ready() -> void:
 	add_child(_tick_player)
 
 func open(crate_id: String) -> void:
+	if visible:
+		return                      # already opening/spinning — ignore re-taps (no reel corruption)
 	if SaveManager.crate_count(crate_id) <= 0 or Inventory.is_full():
 		return
 	_crate_id = crate_id
@@ -177,8 +179,12 @@ func _play_tick() -> void:
 
 func _on_settle() -> void:
 	_flash(WeaponInstance.color(_winner))
-	Inventory.commit_crate(_crate_id, _winner)
-	_show_reveal(_winner)
+	# Only reveal if the award actually committed (consume crate + add weapon). Guards
+	# against a false reward if the commit ever fails (e.g. inventory full).
+	if Inventory.commit_crate(_crate_id, _winner):
+		_show_reveal(_winner)
+	else:
+		_close()
 
 func _flash(col: Color) -> void:
 	_flash_rect.color = Color(col.r, col.g, col.b, 0.5)
