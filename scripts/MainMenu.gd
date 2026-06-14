@@ -12,6 +12,7 @@ var _char_buttons := {}        # character id -> Button (to highlight the select
 var _inv_vbox: VBoxContainer   # inventory card content (rebuilt by _populate_inventory)
 var _hub_coins: Label          # hub coin readout (refreshed when returning to hub)
 var _inv_from_play := false    # true when the inventory was opened by PLAY (no weapon equipped)
+var _detail_popup: WeaponDetailPopup   # reused modal shown when a tile is tapped
 
 func _ready() -> void:
 	Inventory.grant_starter()  # first-launch seed so the inventory is never empty
@@ -175,13 +176,19 @@ func _build_inventory_panel() -> void:
 
 	var card := PanelContainer.new()
 	PixelTheme.style_card(card)
-	card.custom_minimum_size = Vector2(620, 780)
+	card.custom_minimum_size = Vector2(640, 800)
 	center.add_child(card)
 
 	_inv_vbox = VBoxContainer.new()
 	_inv_vbox.add_theme_constant_override("separation", 10)
 	card.add_child(_inv_vbox)
 	# Contents are (re)built on every show by _populate_inventory().
+
+	# Reusable detail popup, layered above the panel content.
+	_detail_popup = WeaponDetailPopup.new()
+	_inv_panel.add_child(_detail_popup)
+	_detail_popup.equip_requested.connect(_on_equip)
+	_detail_popup.scrap_confirmed.connect(_on_scrap)
 
 ## Opens the inventory. from_play=true means PLAY sent us here with no weapon equipped:
 ## picking a weapon then proceeds to the mode picker, and the bottom button reads CANCEL.
@@ -222,16 +229,7 @@ func _populate_inventory() -> void:
 		cb.pressed.connect(_on_crate.bind(String(crate["id"])))
 		crate_row.add_child(cb)
 
-	# Owned weapons, best rarity first; tap to equip.
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(0, 540)
-	_inv_vbox.add_child(scroll)
-	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 8)
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(list)
-
+	# Owned weapons as a tile grid, best rarity first; tap a tile for the detail popup.
 	var owned := Inventory.weapons().duplicate()
 	owned.sort_custom(func(a, b): return int(a.get("rarity", 1)) > int(b.get("rarity", 1)))
 	var equipped_uid := Inventory.equipped_uid()
@@ -241,30 +239,23 @@ func _populate_inventory() -> void:
 		none.text = "No weapons yet — open a crate."
 		none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		PixelTheme.style_label(none, 14, PixelTheme.TEXT_DIM)
-		list.add_child(none)
-
-	for inst in owned:
-		var row := VBoxContainer.new()
-		row.add_theme_constant_override("separation", 2)
-		var is_equipped: bool = String(inst.get("uid", "")) == equipped_uid
-		var b := Button.new()
-		b.text = WeaponInstance.display_name(inst).to_upper() + ("  ◀ EQUIPPED" if is_equipped else "")
-		PixelTheme.style_button(b, Vector2(520, 56), 16)
-		b.add_theme_color_override("font_color", PixelTheme.SELECT if is_equipped else WeaponInstance.color(inst))
-		b.pressed.connect(_on_equip.bind(inst))
-		row.add_child(b)
-		var desc := Label.new()
-		var dtext := "%s  ·  %s" % [WeaponInstance.rarity_name(inst), WeaponInstance.stat_summary(inst)]
-		var tsum: String = WeaponInstance.talent_summary(inst)
-		if tsum != "":
-			dtext += "\n⟡ " + tsum
-		desc.text = dtext
-		desc.custom_minimum_size = Vector2(520, 0)
-		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		PixelTheme.style_label(desc, 12, PixelTheme.TEXT_DIM)
-		row.add_child(desc)
-		list.add_child(row)
+		_inv_vbox.add_child(none)
+	else:
+		var scroll := ScrollContainer.new()
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.custom_minimum_size = Vector2(0, 560)
+		_inv_vbox.add_child(scroll)
+		var grid := GridContainer.new()
+		grid.columns = 3
+		grid.add_theme_constant_override("h_separation", 12)
+		grid.add_theme_constant_override("v_separation", 12)
+		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.add_child(grid)
+		for inst in owned:
+			var tile := WeaponTile.new()
+			grid.add_child(tile)
+			tile.setup(inst, String(inst.get("uid", "")) == equipped_uid)
+			tile.tile_pressed.connect(_on_tile_pressed)
 
 	# Bottom button: CANCEL (forced-from-PLAY) or BACK — both return to the main menu.
 	_inv_vbox.add_child(_make_button("CANCEL" if _inv_from_play else "BACK", _on_inv_back))
@@ -280,6 +271,16 @@ func _on_equip(inst: Dictionary) -> void:
 		_show_only(_mode_panel)   # weapon chosen → continue to the mode picker
 	else:
 		_populate_inventory()     # browsing → just refresh the EQUIPPED highlight
+
+## Tile tapped → open the detail popup for that instance.
+func _on_tile_pressed(inst: Dictionary) -> void:
+	var is_eq: bool = String(inst.get("uid", "")) == Inventory.equipped_uid()
+	_detail_popup.open(inst, is_eq)
+
+## Scrap confirmed in the popup → deconstruct for coins and refresh the grid.
+func _on_scrap(inst: Dictionary) -> void:
+	Inventory.deconstruct(String(inst.get("uid", "")))
+	_populate_inventory()
 
 func _on_inv_back() -> void:
 	_inv_from_play = false
