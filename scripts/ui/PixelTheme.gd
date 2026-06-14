@@ -97,3 +97,20 @@ static func style_card(p: PanelContainer) -> void:
 	sb.anti_aliasing = false
 	sb.set_content_margin_all(32)
 	p.add_theme_stylebox_override("panel", sb)
+
+## A square weapon-tile button: dark fill + a thick rarity-colored border, hover/press states.
+static func style_tile(b: Button, rarity: Color) -> void:
+	b.add_theme_stylebox_override("normal", _tile_box(BTN_BG, rarity, 4))
+	b.add_theme_stylebox_override("hover", _tile_box(BTN_HOVER, rarity.lightened(0.25), 4))
+	b.add_theme_stylebox_override("pressed", _tile_box(rarity.darkened(0.35), rarity, 4))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+
+static func _tile_box(bg: Color, border: Color, bw: int) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.border_color = border
+	sb.set_border_width_all(bw)
+	sb.set_corner_radius_all(0)
+	sb.anti_aliasing = false
+	sb.set_content_margin_all(6)
+	return sb
