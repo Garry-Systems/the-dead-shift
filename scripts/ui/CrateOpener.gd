@@ -13,8 +13,8 @@ const ITEM_PX := 148.0      # TILE_W + 8 gap
 const REEL_COUNT := 50
 const LAND_INDEX := 42      # winner slot (7 decoys trail it)
 const FAST_SPEED := 3000.0  # px/sec linear phase
-const SLOW_DIST := 1100.0   # switch to ease-out within this distance
-const SLOWDOWN := 9.0       # lerp factor (x delta) in the ease-out phase
+const SLOW_DIST := 2400.0   # switch to ease-out this far out — long, drawn-out decel
+const SLOWDOWN := 2.0       # gentle lerp factor (x delta) — low = slow creep, AfterDark-style
 const TICK_PX := 148.0      # one tile-width per tick
 const TICK_CD := 0.03       # min seconds between ticks
 
@@ -38,7 +38,7 @@ func _ready() -> void:
 	visible = false
 
 	var scrim := ColorRect.new()
-	scrim.color = PixelTheme.OVERLAY_DIM
+	scrim.color = Color(0, 0, 0, 1.0)        # opaque black — full focus on the reel
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(scrim)
