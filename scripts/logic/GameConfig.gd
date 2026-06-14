@@ -102,3 +102,32 @@ const COIN_BASE := 10          # flat coins for finishing any run
 const COIN_PER_WAVE := 5       # coins per wave reached
 const COIN_PER_BOSS := 25      # coins per boss defeated
 const COIN_PER_KILL := 1       # coins per trash enemy killed
+
+# --- Boss framework v1 ---
+const BOSS_FIRST_CAST_DELAY := 1.0     # seconds before a boss's first pattern after spawn/phase-enter
+const PATTERN_WINDUP_MIN := 0.5        # telegraph readability clamp (min seconds)
+const PATTERN_WINDUP_MAX := 1.2        # telegraph readability clamp (max seconds)
+const AIMED_BAND_THICKNESS := 26.0     # px half-width of an AimedBand's damaging segment
+const AIMED_BAND_ACTIVE := 0.15        # seconds an AimedBand stays damaging after the telegraph
+const AIMED_BAND_DAMAGE := 30.0        # default AimedBand hit damage
+const AIMED_BAND_LENGTH := 1100.0      # px default beam length (crosses the 1080x1920 portrait view)
+const BOSS_PROJECTILE_SPEED := 200.0   # px/sec for ProjectileEmitter hazards
+const BOSS_PROJECTILE_DAMAGE := 12.0   # flat damage a boss projectile deals on hit
+const BOSS_PROJECTILE_LIFETIME := 3.0  # seconds before a boss projectile despawns
+const ZONE_DEFAULT_RADIUS := 90.0      # px default ZoneFill radius
+const ZONE_DEFAULT_DPS := 18.0         # ZoneFill damage/sec while the player stands in it
+const ZONE_DEFAULT_DURATION := 4.0     # seconds a ZoneFill puddle persists
+const DEBUFF_JAM_DURATION := 2.0       # default gun-jam length (seconds)
+const DEBUFF_SLOW_FACTOR := 0.5        # default move-speed cut (0.5 = half speed)
+const DEBUFF_SLOW_DURATION := 2.5      # default slow length (seconds)
+
+# Brood Mother
+const BROOD_HP := 2200.0               # wave-1 HP (scales with wave like the brute)
+const BROOD_SUMMON_COUNT := 3          # adds spawned per summon cast
+const BROOD_ZONE_DPS := 18.0           # acid-nest damage/sec
+const BROOD_RING_COUNT := 8            # projectiles in the radial spit
+
+# Heat Tyrant
+const HEAT_HP := 1900.0                # wave-1 HP
+const HEAT_BAND_DAMAGE := 30.0         # solar-flare beam damage
+const HEAT_JAM_DURATION := 2.0         # "Forced Vent" gun-jam length
