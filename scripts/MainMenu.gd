@@ -19,6 +19,7 @@ var _store_result: Label
 var _last_unbox := ""                       # last crate outcome, shown in the store
 var _last_unbox_color: Color = PixelTheme.TEXT
 var _char_vbox: VBoxContainer    # character panel content (rebuilt by _populate_characters)
+var _crate_opener: CrateOpener   # reused full-screen reel, opened from a crate tile
 
 func _ready() -> void:
 	Inventory.grant_starter()  # first-launch seed so the inventory is never empty
@@ -230,6 +231,10 @@ func _build_inventory_panel() -> void:
 	_detail_popup.equip_requested.connect(_on_equip)
 	_detail_popup.scrap_confirmed.connect(_on_scrap)
 
+	_crate_opener = CrateOpener.new()
+	_inv_panel.add_child(_crate_opener)
+	_crate_opener.closed.connect(_populate_inventory)
+
 ## Opens the inventory. from_play=true means PLAY sent us here with no weapon equipped:
 ## picking a weapon then proceeds to the mode picker, and the bottom button reads CANCEL.
 func _show_inventory(from_play: bool) -> void:
@@ -256,14 +261,16 @@ func _populate_inventory() -> void:
 		PixelTheme.style_label(prompt, 14, PixelTheme.SELECT)
 		_inv_vbox.add_child(prompt)
 
-	# Owned weapons as a tile grid, best rarity first; tap a tile for the detail popup.
+	# Grid: owned crates first, then weapons (best rarity first). Tap a crate to open it,
+	# a weapon for its detail popup.
 	var owned := Inventory.weapons().duplicate()
 	owned.sort_custom(func(a, b): return int(a.get("rarity", 1)) > int(b.get("rarity", 1)))
 	var equipped_uid := Inventory.equipped_uid()
+	var owned_crates: Dictionary = SaveManager.crates()
 
-	if owned.is_empty():
+	if owned.is_empty() and owned_crates.is_empty():
 		var none := Label.new()
-		none.text = "No weapons yet — open a crate."
+		none.text = "No weapons yet — buy a crate in the Store."
 		none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		PixelTheme.style_label(none, 14, PixelTheme.TEXT_DIM)
 		_inv_vbox.add_child(none)
@@ -284,6 +291,11 @@ func _populate_inventory() -> void:
 		grid.add_theme_constant_override("h_separation", 12)
 		grid.add_theme_constant_override("v_separation", 12)
 		grid_center.add_child(grid)
+		for crate_id in owned_crates:
+			var ct := CrateTile.new()
+			grid.add_child(ct)
+			ct.setup(Crates.get_crate(String(crate_id)), int(owned_crates[crate_id]))
+			ct.crate_pressed.connect(_on_crate_tile_pressed)
 		for inst in owned:
 			var tile := WeaponTile.new()
 			grid.add_child(tile)
@@ -305,6 +317,10 @@ func _on_equip(inst: Dictionary) -> void:
 func _on_tile_pressed(inst: Dictionary) -> void:
 	var is_eq: bool = String(inst.get("uid", "")) == Inventory.equipped_uid()
 	_detail_popup.open(inst, is_eq)
+
+## Crate tile tapped → open the CS:GO reel for that crate.
+func _on_crate_tile_pressed(crate_id: String) -> void:
+	_crate_opener.open(crate_id)
 
 ## Scrap confirmed in the popup → deconstruct for coins and refresh the grid.
 func _on_scrap(inst: Dictionary) -> void:
@@ -393,7 +409,7 @@ func _populate_store() -> void:
 		var cb := Button.new()
 		cb.text = "%s — %d" % [String(crate["name"]).to_upper(), int(crate["price"])]
 		PixelTheme.style_button(cb, Vector2(520, 52), 15)
-		cb.disabled = SaveManager.coins() < int(crate["price"]) or Inventory.is_full()
+		cb.disabled = SaveManager.coins() < int(crate["price"])
 		cb.pressed.connect(_on_buy_crate.bind(String(crate["id"])))
 		list.add_child(cb)
 
@@ -417,13 +433,12 @@ func _on_buy_character(id: String, price: int) -> void:
 	_populate_store()
 
 func _on_buy_crate(crate_id: String) -> void:
-	var inst := Inventory.open_crate(crate_id)   # spends coins, rolls, adds to inventory, saves
-	if inst.is_empty():
-		_last_unbox = "Can't open that crate."
-		_last_unbox_color = PixelTheme.TEXT_DIM
+	if Inventory.buy_crate(crate_id):
+		_last_unbox = "%s added to inventory." % String(Crates.get_crate(crate_id).get("name", "Crate"))
+		_last_unbox_color = PixelTheme.SELECT
 	else:
-		_last_unbox = "Unboxed: %s (%s)" % [WeaponInstance.display_name(inst), WeaponInstance.rarity_name(inst)]
-		_last_unbox_color = WeaponInstance.color(inst)
+		_last_unbox = "Not enough coins."
+		_last_unbox_color = PixelTheme.TEXT_DIM
 	_populate_store()
 
 func _on_inv_back() -> void:
