@@ -37,7 +37,7 @@ const ENEMY_TOUCH_DAMAGE := 10.0     # damage per second while touching the play
 
 # --- Spawner ---
 const SPAWN_INTERVAL := 1.0           # seconds between spawns
-const SPAWN_RADIUS := 700.0           # distance from player to spawn at
+const SPAWN_RADIUS := 1200.0          # distance from player to spawn at (tuned for the 1080x1920 portrait view's 960px half-height so enemies appear off-screen; was 700 for landscape — tune by feel)
 
 # --- Difficulty / Waves (Phase 4 step 1) ---
 const WAVE_DURATION := 30.0           # seconds per wave; wave = floor(run_time/this)+1
