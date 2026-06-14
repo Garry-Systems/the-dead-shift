@@ -22,3 +22,10 @@ static func get_crate(id: String) -> Dictionary:
 		if c["id"] == id:
 			return c
 	return {}
+
+## Tile icon for a crate (per-crate art if present, else the shared placeholder).
+static func icon(id: String) -> Texture2D:
+	var path := "res://art/crates/%s.png" % id
+	if ResourceLoader.exists(path):
+		return load(path)
+	return load("res://art/crates/_crate.png")
