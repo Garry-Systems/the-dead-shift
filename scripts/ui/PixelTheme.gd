@@ -3,18 +3,18 @@ class_name PixelTheme
 ## hard-cornered button / card styleboxes in the game's dusk + amber palette.
 ## Call the style_* helpers on any Control to give the menus a cohesive retro look.
 
-# --- Palette (sampled from the dusk-farmstead background) ---
-const ACCENT      := Color(0.96, 0.64, 0.34)   # amber sky highlight (titles, borders, pressed)
-const ACCENT_DIM  := Color(0.55, 0.38, 0.28)   # muted amber (resting borders)
-const TEXT        := Color(0.96, 0.92, 0.84)    # warm off-white body text
-const TEXT_DIM    := Color(0.72, 0.68, 0.62)    # secondary text
-const SELECT      := Color(0.55, 0.95, 0.55)    # green "selected" highlight (matches gameplay)
-const PANEL_BG    := Color(0.07, 0.06, 0.10, 0.88)  # translucent card behind menu content
-const BTN_BG      := Color(0.12, 0.11, 0.15, 0.96)
-const BTN_HOVER   := Color(0.22, 0.17, 0.18, 0.98)
-const DARK        := Color(0.05, 0.04, 0.07)    # text on amber / vignette
-const DANGER      := Color(0.92, 0.36, 0.32)    # "you died" / destructive accents
-const OVERLAY_DIM := Color(0.03, 0.02, 0.05, 0.78)  # full-screen scrim behind in-run menus
+# --- Palette (strict 4-color index: C1 void / C2 indigo / C3 gray-tan / C4 lavender) ---
+const ACCENT      := Color(0.878, 0.898, 1.0)      # C4 lavender-white — titles, borders, pressed
+const ACCENT_DIM  := Color(0.239, 0.0, 0.6)        # C2 indigo — resting borders
+const TEXT        := Color(0.878, 0.898, 1.0)      # C4 — body text (high contrast on the void)
+const TEXT_DIM    := Color(0.549, 0.522, 0.451)    # C3 gray-tan — secondary / unselected text
+const SELECT      := Color(0.878, 0.898, 1.0)      # C4 — selected/active highlight (vs C3 dim)
+const PANEL_BG    := Color(0.039, 0.0, 0.102, 0.92) # C1 void — translucent card
+const BTN_BG      := Color(0.13, 0.0, 0.33, 0.96)  # C2 darkened — button fill
+const BTN_HOVER   := Color(0.30, 0.05, 0.66, 0.98) # C2 brighter — hover
+const DARK        := Color(0.039, 0.0, 0.102)      # C1 — text on a bright (C4) background
+const DANGER      := Color(0.549, 0.522, 0.451)    # C3 gray-tan — destructive accents (in-palette "threat")
+const OVERLAY_DIM := Color(0.039, 0.0, 0.102, 0.82) # C1 — full-screen scrim behind in-run menus
 
 const TITLE_FONT_PATH := "res://fonts/PressStart2P-Regular.ttf"
 const BODY_FONT_PATH  := "res://fonts/Silkscreen-Bold.ttf"
@@ -70,6 +70,7 @@ static func style_button(b: Button, min_size: Vector2 = Vector2(460, 80), font_s
 	b.add_theme_color_override("font_hover_color", Color(1, 1, 1))
 	b.add_theme_color_override("font_pressed_color", DARK)
 	b.add_theme_color_override("font_focus_color", TEXT)
+	b.add_theme_color_override("font_disabled_color", TEXT_DIM)  # OWNED / locked / unaffordable read as C3
 
 ## Title text: Press Start 2P, amber, with a hard 1:1 pixel drop shadow.
 static func style_title(l: Label, size: int = 40) -> void:
@@ -97,3 +98,20 @@ static func style_card(p: PanelContainer) -> void:
 	sb.anti_aliasing = false
 	sb.set_content_margin_all(32)
 	p.add_theme_stylebox_override("panel", sb)
+
+## A square weapon-tile button: dark fill + a thick rarity-colored border, hover/press states.
+static func style_tile(b: Button, rarity: Color) -> void:
+	b.add_theme_stylebox_override("normal", _tile_box(BTN_BG, rarity, 4))
+	b.add_theme_stylebox_override("hover", _tile_box(BTN_HOVER, rarity.lightened(0.25), 4))
+	b.add_theme_stylebox_override("pressed", _tile_box(rarity.darkened(0.35), rarity, 4))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+
+static func _tile_box(bg: Color, border: Color, bw: int) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.border_color = border
+	sb.set_border_width_all(bw)
+	sb.set_corner_radius_all(0)
+	sb.anti_aliasing = false
+	sb.set_content_margin_all(6)
+	return sb

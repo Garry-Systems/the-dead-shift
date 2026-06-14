@@ -6,15 +6,15 @@ class_name Characters
 static func all() -> Array:
 	return [
 		{
-			"id": "ryan", "name": "Ryan Ace",
+			"id": "ryan", "name": "Ryan Ace", "price": 0,
 			"desc": "Starts with 150 HP. Bonus damage & fire rate with the AK-47.",
 		},
 		{
-			"id": "jimbo", "name": "Jimbo James",
+			"id": "jimbo", "name": "Jimbo James", "price": 600,
 			"desc": "+50% move speed. Bonus damage & fire rate with snipers.",
 		},
 		{
-			"id": "bob", "name": "Zombie Bob",
+			"id": "bob", "name": "Zombie Bob", "price": 400,
 			"desc": "+25% XP pickup radius (magnet).",
 		},
 	]
@@ -24,6 +24,10 @@ static func get_character(id: String) -> Dictionary:
 		if c["id"] == id:
 			return c
 	return {}
+
+## Coin price to unlock this character (0 = free starter).
+static func price(id: String) -> int:
+	return int(get_character(id).get("price", 0))
 
 ## Always-on perks — applied at run start (Main.gd), before the weapon pick.
 static func apply_base(player: Player, id: String) -> void:

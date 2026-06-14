@@ -16,6 +16,8 @@ const DEFAULTS := {
 	"best_bosses": 0,
 	"weapons": [],            # rolled weapon-loot instances (see LootRoller)
 	"equipped_weapon": "",    # uid of the equipped instance
+	"unlocked_characters": ["ryan"],   # character ids the player owns (Ryan free)
+	"crates": {},             # owned unopened crates: crate_id -> count
 }
 
 var _data: Dictionary = {}
@@ -105,6 +107,46 @@ func best_bosses() -> int:
 func record_run(wave: int, bosses: int) -> void:
 	_data["best_wave"] = maxi(best_wave(), wave)
 	_data["best_bosses"] = maxi(best_bosses(), bosses)
+
+# --- Owned crates (unopened) ---
+
+func crates() -> Dictionary:
+	return _data.get("crates", {})
+
+func crate_count(id: String) -> int:
+	return int(crates().get(id, 0))
+
+func add_crate(id: String) -> void:
+	var c: Dictionary = crates()
+	c[id] = crate_count(id) + 1
+	_data["crates"] = c
+
+func remove_crate(id: String) -> bool:
+	if crate_count(id) <= 0:
+		return false
+	var c: Dictionary = crates()
+	var n := crate_count(id) - 1
+	if n <= 0:
+		c.erase(id)
+	else:
+		c[id] = n
+	_data["crates"] = c
+	return true
+
+# --- Character unlocks ---
+
+func unlocked_characters() -> Array:
+	return _data.get("unlocked_characters", ["ryan"])
+
+func is_character_unlocked(id: String) -> bool:
+	return id in unlocked_characters()
+
+## Adds an id to the owned set (memory only; caller saves). No-op if already owned.
+func unlock_character(id: String) -> void:
+	var list: Array = _data.get("unlocked_characters", [])
+	if id not in list:
+		list.append(id)
+		_data["unlocked_characters"] = list
 
 # --- Weapon-loot inventory (managed by the Inventory autoload) ---
 
