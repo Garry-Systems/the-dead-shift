@@ -142,7 +142,7 @@ func _process(_delta: float) -> void:
 	var boss := get_tree().get_first_node_in_group("boss")
 	if boss != null:
 		_boss_bar.visible = true
-		_boss_bar.value = (boss as Boss).health_fraction()
+		_boss_bar.value = (boss as BossBase).health_fraction()
 	else:
 		_boss_bar.visible = false
 
