@@ -18,6 +18,7 @@ const _LIST: Array[Dictionary] = [
 	{ "id": "runner",   "scene": preload("res://scenes/Runner.tscn"),       "hp_mult": 0.4, "spd_mult": 1.7, "dmg_mult": 0.7, "min_wave": 2,  "weight": 40 },
 	{ "id": "brute",    "scene": preload("res://scenes/Brute.tscn"),        "hp_mult": 4.0, "spd_mult": 0.55,"dmg_mult": 2.2, "min_wave": 4,  "weight": 15 },
 	{ "id": "exploder", "scene": preload("res://scenes/Exploder.tscn"),     "hp_mult": 0.8, "spd_mult": 1.3, "dmg_mult": 0.0, "min_wave": 5,  "weight": 20 },
+	{ "id": "hive",     "scene": preload("res://scenes/Hive.tscn"),         "hp_mult": 6.0, "spd_mult": 0.0, "dmg_mult": 1.0, "min_wave": 7,  "weight": 8 },
 	{ "id": "spitter",  "scene": preload("res://scenes/RangedEnemy.tscn"), "hp_mult": 0.9, "spd_mult": 1.0, "dmg_mult": 1.0, "min_wave": 10, "weight": 25 },
 ]
 

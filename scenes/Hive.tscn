@@ -1,0 +1,19 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/HiveEnemy.gd" id="1_e"]
+[ext_resource type="Texture2D" path="res://art/enemy.png" id="2_t"]
+[ext_resource type="PackedScene" path="res://scenes/XpGem.tscn" id="3_g"]
+
+[sub_resource type="CircleShape2D" id="cs_hive"]
+radius = 34.0
+
+[node name="Hive" type="CharacterBody2D"]
+script = ExtResource("1_e")
+xp_gem_scene = ExtResource("3_g")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(1.6, 1.6)
+texture = ExtResource("2_t")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("cs_hive")
