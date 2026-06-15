@@ -51,6 +51,9 @@ var _flash_mat: ShaderMaterial
 var _flash_cd := 0.0
 var _sprite: Sprite2D
 var _facing := 2          # index into DIR_TEX; 2 = south (faces the camera at start)
+var _fire_lock_time := 0.0   # boss "jam" debuff: gun can't fire while > 0
+var _ext_slow_factor := 1.0  # boss "slow" debuff: move-speed multiplier (1.0 = none)
+var _ext_slow_time := 0.0
 
 func _ready() -> void:
 	add_to_group("player")
@@ -73,6 +76,12 @@ func _physics_process(delta: float) -> void:
 	_dash.tick(delta)
 	if _flash_cd > 0.0:
 		_flash_cd -= delta
+	if _fire_lock_time > 0.0:
+		_fire_lock_time -= delta
+	if _ext_slow_time > 0.0:
+		_ext_slow_time -= delta
+		if _ext_slow_time <= 0.0:
+			_ext_slow_factor = 1.0
 
 	var dir := joystick_direction
 	if dir == Vector2.ZERO:
@@ -86,7 +95,7 @@ func _physics_process(delta: float) -> void:
 	# of 8 poses; the gun fires at the precise angle (smooth 360 aim).
 	_face(_last_move_dir)
 
-	var speed := GameConfig.DASH_SPEED if _dash.is_dashing() else move_speed
+	var speed := GameConfig.DASH_SPEED if _dash.is_dashing() else (move_speed * _ext_slow_factor)
 	var move_dir := _last_move_dir if _dash.is_dashing() else dir
 
 	velocity = move_dir * speed
@@ -96,7 +105,7 @@ func _physics_process(delta: float) -> void:
 	# don't auto-empty the mag facing right at spawn).
 	if gun != null:
 		gun.aim_direction = _last_move_dir
-		gun.hold_fire = (GameConfig.SHOOT_ONLY_WHILE_STILL and velocity != Vector2.ZERO) or not _has_moved
+		gun.hold_fire = (GameConfig.SHOOT_ONLY_WHILE_STILL and velocity != Vector2.ZERO) or not _has_moved or _fire_lock_time > 0.0
 
 	move_and_slide()
 
@@ -222,3 +231,14 @@ func upgrade_regen(amount: float) -> void:
 
 func upgrade_pickup_radius(pct: float) -> void:
 	pickup_radius *= (1.0 + pct)
+
+## --- Boss debuff hooks (called by the DebuffApplier pattern) ---
+
+## "Jam": the gun can't fire for `duration`s even while standing still. Longest wins.
+func apply_fire_lock(duration: float) -> void:
+	_fire_lock_time = maxf(_fire_lock_time, duration)
+
+## "Slow": cut move speed by `factor` (0..1) for `duration`s. Strongest/longest wins.
+func apply_slow(factor: float, duration: float) -> void:
+	_ext_slow_factor = minf(_ext_slow_factor, clampf(1.0 - factor, 0.1, 1.0))
+	_ext_slow_time = maxf(_ext_slow_time, duration)

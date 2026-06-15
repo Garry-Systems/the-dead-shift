@@ -1,3 +1,4 @@
+class_name Enemy
 extends CharacterBody2D
 ## An enemy: walks toward the player, has health, damages the player on contact,
 ## and drops an XP gem when it dies. Stats are baked once at spawn via configure()
@@ -114,20 +115,29 @@ func _physics_process(delta: float) -> void:
 	if _target == null or not is_instance_valid(_target):
 		return
 
-	var dir := (_target.global_position - global_position).normalized()
-	velocity = dir * (move_speed * _slow_factor)
+	velocity = _desired_velocity() * _slow_factor
 
 	if _knockback != Vector2.ZERO:
 		velocity += _knockback
 		_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
 
 	move_and_slide()
+	_act(delta)
 
 	# Deal damage-per-second whenever we're actually colliding with the player. A fixed
 	# distance check failed here: move_and_slide de-penetrates us to the sum of the
 	# collider radii (24+20=44), which sat just outside the old 40px threshold.
 	if _touching_player():
 		_target.take_damage(touch_damage * delta)
+
+## Base movement intent (before slow/knockback). Override per enemy. Default = chase the player.
+func _desired_velocity() -> Vector2:
+	var dir := (_target.global_position - global_position).normalized()
+	return dir * move_speed
+
+## Per-frame action hook (e.g. ranged firing). Default no-op. Called after movement.
+func _act(_delta: float) -> void:
+	pass
 
 ## True if this body's move_and_slide hit the player this frame — a robust contact
 ## check (a fixed distance failed because collisions de-penetrate us to the sum of the
