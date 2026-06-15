@@ -207,6 +207,7 @@ func _spawn_bullet(dir: Vector2) -> void:
 	bullet.direction = dir
 	bullet.speed = bullet_speed
 	bullet.damage = damage
+	bullet.max_travel = gun_range
 	bullet.pierce_count = pierce_count
 	bullet.ricochet_count = ricochet_count
 	bullet.talent_payload = talent_payload

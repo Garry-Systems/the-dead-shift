@@ -6,6 +6,7 @@ extends Area2D
 var direction := Vector2.RIGHT
 var speed := GameConfig.BULLET_SPEED
 var damage := GameConfig.BULLET_DAMAGE
+var max_travel := INF          # px; despawn after flying this far (set to gun_range)
 
 # Talent payload (set by Gun._spawn_bullet; 0/false = vanilla bullet).
 var pierce_count := 0          # extra enemies the bullet passes through
@@ -19,6 +20,7 @@ var talent_payload := {}       # {} = no talents on this weapon
 var talent_player: Player = null
 
 var _life := 0.0
+var _traveled := 0.0           # total distance flown (vs max_travel)
 var _hit: Array = []           # enemies already damaged (so pierce/ricochet don't re-hit)
 
 func _ready() -> void:
@@ -26,6 +28,10 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	global_position += direction * speed * delta
+	_traveled += speed * delta
+	if _traveled >= max_travel:
+		queue_free()
+		return
 	_life += delta
 	if _life >= GameConfig.BULLET_LIFETIME:
 		queue_free()
