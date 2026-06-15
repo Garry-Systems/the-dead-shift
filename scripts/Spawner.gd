@@ -64,12 +64,10 @@ func _boss_alive() -> bool:
 func _spawn_enemy() -> void:
 	var angle := randf_range(0.0, TAU)
 	var offset := Vector2(cos(angle), sin(angle)) * GameConfig.SPAWN_RADIUS
-	# From RANGED_ENEMY_MIN_WAVE on, a fraction of trash spawns are ranged "spitters".
-	var scene := enemy_scene
-	if ranged_enemy_scene != null and DifficultyManager.wave >= GameConfig.RANGED_ENEMY_MIN_WAVE and randf() < GameConfig.RANGED_ENEMY_SPAWN_CHANCE:
-		scene = ranged_enemy_scene
-	var enemy = scene.instantiate()
-	enemy.configure(DifficultyManager.enemy_stats())
+	# Pick a trash enemy type from the registry (wave-gated + weighted) and bake its scaled stats.
+	var entry := Enemies.pick(DifficultyManager.wave)
+	var enemy = (entry["scene"] as PackedScene).instantiate()
+	enemy.configure(Enemies.stats_for(entry, DifficultyManager.wave))
 	get_tree().current_scene.add_child(enemy)
 	enemy.global_position = _player.global_position + offset
 
