@@ -84,3 +84,106 @@ static func icon(inst: Dictionary) -> Texture2D:
 	if ResourceLoader.exists(path):
 		return load(path)
 	return load("res://art/weapons/_placeholder.png")
+
+## Level/XP progress for the inspection popup. needed = level*100 (the Inventory curve in
+## Inventory.add_run_xp); frac is 0..1 toward the next level (0 when needed is 0).
+static func xp_progress(inst: Dictionary) -> Dictionary:
+	var lvl := int(inst.get("level", 1))
+	var xp := int(inst.get("xp", 0))
+	var needed := lvl * 100
+	var frac: float = (float(xp) / float(needed)) if needed > 0 else 0.0
+	return { "level": lvl, "xp": xp, "needed": needed, "frac": clampf(frac, 0.0, 1.0) }
+
+## Ordered display rows of the gun's REAL stats = base Weapons def + rolled affix bonuses,
+## computed with the SAME formulas Gun.apply_loot/upgrade_* use so the popup matches in-run
+## behavior. Each row: { label, value, bonus } — bonus is "" when no affix rolled that stat.
+## Character perks / in-run upgrade cards are intentionally excluded: this is the weapon's
+## intrinsic profile (what you compare between drops).
+static func full_stats(inst: Dictionary) -> Array:
+	var base := _base_def(inst)
+	if base.is_empty():
+		return []
+	var s := resolved_stats(inst)   # only rolled stats present; % as e.g. 11.0, flat as ints
+
+	var damage: float = float(base["damage"]) * (1.0 + _pct(s, "damage"))
+	var interval: float = float(base["fire_interval"]) * (1.0 - _pct(s, "fire_rate"))
+	var rate: float = (1.0 / interval) if interval > 0.0 else 0.0
+	var rng: float = float(base["range"]) * (1.0 + _pct(s, "range"))
+	var reload: float = float(base["reload_time"]) * (1.0 - _pct(s, "reload"))
+	var mag: int = int(ceil(float(base["mag_size"]) * (1.0 + _pct(s, "mag"))))
+	var bspeed: float = float(base["bullet_speed"]) * (1.0 + _pct(s, "bullet_speed"))
+	var shots: int = int(base["projectiles"]) + int(s.get("multishot", 0))
+	var pierce: int = int(s.get("pierce", 0))
+	var ricochet: int = int(s.get("ricochet", 0))
+
+	var rows: Array = []
+	rows.append({ "label": "DAMAGE", "value": str(roundi(damage)), "bonus": _pct_bonus(s, "damage") })
+	rows.append({ "label": "FIRE RATE", "value": "%.1f/s" % rate, "bonus": _pct_bonus(s, "fire_rate") })
+	rows.append({ "label": "RANGE", "value": str(roundi(rng)), "bonus": _pct_bonus(s, "range") })
+	rows.append({ "label": "RELOAD", "value": "%.1fs" % reload, "bonus": _pct_bonus(s, "reload") })
+	rows.append({ "label": "MAGAZINE", "value": str(mag), "bonus": _pct_bonus(s, "mag") })
+	# Conditional rows: shown only when relevant, so the block stays clean but never hides a
+	# rolled bonus (bullet_speed/multishot/pierce/ricochet only roll on higher rarities).
+	if s.has("bullet_speed"):
+		rows.append({ "label": "BULLET SPD", "value": str(roundi(bspeed)), "bonus": _pct_bonus(s, "bullet_speed") })
+	if shots > 1:
+		rows.append({ "label": "MULTISHOT", "value": str(shots), "bonus": _flat_bonus(s, "multishot") })
+	if pierce > 0:
+		rows.append({ "label": "PIERCE", "value": str(pierce), "bonus": _flat_bonus(s, "pierce") })
+	if ricochet > 0:
+		rows.append({ "label": "RICOCHET", "value": str(ricochet), "bonus": _flat_bonus(s, "ricochet") })
+	return rows
+
+## Detailed talent rows for the popup. Each: { name, color, effect, locked, unlock_level }.
+## `effect` = the catalog desc filled with this instance's resolved rolled values. `color` is
+## the catalog hint (returned for completeness) — the UI colors active vs locked itself (C4 /
+## C3) to honor the locked 4-color palette.
+static func talent_details(inst: Dictionary) -> Array:
+	var lvl := int(inst.get("level", 1))
+	var out: Array = []
+	for t in inst.get("talents", []):
+		var def := Talents.get_talent(String(t.get("id", "")))
+		if def.is_empty():
+			continue
+		var unlock := int(t.get("unlock_level", 0))
+		out.append({
+			"name": String(def["name"]),
+			"color": def.get("color", Color.WHITE),
+			"effect": _talent_effect(def, t.get("rolls", [])),
+			"locked": unlock > lvl,
+			"unlock_level": unlock,
+		})
+	return out
+
+# --- private formatters for the inspection helpers ---
+
+# 0..1 multiplier from a resolved percent stat (e.g. 11.0 -> 0.11); 0 if the stat wasn't rolled.
+static func _pct(stats: Dictionary, id: String) -> float:
+	return float(stats.get(id, 0.0)) / 100.0
+
+# "+11%" for a rolled percent stat, "" if not rolled.
+static func _pct_bonus(stats: Dictionary, id: String) -> String:
+	if not stats.has(id):
+		return ""
+	return "+%d%%" % roundi(float(stats[id]))
+
+# "+2" for a rolled flat stat, "" if not rolled.
+static func _flat_bonus(stats: Dictionary, id: String) -> String:
+	if not stats.has(id):
+		return ""
+	return "+%d" % int(stats[id])
+
+# Fill a talent's desc format string with its resolved rolled mod values.
+static func _talent_effect(def: Dictionary, rolls: Array) -> String:
+	var mods: Array = def.get("mods", [])
+	var vals: Array = []
+	for i in mods.size():
+		var roll: float = float(rolls[i]) if i < rolls.size() else 0.0
+		vals.append(_fmt_num(Talents.resolve(def, i, roll)))
+	return String(def.get("desc", "")) % vals
+
+# Round to int for whole-ish or large values; one decimal for small fractionals (e.g. 2.4s).
+static func _fmt_num(v: float) -> String:
+	if absf(v - roundf(v)) < 0.05 or absf(v) >= 10.0:
+		return str(roundi(v))
+	return "%.1f" % v
