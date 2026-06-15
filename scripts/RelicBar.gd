@@ -1,14 +1,13 @@
 extends CanvasLayer
-## Top-center 4-slot relic bar. Owns the run's relic state (held relics + banned ids)
-## and renders the held slots. Found via the "relic_bar" group. Process mode ALWAYS so
-## the RelicMenu can mutate it while the tree is paused.
+## Top-center 4-slot relic bar. Owns the run's relic state (held relics) and renders the
+## held slots. Found via the "relic_bar" group. Process mode ALWAYS so the RelicMenu can
+## mutate it while the tree is paused.
 
 var _player: Player
 var _labels: Array[Label] = []
 
 # Run state.
 var _held: Array = []          # each entry: {"id": String, "delta": float}
-var _banned := {}              # id -> true
 
 func _ready() -> void:
 	add_to_group("relic_bar")
@@ -56,7 +55,6 @@ func reset() -> void:
 	for entry in _held:
 		Relics.remove(_player, entry["id"], entry["delta"])
 	_held.clear()
-	_banned.clear()
 	_refresh()
 
 func is_full() -> bool:
@@ -71,9 +69,6 @@ func held_ids() -> Array:
 func has_relic(id: String) -> bool:
 	return id in held_ids()
 
-func is_banned(id: String) -> bool:
-	return _banned.has(id)
-
 ## Adds a relic and applies its effect (records the delta). No-op if full or owned.
 func take(id: String) -> void:
 	if is_full() or has_relic(id):
@@ -81,9 +76,6 @@ func take(id: String) -> void:
 	var delta := Relics.apply(_player, id)
 	_held.append({"id": id, "delta": delta})
 	_refresh()
-
-func ban(id: String) -> void:
-	_banned[id] = true
 
 ## Removes a held relic and reverses its effect.
 func remove_relic(id: String) -> void:
@@ -94,17 +86,20 @@ func remove_relic(id: String) -> void:
 			_refresh()
 			return
 
-## Replaces a held relic with a new one (full-bar swap).
-func swap(old_id: String, new_id: String) -> void:
-	remove_relic(old_id)
-	take(new_id)
+## Takes a relic; if the bar is full, replaces the oldest held one. No-op if already owned.
+func take_or_replace(id: String) -> void:
+	if has_relic(id):
+		return
+	if is_full() and not _held.is_empty():
+		remove_relic(_held[0]["id"])
+	take(id)
 
-## Rolls one relic id that is neither owned nor banned; "" if none available.
+## Rolls one relic id that is not already owned; "" if none available.
 func roll_drop() -> String:
 	var candidates: Array = []
 	for r in Relics.all():
 		var id: String = r["id"]
-		if not has_relic(id) and not is_banned(id):
+		if not has_relic(id):
 			candidates.append(id)
 	if candidates.is_empty():
 		return ""

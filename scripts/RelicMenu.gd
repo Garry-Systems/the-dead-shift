@@ -1,7 +1,7 @@
 extends CanvasLayer
-## Opened when the player walks over a relic pickup. Pauses the game and offers
-## Take / Discard / Ban. If the relic bar is full, it instead shows a swap chooser:
-## pick one held relic to replace, or Discard / Ban the new one. Found via "relic_menu".
+## Opened when the player walks over a relic pickup. Pauses the game and offers a simple
+## Take / Skip choice. If the relic bar is full, Take replaces the oldest held relic.
+## Found via "relic_menu".
 
 var _player: Player
 var _bar                       # RelicBar (CanvasLayer)
@@ -54,28 +54,14 @@ func open(new_id: String, pickup: Node) -> void:
 
 	var r := Relics.get_relic(new_id)
 	_add_label("%s\n%s" % [r.get("name", new_id), r.get("desc", "")])
+	if _bar.is_full():
+		_add_label("Bar full — Take replaces your oldest relic.")
 
-	if _bar != null and _bar.is_full():
-		_build_swap_buttons()
-	else:
-		_build_take_buttons()
+	_add_button("Take", func(): _bar.take_or_replace(_new_id); _close())
+	_add_button("Skip", func(): _close())
 
 	_root.visible = true
 	get_tree().paused = true
-
-func _build_take_buttons() -> void:
-	_add_button("Take", func(): _bar.take(_new_id); _close())
-	_add_button("Discard", func(): _close())
-	_add_button("Ban (never again this run)", func(): _bar.ban(_new_id); _close())
-
-func _build_swap_buttons() -> void:
-	_add_label("Bar full — replace one:")
-	for id in _bar.held_ids():
-		var held := Relics.get_relic(id)
-		var cap: String = held.get("name", id)
-		_add_button("Replace %s" % cap, func(): _bar.swap(id, _new_id); _close())
-	_add_button("Discard new", func(): _close())
-	_add_button("Ban new", func(): _bar.ban(_new_id); _close())
 
 func _close() -> void:
 	if _pickup and is_instance_valid(_pickup):
