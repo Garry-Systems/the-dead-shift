@@ -15,6 +15,7 @@ class_name Enemies
 
 const _LIST: Array[Dictionary] = [
 	{ "id": "shambler", "scene": preload("res://scenes/Enemy.tscn"),       "hp_mult": 1.0, "spd_mult": 1.0, "dmg_mult": 1.0, "min_wave": 1,  "weight": 100 },
+	{ "id": "runner",   "scene": preload("res://scenes/Runner.tscn"),       "hp_mult": 0.4, "spd_mult": 1.7, "dmg_mult": 0.7, "min_wave": 2,  "weight": 40 },
 	{ "id": "spitter",  "scene": preload("res://scenes/RangedEnemy.tscn"), "hp_mult": 0.9, "spd_mult": 1.0, "dmg_mult": 1.0, "min_wave": 10, "weight": 25 },
 ]
 
