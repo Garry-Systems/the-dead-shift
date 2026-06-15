@@ -48,8 +48,9 @@ var _muzzle_time := 0.0
 ## direction). Vector2.ZERO means "no aim yet" — the gun holds fire.
 var aim_direction := Vector2.ZERO
 
-## Set by the Player each frame: true while moving. When true the gun tracks/aims
-## but holds fire (the "shoot only while standing still" rule).
+## Set by the Player each frame: true while moving, or before the first move input.
+## When true the gun holds fire without consuming the cooldown (the "shoot only
+## while standing still" rule).
 var hold_fire := false
 
 func _ready() -> void:
