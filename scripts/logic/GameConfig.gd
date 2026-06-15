@@ -147,3 +147,13 @@ const RANGED_FIRE_INTERVAL := 1.8        # seconds between shots
 const RANGED_FIRE_RANGE := 700.0         # px; only fires within this range
 const RANGED_PROJECTILE_SPEED := 320.0   # px/sec
 const RANGED_PROJECTILE_DAMAGE := 12.0   # flat damage per hit
+
+# --- Enemy slate (variety) ---
+const ENEMY_HARD_SPEED_CAP := 360.0   # absolute px/sec ceiling AFTER per-type speed mults (bounds the Runner)
+# Exploder: detonates on contact or death instead of dealing touch DPS.
+const EXPLODER_BLAST_RADIUS := 110.0  # px; player within this on detonate takes the hit
+const EXPLODER_BLAST_DAMAGE := 35.0   # flat damage on detonation
+# Hive: stationary spawner.
+const HIVE_SPAWN_INTERVAL := 4.0      # seconds between brood spawns
+const HIVE_SPAWN_COUNT := 2           # shamblers per spawn tick
+const HIVE_MAX_BROOD := 8             # lifetime cap on shamblers one hive can birth
