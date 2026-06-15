@@ -14,53 +14,58 @@ const FLAT_STATS := ["multishot", "pierce", "ricochet"]
 ## One affix per rarity for v1. Each: id, display prefix, rarity, how many stats roll,
 ## and the per-stat ranges. Add more affixes per rarity later — the roller picks randomly
 ## among all affixes whose rarity matches the rolled tier.
+##
+## TUNED 2026-06-15 ("go nuts — RNG is king"): steep ladder, clearly-separated tiers, wide
+## god-roll spreads, and multishot/pierce/ricochet pushed hard at the top so a high-rarity
+## drop is transformative. % stats are "+X% better"; flat stats are "+N". fire_rate/reload
+## are reductions applied multiplicatively (kept <100% so they can never zero an interval).
 static func all() -> Array:
 	return [
 		{
 			"id": "rusted", "name": "Rusted", "rarity": 1, "min_stats": 1, "max_stats": 2,
 			"min_talents": 0, "max_talents": 0,
-			"stats": { "damage": [2, 6], "reload": [2, 8] },
+			"stats": { "damage": [4, 12], "reload": [3, 10] },
 		},
 		{
-			"id": "salvaged", "name": "Salvaged", "rarity": 2, "min_stats": 2, "max_stats": 2,
+			"id": "salvaged", "name": "Salvaged", "rarity": 2, "min_stats": 2, "max_stats": 3,
 			"min_talents": 0, "max_talents": 1,
-			"stats": { "damage": [5, 10], "fire_rate": [5, 10], "range": [5, 12] },
+			"stats": { "damage": [10, 22], "fire_rate": [6, 14], "range": [8, 18] },
 		},
 		{
 			"id": "hardened", "name": "Hardened", "rarity": 3, "min_stats": 2, "max_stats": 3,
 			"min_talents": 1, "max_talents": 1,
-			"stats": { "damage": [8, 14], "fire_rate": [6, 12], "range": [8, 16], "mag": [8, 16] },
+			"stats": { "damage": [18, 36], "fire_rate": [10, 20], "range": [14, 26], "mag": [12, 28] },
 		},
 		{
 			"id": "lethal", "name": "Lethal", "rarity": 4, "min_stats": 3, "max_stats": 4,
 			"min_talents": 1, "max_talents": 2,
 			"stats": {
-				"damage": [10, 18], "fire_rate": [8, 14], "range": [10, 20],
-				"mag": [10, 20], "reload": [8, 16], "pierce": [1, 1],
+				"damage": [30, 55], "fire_rate": [16, 28], "range": [20, 36],
+				"mag": [18, 36], "reload": [12, 28], "multishot": [1, 1], "pierce": [1, 1],
 			},
 		},
 		{
-			"id": "savage", "name": "Savage", "rarity": 5, "min_stats": 3, "max_stats": 5,
+			"id": "savage", "name": "Savage", "rarity": 5, "min_stats": 4, "max_stats": 5,
 			"min_talents": 2, "max_talents": 2,
 			"stats": {
-				"damage": [14, 22], "fire_rate": [10, 18], "bullet_speed": [10, 20],
-				"mag": [12, 24], "reload": [10, 20], "pierce": [1, 1], "multishot": [1, 1],
+				"damage": [45, 80], "fire_rate": [22, 36], "bullet_speed": [15, 40],
+				"range": [28, 48], "mag": [25, 50], "reload": [18, 36], "multishot": [1, 2], "pierce": [1, 2],
 			},
 		},
 		{
 			"id": "merciless", "name": "Merciless", "rarity": 6, "min_stats": 4, "max_stats": 6,
 			"min_talents": 2, "max_talents": 3,
 			"stats": {
-				"damage": [16, 26], "fire_rate": [12, 22], "range": [14, 28], "bullet_speed": [12, 24],
-				"mag": [15, 30], "reload": [12, 24], "pierce": [1, 2], "multishot": [1, 1],
+				"damage": [60, 105], "fire_rate": [28, 44], "range": [36, 60], "bullet_speed": [25, 55],
+				"mag": [35, 70], "reload": [25, 45], "multishot": [2, 3], "pierce": [1, 3], "ricochet": [1, 1],
 			},
 		},
 		{
 			"id": "carnage", "name": "Carnage", "rarity": 7, "min_stats": 5, "max_stats": 7,
 			"min_talents": 3, "max_talents": 3,
 			"stats": {
-				"damage": [20, 32], "fire_rate": [15, 26], "range": [18, 34], "bullet_speed": [15, 28],
-				"mag": [20, 40], "reload": [15, 30], "pierce": [1, 2], "multishot": [1, 2], "ricochet": [1, 1],
+				"damage": [80, 140], "fire_rate": [35, 55], "range": [45, 75], "bullet_speed": [40, 80],
+				"mag": [50, 100], "reload": [35, 60], "multishot": [2, 4], "pierce": [2, 4], "ricochet": [1, 2],
 			},
 		},
 	]
