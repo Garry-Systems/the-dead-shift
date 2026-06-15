@@ -4,9 +4,6 @@ extends Node2D
 ##  - "boss_rush": no trash enemies; one boss at a time, back-to-back, each scaled by
 ##    its boss number.
 
-@export var enemy_scene: PackedScene
-@export var ranged_enemy_scene: PackedScene   # "spitter"; mixed in from RANGED_ENEMY_MIN_WAVE
-
 var mode := "endless"
 var boss_rush_count := 0      # bosses spawned so far in boss_rush (drives scaling + HUD)
 
@@ -29,7 +26,7 @@ func _process(delta: float) -> void:
 
 # --- Endless ---
 func _process_endless(delta: float) -> void:
-	if enemy_scene == null:
+	if Enemies.all().is_empty():
 		return
 	_check_boss()
 	_timer += delta

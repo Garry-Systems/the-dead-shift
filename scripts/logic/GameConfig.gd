@@ -139,9 +139,7 @@ const HEAT_HP := 1900.0                # wave-1 HP
 const HEAT_BAND_DAMAGE := 30.0         # solar-flare beam damage
 const HEAT_JAM_DURATION := 2.0         # "Forced Vent" gun-jam length
 
-# --- Ranged enemy (Spitter) ---
-const RANGED_ENEMY_MIN_WAVE := 10        # spitters start mixing in at this wave
-const RANGED_ENEMY_SPAWN_CHANCE := 0.25  # fraction of trash spawns that are spitters (wave >= min)
+# --- Ranged enemy (Spitter) --- (spawn cadence now lives in the Enemies registry: min_wave/weight)
 const RANGED_PREFERRED_DIST := 450.0     # px standoff the spitter tries to hold
 const RANGED_FIRE_INTERVAL := 1.8        # seconds between shots
 const RANGED_FIRE_RANGE := 700.0         # px; only fires within this range

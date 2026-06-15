@@ -39,8 +39,6 @@ scale = Vector2(4, 4)
 
 [node name="Spawner" type="Node2D" parent="."]
 script = ExtResource("2_spawn")
-enemy_scene = ExtResource("3_zomb")
-ranged_enemy_scene = ExtResource("14_ranged")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("4_hud")
