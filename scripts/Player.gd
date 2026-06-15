@@ -23,6 +23,7 @@ const DIR_TEX: Array[Texture2D] = [
 var _health := Health.new(GameConfig.PLAYER_MAX_HEALTH)
 var _dash := DashState.new(GameConfig.DASH_DURATION, GameConfig.DASH_COOLDOWN)
 var _last_move_dir := Vector2.RIGHT
+var _has_moved := false          # true after the first move input (gates spawn fire)
 var _last_tap_time := -999.0
 var _is_dead := false
 
@@ -79,21 +80,23 @@ func _physics_process(delta: float) -> void:
 
 	if dir != Vector2.ZERO:
 		_last_move_dir = dir.normalized()
+		_has_moved = true
 
-	# Face the enemy we're auto-aiming at; fall back to movement direction.
-	var face_dir: Vector2 = gun.aim_direction if (gun != null and gun.aim_direction != Vector2.ZERO) else dir
-	if face_dir != Vector2.ZERO:
-		_face(face_dir)
+	# Aim = facing = the last direction we moved. The sprite snaps to the nearest
+	# of 8 poses; the gun fires at the precise angle (smooth 360 aim).
+	_face(_last_move_dir)
 
 	var speed := GameConfig.DASH_SPEED if _dash.is_dashing() else move_speed
 	var move_dir := _last_move_dir if _dash.is_dashing() else dir
 
 	velocity = move_dir * speed
 
-	# Shoot-only-while-still rule: tell the gun to hold fire whenever we're moving
-	# (or dashing). It keeps aiming/facing — it just won't pull the trigger.
+	# Drive the gun: fire in our faced direction, but hold fire while moving
+	# (stop-to-shoot) and until the player has given a first move input (so we
+	# don't auto-empty the mag facing right at spawn).
 	if gun != null:
-		gun.hold_fire = GameConfig.SHOOT_ONLY_WHILE_STILL and velocity != Vector2.ZERO
+		gun.aim_direction = _last_move_dir
+		gun.hold_fire = (GameConfig.SHOOT_ONLY_WHILE_STILL and velocity != Vector2.ZERO) or not _has_moved
 
 	move_and_slide()
 

@@ -1,6 +1,7 @@
 class_name Gun
 extends Node2D
-## Auto-targets the nearest enemy in range and fires bullets on an interval.
+## Fires bullets on an interval in the direction the Player is aiming
+## (aim_direction, set externally each frame — the player's last-faced direction).
 ## Holds mutable per-run stats that gun upgrade cards modify.
 
 @export var bullet_scene: PackedScene
@@ -43,8 +44,8 @@ var _cooldown := 0.0
 var _muzzle: Sprite2D
 var _muzzle_time := 0.0
 
-## Unit vector toward the nearest enemy (Vector2.ZERO when none in range).
-## Updated every frame so the player can face who it's auto-aiming at.
+## Fire direction, set by the Player each frame (the last-faced / last-move
+## direction). Vector2.ZERO means "no aim yet" — the gun holds fire.
 var aim_direction := Vector2.ZERO
 
 ## Set by the Player each frame: true while moving. When true the gun tracks/aims
@@ -109,10 +110,8 @@ func _process(delta: float) -> void:
 	if _frenzy_time > 0.0:
 		_frenzy_time -= delta
 
-	# Track the nearest enemy every frame (even while reloading / between shots)
-	# so aim_direction stays current for the player's facing.
-	var target := _find_nearest_enemy()
-	aim_direction = (target.global_position - global_position).normalized() if target != null else Vector2.ZERO
+	# aim_direction is set by the Player each frame (the last-faced direction).
+	# The gun no longer picks targets — it fires where the player is looking.
 
 	if _reloading:
 		_reload_timer -= delta
@@ -125,12 +124,8 @@ func _process(delta: float) -> void:
 	if _cooldown > 0.0 or bullet_scene == null:
 		return
 
-	if target == null:
-		return
-
-	# Standing-still-to-shoot rule: hold fire (but keep cooldown at 0) while moving,
-	# so the player fires the instant they stop.
-	if hold_fire:
+	# Hold fire while moving (stop-to-shoot) or before the player has aimed.
+	if hold_fire or aim_direction == Vector2.ZERO:
 		return
 
 	_fire(aim_direction)
@@ -154,19 +149,6 @@ func reload_progress() -> float:
 	var dur := maxf(reload_time * reload_mult, GameConfig.RELOAD_TIME_FLOOR)
 	return clampf(1.0 - _reload_timer / dur, 0.0, 1.0)
 
-func _find_nearest_enemy() -> Node2D:
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	if enemies.is_empty():
-		return null
-
-	var points: Array[Vector2] = []
-	for z in enemies:
-		points.append((z as Node2D).global_position)
-
-	var idx := TargetSelector.nearest_index_in_range(global_position, points, gun_range)
-	if idx < 0:
-		return null
-	return enemies[idx] as Node2D
 
 func _fire(dir: Vector2) -> void:
 	var base_angle := dir.angle()
