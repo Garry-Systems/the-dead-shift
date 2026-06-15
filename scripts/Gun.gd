@@ -150,7 +150,6 @@ func reload_progress() -> float:
 	var dur := maxf(reload_time * reload_mult, GameConfig.RELOAD_TIME_FLOOR)
 	return clampf(1.0 - _reload_timer / dur, 0.0, 1.0)
 
-
 func _fire(dir: Vector2) -> void:
 	var base_angle := dir.angle()
 	_show_muzzle(base_angle)
