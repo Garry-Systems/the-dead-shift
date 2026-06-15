@@ -20,6 +20,7 @@ const _LIST: Array[Dictionary] = [
 	{ "id": "exploder", "scene": preload("res://scenes/Exploder.tscn"),     "hp_mult": 0.8, "spd_mult": 1.3, "dmg_mult": 0.0, "min_wave": 5,  "weight": 20 },
 	{ "id": "hive",     "scene": preload("res://scenes/Hive.tscn"),         "hp_mult": 6.0, "spd_mult": 0.0, "dmg_mult": 1.0, "min_wave": 7,  "weight": 8 },
 	{ "id": "spitter",  "scene": preload("res://scenes/RangedEnemy.tscn"), "hp_mult": 0.9, "spd_mult": 1.0, "dmg_mult": 1.0, "min_wave": 10, "weight": 25 },
+	{ "id": "mutant",   "scene": preload("res://scenes/MutatedElite.tscn"), "hp_mult": 3.0, "spd_mult": 1.2, "dmg_mult": 1.8, "min_wave": 12, "weight": 10 },
 ]
 
 ## Full registry (read-only use). Returned by reference — do not mutate.
