@@ -1,7 +1,8 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Texture2D" path="res://art/ground.png" id="10_ground"]
+[ext_resource type="Texture2D" path="res://art/env/gas_station.png" id="15_station"]
 [ext_resource type="Script" uid="uid://dchqcispiwxbx" path="res://scripts/Spawner.gd" id="2_spawn"]
 [ext_resource type="PackedScene" path="res://scenes/Enemy.tscn" id="3_zomb"]
 [ext_resource type="PackedScene" path="res://scenes/RangedEnemy.tscn" id="14_ranged"]
@@ -28,6 +29,11 @@ scale = Vector2(3, 3)
 offset = Vector2(-2048, -2048)
 region_enabled = true
 region_rect = Rect2(0, 0, 4096, 4096)
+
+[node name="GasStation" type="Sprite2D" parent="."]
+z_index = -50
+texture = ExtResource("15_station")
+scale = Vector2(4, 4)
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 

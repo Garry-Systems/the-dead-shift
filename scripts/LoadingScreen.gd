@@ -19,15 +19,26 @@ func _ready() -> void:
 	add_child(vignette)
 
 	var title := Label.new()
-	title.text = "SURVIVOR"
+	title.text = "THE DEAD\nSHIFT"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.anchor_right = 1.0
 	title.offset_top = 140
 	PixelTheme.style_title(title, 52)
 	add_child(title)
 
+	var tagline := Label.new()
+	tagline.text = "Your shift just got a lot longer."
+	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tagline.anchor_right = 1.0
+	tagline.offset_left = 40
+	tagline.offset_right = -40
+	tagline.offset_top = 320
+	PixelTheme.style_label(tagline, 18, PixelTheme.TEXT_DIM)
+	add_child(tagline)
+
 	var loading := Label.new()
-	loading.text = "loading..."
+	loading.text = "clocking in..."
 	loading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	loading.anchor_left = 0.5
 	loading.anchor_right = 0.5

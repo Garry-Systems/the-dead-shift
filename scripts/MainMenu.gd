@@ -93,10 +93,12 @@ func _show_only(panel: Control) -> void:
 func _build_hub() -> void:
 	_hub = _make_panel()
 	var vbox := _card_vbox(_hub, 20)
-	_make_title(vbox, "SURVIVOR", 48)
+	_make_title(vbox, "THE DEAD\nSHIFT", 40)
 	var tagline := Label.new()
-	tagline.text = "stand still. stay alive."
+	tagline.text = "Your shift just got a lot longer."
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tagline.custom_minimum_size = Vector2(420, 0)
+	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	PixelTheme.style_label(tagline, 16, PixelTheme.TEXT_DIM)
 	vbox.add_child(tagline)
 	_hub_coins = Label.new()
@@ -141,7 +143,8 @@ func _build_mode_panel() -> void:
 
 func _start_run(mode: String) -> void:
 	RunConfig.mode = mode
-	get_tree().change_scene_to_file("res://scenes/Main.tscn")
+	# Clock in for your shift: a short themed loading beat, then gameplay.
+	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
 
 # --- character select ---
 func _build_char_panel() -> void:
