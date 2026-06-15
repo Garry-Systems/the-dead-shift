@@ -12,8 +12,8 @@ static func all() -> Array:
 		},
 		{
 			"id": "munitions_cache", "name": "Munitions Cache", "price": 600,
-			"rarity_floor": 3, "rarity_ceil": 7,
-			"desc": "Hardened and up — a shot at Carnage.",
+			"rarity_floor": 4, "rarity_ceil": 7,
+			"desc": "Lethal and up — a real shot at Carnage.",
 		},
 	]
 
