@@ -130,28 +130,33 @@ func _build_xp_row() -> Control:
 
 func _build_stats_section(parent: VBoxContainer) -> void:
 	parent.add_child(_section_header("STATS"))
-	var grid := GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 16)
-	grid.add_theme_constant_override("v_separation", 8)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for row in WeaponInstance.full_stats(_inst):
+		var block := VBoxContainer.new()
+		block.add_theme_constant_override("separation", 2)
+		block.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 12)
+		line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var name_l := Label.new()
 		name_l.text = String(row.label)
+		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		PixelTheme.style_label(name_l, 18, PixelTheme.TEXT_DIM)
-		grid.add_child(name_l)
+		line.add_child(name_l)
 		var val_l := Label.new()
 		val_l.text = String(row.value)
 		val_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		val_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		PixelTheme.style_label(val_l, 18, PixelTheme.TEXT)
-		grid.add_child(val_l)
-		var bonus_l := Label.new()
-		bonus_l.text = String(row.bonus)
-		bonus_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		PixelTheme.style_label(bonus_l, 16, PixelTheme.SELECT)
-		grid.add_child(bonus_l)
-	parent.add_child(grid)
+		line.add_child(val_l)
+		if String(row.bonus) != "":
+			var bonus_l := Label.new()
+			bonus_l.text = String(row.bonus)
+			bonus_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			PixelTheme.style_label(bonus_l, 16, PixelTheme.SELECT)
+			line.add_child(bonus_l)
+		block.add_child(line)
+		if row.has("roll"):
+			block.add_child(_stat_quality_line(row))
+		parent.add_child(block)
 
 func _build_talents_section(parent: VBoxContainer) -> void:
 	var talents := WeaponInstance.talent_details(_inst)
@@ -163,11 +168,26 @@ func _build_talents_section(parent: VBoxContainer) -> void:
 		var locked: bool = bool(t.locked)
 		var row := VBoxContainer.new()
 		row.add_theme_constant_override("separation", 2)
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var head := HBoxContainer.new()
+		head.add_theme_constant_override("separation", 8)
+		head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var nm := Label.new()
 		var suffix: String = ("  (LOCKED — LV%d)" % int(t.unlock_level)) if locked else ""
 		nm.text = String(t.name).to_upper() + suffix
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		PixelTheme.style_label(nm, 18, PixelTheme.TEXT_DIM if locked else PixelTheme.ACCENT)
-		row.add_child(nm)
+		head.add_child(nm)
+		var q: float = float(t.get("quality", 0.0))
+		var ql := Label.new()
+		ql.text = "%s %d%%" % [String(t.get("quality_label", "")), int(round(q * 100.0))]
+		ql.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		PixelTheme.style_label(ql, 14, PixelTheme.TEXT_DIM if locked else (PixelTheme.ACCENT if q >= 0.75 else PixelTheme.SELECT))
+		head.add_child(ql)
+		row.add_child(head)
+		var qbar := _mini_bar(q)
+		qbar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(qbar)
 		var eff := Label.new()
 		eff.text = String(t.effect)
 		eff.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -189,6 +209,60 @@ func _divider() -> ColorRect:
 	line.custom_minimum_size = Vector2(0, 3)
 	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return line
+
+## A thin quality bar styled like the XP bar (C4 fill on a C1 track, C2 border).
+func _mini_bar(frac: float) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.min_value = 0.0
+	bar.max_value = 1.0
+	bar.value = clampf(frac, 0.0, 1.0)
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(120, 12)
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = PixelTheme.DARK
+	bg.border_color = PixelTheme.ACCENT_DIM
+	bg.set_border_width_all(2)
+	bg.set_corner_radius_all(0)
+	bg.anti_aliasing = false
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = PixelTheme.ACCENT
+	fill.set_corner_radius_all(0)
+	fill.anti_aliasing = false
+	bar.add_theme_stylebox_override("background", bg)
+	bar.add_theme_stylebox_override("fill", fill)
+	return bar
+
+## The lo / bar / hi / flag line under a rolled stat. Added only when row.has("roll").
+func _stat_quality_line(row: Dictionary) -> HBoxContainer:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 8)
+	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if bool(row.get("fixed", false)):
+		var maxed := Label.new()
+		maxed.text = "MAX"
+		PixelTheme.style_label(maxed, 14, PixelTheme.SELECT)
+		hb.add_child(maxed)
+		var fbar := _mini_bar(1.0)
+		fbar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hb.add_child(fbar)
+		return hb
+	var q := float(row.roll)
+	var lo := Label.new()
+	lo.text = String(row.lo)
+	PixelTheme.style_label(lo, 14, PixelTheme.TEXT_DIM)
+	hb.add_child(lo)
+	var bar := _mini_bar(q)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb.add_child(bar)
+	var hi := Label.new()
+	hi.text = String(row.hi)
+	PixelTheme.style_label(hi, 14, PixelTheme.TEXT_DIM)
+	hb.add_child(hi)
+	var flag := Label.new()
+	flag.text = ("★ " + WeaponInstance.quality_label(q)) if q >= 0.95 else WeaponInstance.quality_label(q)
+	PixelTheme.style_label(flag, 14, PixelTheme.ACCENT if q >= 0.75 else PixelTheme.TEXT_DIM)
+	hb.add_child(flag)
+	return hb
 
 func _build_action_row() -> Control:
 	var row := VBoxContainer.new()

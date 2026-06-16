@@ -17,6 +17,15 @@ static func color(inst: Dictionary) -> Color:
 static func rarity_name(inst: Dictionary) -> String:
 	return Rarity.tier_name(int(inst.get("rarity", 1)))
 
+## Roll-quality label for a 0..1 roll (the god-roll readout).
+static func quality_label(roll: float) -> String:
+	if roll >= 1.0: return "PERFECT"
+	if roll >= 0.95: return "NEAR MAX"
+	if roll >= 0.75: return "HIGH"
+	if roll >= 0.5: return "GOOD"
+	if roll >= 0.25: return "FAIR"
+	return "LOW"
+
 ## { stat_id: final_value } resolved from the stored 0..1 rolls. % stats are values like
 ## 18.5 (meaning +18.5%); flat stats are rounded ints (meaning +N).
 static func resolved_stats(inst: Dictionary) -> Dictionary:
@@ -116,22 +125,23 @@ static func full_stats(inst: Dictionary) -> Array:
 	var pierce: int = int(s.get("pierce", 0))
 	var ricochet: int = int(s.get("ricochet", 0))
 
+	var affix := Affixes.get_affix(String(inst.get("affix", "")))
 	var rows: Array = []
-	rows.append({ "label": "DAMAGE", "value": str(roundi(damage)), "bonus": _pct_bonus(s, "damage") })
-	rows.append({ "label": "FIRE RATE", "value": "%.1f/s" % rate, "bonus": _pct_bonus(s, "fire_rate") })
-	rows.append({ "label": "RANGE", "value": str(roundi(rng)), "bonus": _pct_bonus(s, "range") })
-	rows.append({ "label": "RELOAD", "value": "%.1fs" % reload, "bonus": _pct_bonus(s, "reload") })
-	rows.append({ "label": "MAGAZINE", "value": str(mag), "bonus": _pct_bonus(s, "mag") })
+	rows.append(_merge({ "label": "DAMAGE", "value": str(roundi(damage)), "bonus": _pct_bonus(s, "damage") }, _stat_quality(inst, affix, "damage", true)))
+	rows.append(_merge({ "label": "FIRE RATE", "value": "%.1f/s" % rate, "bonus": _pct_bonus(s, "fire_rate") }, _stat_quality(inst, affix, "fire_rate", true)))
+	rows.append(_merge({ "label": "RANGE", "value": str(roundi(rng)), "bonus": _pct_bonus(s, "range") }, _stat_quality(inst, affix, "range", true)))
+	rows.append(_merge({ "label": "RELOAD", "value": "%.1fs" % reload, "bonus": _pct_bonus(s, "reload") }, _stat_quality(inst, affix, "reload", true)))
+	rows.append(_merge({ "label": "MAGAZINE", "value": str(mag), "bonus": _pct_bonus(s, "mag") }, _stat_quality(inst, affix, "mag", true)))
 	# Conditional rows: shown only when relevant, so the block stays clean but never hides a
 	# rolled bonus (bullet_speed/multishot/pierce/ricochet only roll on higher rarities).
 	if s.has("bullet_speed"):
-		rows.append({ "label": "BULLET SPD", "value": str(roundi(bspeed)), "bonus": _pct_bonus(s, "bullet_speed") })
+		rows.append(_merge({ "label": "BULLET SPD", "value": str(roundi(bspeed)), "bonus": _pct_bonus(s, "bullet_speed") }, _stat_quality(inst, affix, "bullet_speed", true)))
 	if shots > 1:
-		rows.append({ "label": "MULTISHOT", "value": str(shots), "bonus": _flat_bonus(s, "multishot") })
+		rows.append(_merge({ "label": "MULTISHOT", "value": str(shots), "bonus": _flat_bonus(s, "multishot") }, _stat_quality(inst, affix, "multishot", false)))
 	if pierce > 0:
-		rows.append({ "label": "PIERCE", "value": str(pierce), "bonus": _flat_bonus(s, "pierce") })
+		rows.append(_merge({ "label": "PIERCE", "value": str(pierce), "bonus": _flat_bonus(s, "pierce") }, _stat_quality(inst, affix, "pierce", false)))
 	if ricochet > 0:
-		rows.append({ "label": "RICOCHET", "value": str(ricochet), "bonus": _flat_bonus(s, "ricochet") })
+		rows.append(_merge({ "label": "RICOCHET", "value": str(ricochet), "bonus": _flat_bonus(s, "ricochet") }, _stat_quality(inst, affix, "ricochet", false)))
 	return rows
 
 ## Detailed talent rows for the popup. Each: { name, color, effect, locked, unlock_level }.
@@ -146,12 +156,20 @@ static func talent_details(inst: Dictionary) -> Array:
 		if def.is_empty():
 			continue
 		var unlock := int(t.get("unlock_level", 0))
+		var rolls: Array = t.get("rolls", [])
+		var q := 0.0
+		if rolls.size() > 0:
+			for r in rolls:
+				q += float(r)
+			q /= rolls.size()
 		out.append({
 			"name": String(def["name"]),
 			"color": def.get("color", Color.WHITE),
-			"effect": _talent_effect(def, t.get("rolls", [])),
+			"effect": _talent_effect(def, rolls),
 			"locked": unlock > lvl,
 			"unlock_level": unlock,
+			"quality": q,
+			"quality_label": quality_label(q),
 		})
 	return out
 
@@ -172,6 +190,25 @@ static func _flat_bonus(stats: Dictionary, id: String) -> String:
 	if not stats.has(id):
 		return ""
 	return "+%d" % int(stats[id])
+
+# Roll-quality info for a stat row: {} if the stat wasn't rolled, else {roll, lo, hi, fixed}.
+# lo/hi are the affix bonus endpoints as display strings ("+12%" / "+2").
+static func _stat_quality(inst: Dictionary, affix: Dictionary, stat_id: String, is_pct: bool) -> Dictionary:
+	if not inst.get("stats", {}).has(stat_id):
+		return {}
+	var roll := float(inst["stats"][stat_id])
+	var rng: Array = affix.get("stats", {}).get(stat_id, [0, 0])
+	var lo: float = rng[0]
+	var hi: float = rng[1]
+	var lo_s: String = ("+%d%%" % roundi(lo)) if is_pct else ("+%d" % int(lo))
+	var hi_s: String = ("+%d%%" % roundi(hi)) if is_pct else ("+%d" % int(hi))
+	return { "roll": roll, "lo": lo_s, "hi": hi_s, "fixed": (lo == hi) }
+
+# Shallow-merge the quality keys into a row dict (no-op if quality is {} - base/unrolled stat).
+static func _merge(row: Dictionary, quality: Dictionary) -> Dictionary:
+	for k in quality:
+		row[k] = quality[k]
+	return row
 
 # Fill a talent's desc format string with its resolved rolled mod values.
 static func _talent_effect(def: Dictionary, rolls: Array) -> String:
