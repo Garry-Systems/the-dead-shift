@@ -7,7 +7,7 @@
 ## Goal
 
 Deepen the crate-weapon loot layer with **more variety** while keeping it pure-RNG
-("RNG is king"). Three things grow:
+("RNG is king"). Four things grow:
 
 1. The **talent catalog** from 10 → ~31 — keeping all 10 existing, adding **5 brand-new
    marquee behaviors** (new combat verbs) plus **16 data talents** (remixes of the existing
@@ -16,6 +16,9 @@ Deepen the crate-weapon loot layer with **more variety** while keeping it pure-R
    2–4 per rarity, each biasing a different stat lane.
 3. **Display** — themed prefix in the name ("Razor AK-47") with the rarity tier shown as a
    tag (already rendered in the inspection popup as `Hardened · Level N`).
+4. **Roll-quality readout** — under each rolled stat and each talent, the inspection popup shows
+   the low→high range it could have landed in and where *this* gun actually rolled (a quality
+   bar), so a player can see at a glance whether a drop is a god-roll. See §5.
 
 Every number below is a starting point Larry will tweak after reading it. The whole list is
 enumerated for exactly that reason.
@@ -66,11 +69,12 @@ The loot weapon system (all on `master`):
 - **In scope:** `Talents.gd` (catalog), `Affixes.gd` (themed affixes + legacy flag),
   `LootRoller.gd` (roll pool excludes legacy), `TalentEngine.gd` (new resolve/process arms +
   one public area-damage helper), `Enemy.gd` (vulnerable + freeze), `Gun.gd` (surge + reload
-  nova + overpen), `Bullet.gd` (overpen damage growth), a couple of `GameConfig` knobs, and a
-  small display tweak (rarity tag on the tile, if not already present).
+  nova + overpen), `Bullet.gd` (overpen damage growth), a couple of `GameConfig` knobs,
+  `WeaponInstance.gd` (roll-quality info on stat/talent rows) + `WeaponDetailPopup.gd` (quality
+  bars), and a small display tweak (rarity tag on the tile, if not already present).
 - **Out of scope (unchanged):** the rarity ladder/odds, crate definitions, the inventory grid
   + equip/scrap flow, the crate-opening reel, the in-run level-up *Upgrades* cards, relics,
-  character perks, and weapon base stats. **No save migration** (see §6).
+  character perks, and weapon base stats. **No save migration** (see §7).
 
 ## Design decisions (locked with Larry 2026-06-16)
 
@@ -177,7 +181,7 @@ payload (see below), so no `process_hit` arm.
   returns `_frozen`. In the velocity step, `if _frozen: velocity = Vector2.ZERO` (overrides the
   slow path). Tick `_freeze_time`; clear on expiry. **Visual tell:** while frozen, modulate to a
   palette-compliant tint (proposed **C2 indigo `#3D0099`**), restored on thaw. *(Open: confirm
-  tint vs the 4-color palette — see §7.)*
+  tint vs the 4-color palette — see §9.)*
 - Ranged/Exploder/Hive subclasses inherit these automatically (they extend `Enemy`); freeze
   zeroes their `_desired_velocity`, and `_act` hooks should early-return while `is_frozen()`.
 
@@ -299,7 +303,62 @@ Result: old weapons keep working and display exactly as before; **every new drop
 
 ---
 
-## 5. Balance notes
+## 5. Roll-quality readout (inspection popup)
+
+*(Added 2026-06-16 at Larry's request.)* Every rolled stat and talent stores a `0..1` quality
+roll; the affix/catalog knows the min..max it could have landed in. The popup surfaces that so a
+player instantly sees whether a drop is a god-roll. **Chosen layout: a thin quality bar** (matches
+the popup's existing XP bar).
+
+Example (a `+20%` fire-rate roll on a `+10%..+25%` range lands near max):
+```
+─ STATS ─
+DAMAGE       26    +18%
+  +12% ▕███████░░▏ +24%
+FIRE RATE    8.3/s +20%
+  +10% ▕████████▏ +25%  ★ NEAR MAX
+MAGAZINE     34    +14%
+  +12% ▕██░░░░░░░▏ +28%  low roll
+
+─ TALENTS ─
+Napalm                  HIGH ▕████████░▏ 88%
+  35% chance · 26 dmg/s · 3.4s
+Venom                    LOW ▕██░░░░░░░▏ 21%
+  34% chance · 12 dmg/s · 3.1s
+```
+
+### Data (`WeaponInstance.gd`)
+- `full_stats` rows that carry a rolled affix bonus gain three fields:
+  - `roll` — the stored `0..1` quality for that stat.
+  - `lo` / `hi` — the affix bonus endpoints (e.g. `+12%` / `+24%`; flat stats `+1` / `+2`).
+  - `fixed` — `true` when `lo == hi` (no variance, e.g. multishot `[1,1]`) → UI shows a full bar
+    labeled MAX, no range.
+  Base rows (no affix bonus) keep `bonus == ""` and render no bar.
+- `talent_details` rows gain:
+  - `quality` — the mean of the talent's stored mod `rolls` (`0..1`).
+  - `quality_label` — from the thresholds below.
+  Shown for locked talents too (the roll is fixed at drop time; locked rows just stay dimmed C3).
+
+### Quality thresholds (tweakable)
+| roll | label |
+|---|---|
+| 1.0 | ★ PERFECT |
+| ≥ 0.95 | ★ NEAR MAX |
+| 0.75–0.95 | HIGH |
+| 0.50–0.75 | GOOD |
+| 0.25–0.50 | FAIR |
+| < 0.25 | LOW |
+
+### UI (`WeaponDetailPopup.gd`)
+- **Stat row:** under each stat that rolled a bonus, a second line: `lo` label · thin filled bar
+  (fill = `roll`) · `hi` label · quality flag. Bar reuses the popup's XP-bar style — **C4 lavender
+  fill on a dim C3 track** (palette-compliant). `fixed` stats render a full bar + "MAX".
+- **Talent row:** the talent name + its `quality_label` + a short bar (fill = `quality`) + the `%`
+  on the right, above the existing resolved-effect line.
+- Pure display from already-stored data; the popup is not per-frame, so the cost is irrelevant on
+  mobile.
+
+## 6. Balance notes
 
 - Balance lives in the **data tables** (`Talents.gd` `mods` + `level_required`, `Affixes.gd`
   `stats`), not scattered consts — the only new `GameConfig` knob is `TALENT_VULN_MAX`.
@@ -309,7 +368,7 @@ Result: old weapons keep working and display exactly as before; **every new drop
 - The new behaviors are tuned to *feel* like their tier: Marked/Overflow/Backblast (tier 2) are
   reliable build-shapers; Cold Snap+Shatter and Railbreaker (tier 3) are payoff talents.
 
-## 6. Save compatibility
+## 7. Save compatibility
 
 - **Talents:** additive — new ids only appear on *new* rolls. Old instances reference old ids,
   all still present. `TalentEngine` ignores any unknown kind (the `match` simply has no arm), so
@@ -318,7 +377,7 @@ Result: old weapons keep working and display exactly as before; **every new drop
   No `Inventory._ready` remap needed.
 - **No new save keys.** The instance shape is unchanged.
 
-## 7. Testing & verification
+## 8. Testing & verification
 
 - **Headless import/compile gate:** `…Godot…_console.exe --path "…\mobile-game" --headless
   --editor --quit`, grep for errors, ignore the benign `menu_background.jpg` JPEG-decode line.
@@ -332,11 +391,14 @@ Result: old weapons keep working and display exactly as before; **every new drop
      drop reflects ×1.5; `apply_freeze` zeroes its velocity; thaw restores it.
   4. Resolve a hand-built legacy-affix instance (`affix:"hardened"`) and assert its stored stats
      still resolve to non-zero (no migration regression).
+  5. Build an instance with a known stat roll (e.g. `0.8`) and assert `full_stats` returns
+     `roll≈0.8` with `lo`/`hi` matching the affix range; assert a talent's `quality` equals the
+     mean of its mod `rolls`.
 - **F5 smoke (Larry):** open crates → see themed names + rarity tag; level a gun so a new-behavior
   talent activates; verify Marked (+dmg tell), Cold Snap (enemy stops → shatters), Overflow
   (post-kill shots pierce), Backblast (nova on reload), Railbreaker (line-clear ramps).
 
-## 8. Open tweakables (redline targets)
+## 9. Open tweakables (redline targets)
 
 - **All talent numbers** — chances, magnitudes, durations, `level_required` gating.
 - **All affix stat ranges** + which archetypes appear at which rarity + min/max_stats.
@@ -345,7 +407,7 @@ Result: old weapons keep working and display exactly as before; **every new drop
 - Whether to keep legacy affixes in the roll pool at all (default: excluded) and whether to add
   the rarity label to the tile.
 
-## 9. Files touched
+## 10. Files touched
 
 | File | Change |
 |---|---|
@@ -357,5 +419,7 @@ Result: old weapons keep working and display exactly as before; **every new drop
 | `scripts/Gun.gd` | `add_surge`, surge fields, reload-nova, overpen fields |
 | `scripts/Bullet.gd` | `overpen_growth` + per-pierce damage growth |
 | `scripts/logic/GameConfig.gd` | `TALENT_VULN_MAX` |
+| `scripts/loot/WeaponInstance.gd` | `roll`/`lo`/`hi`/`fixed` on stat rows; `quality`/`quality_label` on talents |
+| `scripts/ui/WeaponDetailPopup.gd` | quality bars under each stat + talent |
 | `scripts/ui/WeaponTile.gd` | (optional) rarity label |
 | `probe_talents.gd` | new throwaway logic probe |
