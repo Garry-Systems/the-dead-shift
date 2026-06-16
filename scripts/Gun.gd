@@ -139,7 +139,7 @@ func _process(delta: float) -> void:
 			_ammo = mag_size
 			_reloading = false
 			if not _reload_nova.is_empty():
-				TalentEngine.detonate(global_position, float(_reload_nova["dmg"]), float(_reload_nova["radius"]), get_tree())
+				TalentEngine.detonate(global_position, float(_reload_nova.get("dmg", 0.0)), float(_reload_nova.get("radius", 0.0)), get_tree())
 		return
 
 	_cooldown -= delta
