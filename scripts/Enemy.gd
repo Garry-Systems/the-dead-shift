@@ -7,6 +7,7 @@ extends CharacterBody2D
 
 const FLASH_SHADER := preload("res://shaders/flash.gdshader")
 const KNOCKBACK_DECAY := 900.0    # px/s^2 the talent knockback impulse bleeds off
+const FROZEN_TINT := Color("3D0099")   # C2 indigo — frozen tell (palette-compliant)
 
 @export var xp_gem_scene: PackedScene
 
@@ -23,6 +24,10 @@ var _dot_dps := 0.0            # stacking poison DoT (Venom talent)
 var _dot_time := 0.0
 var _slow_factor := 1.0        # move-speed multiplier (Frostbite talent); 1.0 = unslowed
 var _slow_time := 0.0
+var _vuln_bonus := 0.0         # extra damage-taken fraction (Marked talent); 0 = none
+var _vuln_time := 0.0
+var _frozen := false           # Cold Snap: fully stopped while true
+var _freeze_time := 0.0
 var _knockback := Vector2.ZERO # decaying impulse (Concussive talent)
 var _flash_mat: ShaderMaterial
 var _health_bar: EnemyHealthBar
@@ -86,6 +91,27 @@ func apply_dot(dps: float, duration: float) -> void:
 func apply_knockback(impulse: Vector2) -> void:
 	_knockback += impulse
 
+## Talent (Marked): take extra damage for a duration. Strongest application wins; capped in take_damage.
+func apply_vulnerable(frac: float, duration: float) -> void:
+	_vuln_bonus = maxf(_vuln_bonus, frac)
+	_vuln_time = maxf(_vuln_time, duration)
+
+## Talent (Cold Snap): fully stop the enemy for a duration. A hit while frozen shatters it.
+func apply_freeze(duration: float) -> void:
+	_freeze_time = maxf(_freeze_time, duration)
+	if not _frozen:
+		_frozen = true
+		if _flash_mat != null:
+			_flash_mat.set_shader_parameter("base_tint", FROZEN_TINT)
+
+func is_frozen() -> bool:
+	return _frozen
+
+func _thaw() -> void:
+	_frozen = false
+	if _flash_mat != null:
+		_flash_mat.set_shader_parameter("base_tint", Color(1, 1, 1, 1))
+
 ## Remaining-health fraction (for the above-head bar).
 func health_fraction() -> float:
 	if _health == null or _health.maxhp <= 0.0:
@@ -112,6 +138,16 @@ func _physics_process(delta: float) -> void:
 		if _slow_time <= 0.0:
 			_slow_factor = 1.0
 
+	if _vuln_time > 0.0:
+		_vuln_time -= delta
+		if _vuln_time <= 0.0:
+			_vuln_bonus = 0.0
+
+	if _freeze_time > 0.0:
+		_freeze_time -= delta
+		if _freeze_time <= 0.0:
+			_thaw()
+
 	if _target == null or not is_instance_valid(_target):
 		return
 
@@ -121,8 +157,12 @@ func _physics_process(delta: float) -> void:
 		velocity += _knockback
 		_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
 
+	if _frozen:
+		velocity = Vector2.ZERO
+
 	move_and_slide()
-	_act(delta)
+	if not _frozen:
+		_act(delta)
 
 	# Deal damage-per-second whenever we're actually colliding with the player. A fixed
 	# distance check failed here: move_and_slide de-penetrates us to the sum of the
@@ -151,6 +191,8 @@ func _touching_player() -> bool:
 	return false
 
 func take_damage(amount: float) -> void:
+	if _vuln_bonus > 0.0:
+		amount *= (1.0 + minf(_vuln_bonus, GameConfig.TALENT_VULN_MAX))
 	_health.take_damage(amount)
 	if _health.is_dead():
 		RunStats.add_kill()
