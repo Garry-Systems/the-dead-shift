@@ -15,7 +15,7 @@ var _action_row: Control
 var _confirm_row: Control
 var _scroll: ScrollContainer
 var _inner: VBoxContainer
-var _card_w: float = 560.0
+var _card_w: float = 720.0
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -31,7 +31,7 @@ func _ready() -> void:
 	add_child(center)
 	var card := PanelContainer.new()
 	# Cap width to the viewport so the modal fits a narrow (portrait) screen too.
-	_card_w = minf(560.0, get_viewport_rect().size.x - 48.0)
+	_card_w = minf(720.0, get_viewport_rect().size.x - 48.0)
 	card.custom_minimum_size = Vector2(_card_w, 0)
 	PixelTheme.style_card(card)
 	center.add_child(card)
@@ -53,7 +53,7 @@ func _rebuild() -> void:
 	var title := Label.new()
 	title.text = WeaponInstance.display_name(_inst).to_upper()
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_title(title, 24)
+	PixelTheme.style_title(title, 28)
 	title.add_theme_color_override("font_color", WeaponInstance.color(_inst))
 	_card_vbox.add_child(title)
 
@@ -61,7 +61,7 @@ func _rebuild() -> void:
 	var sub := Label.new()
 	sub.text = "%s  ·  Level %d" % [WeaponInstance.rarity_name(_inst), int(_inst.get("level", 1))]
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(sub, 14, PixelTheme.TEXT_DIM)
+	PixelTheme.style_label(sub, 18, PixelTheme.TEXT_DIM)
 	_card_vbox.add_child(sub)
 
 	# XP bar.
@@ -124,7 +124,7 @@ func _build_xp_row() -> Control:
 	var lbl := Label.new()
 	lbl.text = "%d / %d XP" % [int(prog.xp), int(prog.needed)]
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(lbl, 12, PixelTheme.TEXT_DIM)
+	PixelTheme.style_label(lbl, 16, PixelTheme.TEXT_DIM)
 	box.add_child(lbl)
 	return box
 
@@ -138,18 +138,18 @@ func _build_stats_section(parent: VBoxContainer) -> void:
 	for row in WeaponInstance.full_stats(_inst):
 		var name_l := Label.new()
 		name_l.text = String(row.label)
-		PixelTheme.style_label(name_l, 14, PixelTheme.TEXT_DIM)
+		PixelTheme.style_label(name_l, 18, PixelTheme.TEXT_DIM)
 		grid.add_child(name_l)
 		var val_l := Label.new()
 		val_l.text = String(row.value)
 		val_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		val_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		PixelTheme.style_label(val_l, 14, PixelTheme.TEXT)
+		PixelTheme.style_label(val_l, 18, PixelTheme.TEXT)
 		grid.add_child(val_l)
 		var bonus_l := Label.new()
 		bonus_l.text = String(row.bonus)
 		bonus_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		PixelTheme.style_label(bonus_l, 13, PixelTheme.SELECT)
+		PixelTheme.style_label(bonus_l, 16, PixelTheme.SELECT)
 		grid.add_child(bonus_l)
 	parent.add_child(grid)
 
@@ -157,6 +157,7 @@ func _build_talents_section(parent: VBoxContainer) -> void:
 	var talents := WeaponInstance.talent_details(_inst)
 	if talents.is_empty():
 		return
+	parent.add_child(_divider())   # a line separating STATS from TALENTS
 	parent.add_child(_section_header("TALENTS"))
 	for t in talents:
 		var locked: bool = bool(t.locked)
@@ -165,21 +166,29 @@ func _build_talents_section(parent: VBoxContainer) -> void:
 		var nm := Label.new()
 		var suffix: String = ("  (LOCKED — LV%d)" % int(t.unlock_level)) if locked else ""
 		nm.text = String(t.name).to_upper() + suffix
-		PixelTheme.style_label(nm, 14, PixelTheme.TEXT_DIM if locked else PixelTheme.ACCENT)
+		PixelTheme.style_label(nm, 18, PixelTheme.TEXT_DIM if locked else PixelTheme.ACCENT)
 		row.add_child(nm)
 		var eff := Label.new()
 		eff.text = String(t.effect)
 		eff.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		eff.custom_minimum_size = Vector2(maxf(200.0, _card_w - 80.0), 0)
-		PixelTheme.style_label(eff, 12, PixelTheme.TEXT_DIM)
+		PixelTheme.style_label(eff, 16, PixelTheme.TEXT_DIM)
 		row.add_child(eff)
 		parent.add_child(row)
 
 func _section_header(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	PixelTheme.style_label(l, 13, PixelTheme.SELECT)
+	PixelTheme.style_label(l, 18, PixelTheme.SELECT)
 	return l
+
+## A thin horizontal divider line (separates the STATS and TALENTS sections).
+func _divider() -> ColorRect:
+	var line := ColorRect.new()
+	line.color = PixelTheme.ACCENT_DIM
+	line.custom_minimum_size = Vector2(0, 3)
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return line
 
 func _build_action_row() -> Control:
 	var row := VBoxContainer.new()
@@ -188,7 +197,7 @@ func _build_action_row() -> Control:
 
 	var equip_btn := Button.new()
 	equip_btn.text = "EQUIPPED" if _is_equipped else "EQUIP"
-	PixelTheme.style_button(equip_btn, Vector2(0, 60), 18)
+	PixelTheme.style_button(equip_btn, Vector2(0, 68), 22)
 	equip_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	equip_btn.disabled = _is_equipped
 	equip_btn.pressed.connect(func():
@@ -199,7 +208,7 @@ func _build_action_row() -> Control:
 	var band: Array = Rarity.tier(int(_inst.get("rarity", 1))).scrap
 	var scrap_btn := Button.new()
 	scrap_btn.text = "SCRAP (%d-%d)" % [int(band[0]), int(band[1])]
-	PixelTheme.style_button(scrap_btn, Vector2(0, 56), 16)
+	PixelTheme.style_button(scrap_btn, Vector2(0, 62), 20)
 	scrap_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scrap_btn.disabled = _is_equipped
 	scrap_btn.add_theme_color_override("font_color", PixelTheme.DANGER)
@@ -208,7 +217,7 @@ func _build_action_row() -> Control:
 
 	var close_btn := Button.new()
 	close_btn.text = "CLOSE"
-	PixelTheme.style_button(close_btn, Vector2(0, 56), 16)
+	PixelTheme.style_button(close_btn, Vector2(0, 62), 20)
 	close_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	close_btn.pressed.connect(_close)
 	row.add_child(close_btn)
@@ -223,7 +232,7 @@ func _show_scrap_confirm() -> void:
 	var q := Label.new()
 	q.text = "Scrap for %d-%d coins?" % [int(band[0]), int(band[1])]
 	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(q, 16, PixelTheme.DANGER)
+	PixelTheme.style_label(q, 18, PixelTheme.DANGER)
 	_confirm_row.add_child(q)
 	var hb := HBoxContainer.new()
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -231,7 +240,7 @@ func _show_scrap_confirm() -> void:
 	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var yes := Button.new()
 	yes.text = "YES"
-	PixelTheme.style_button(yes, Vector2(0, 56), 16)
+	PixelTheme.style_button(yes, Vector2(0, 62), 20)
 	yes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	yes.pressed.connect(func():
 		scrap_confirmed.emit(_inst)
@@ -239,7 +248,7 @@ func _show_scrap_confirm() -> void:
 	hb.add_child(yes)
 	var no := Button.new()
 	no.text = "NO"
-	PixelTheme.style_button(no, Vector2(0, 56), 16)
+	PixelTheme.style_button(no, Vector2(0, 62), 20)
 	no.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	no.pressed.connect(func():
 		_confirm_row.visible = false

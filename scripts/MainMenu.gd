@@ -234,10 +234,12 @@ func _build_inventory_panel() -> void:
 	_inv_panel.add_child(_detail_popup)
 	_detail_popup.equip_requested.connect(_on_equip)
 	_detail_popup.scrap_confirmed.connect(_on_scrap)
+	_detail_popup.closed.connect(_populate_inventory)   # refresh the grid after viewing (e.g. a crate win)
 
 	_crate_opener = CrateOpener.new()
 	_inv_panel.add_child(_crate_opener)
 	_crate_opener.closed.connect(_populate_inventory)
+	_crate_opener.weapon_revealed.connect(_on_crate_weapon_revealed)
 
 ## Opens the inventory. from_play=true means PLAY sent us here with no weapon equipped:
 ## picking a weapon then proceeds to the mode picker, and the bottom button reads CANCEL.
@@ -327,6 +329,10 @@ func _on_tile_pressed(inst: Dictionary) -> void:
 ## Crate tile tapped → open the CS:GO reel for that crate.
 func _on_crate_tile_pressed(crate_id: String) -> void:
 	_crate_opener.open(crate_id)
+
+## The reel landed on a weapon → show the SAME full inspect popup as tapping a gun in the grid.
+func _on_crate_weapon_revealed(inst: Dictionary) -> void:
+	_detail_popup.open(inst, String(inst.get("uid", "")) == Inventory.equipped_uid())
 
 ## Scrap confirmed in the popup → deconstruct for coins and refresh the grid.
 func _on_scrap(inst: Dictionary) -> void:

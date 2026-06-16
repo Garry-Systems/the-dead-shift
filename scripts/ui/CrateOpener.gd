@@ -6,6 +6,7 @@ extends Control
 ## CrateSpinner. Full-screen overlay, built in code, hidden by default.
 
 signal closed()
+signal weapon_revealed(inst: Dictionary)   # reel landed + committed → owner shows the full inspect
 
 const TILE_W := 140.0
 const TILE_H := 180.0
@@ -30,8 +31,6 @@ var _tick_cd := 0.0
 
 var _mask: Control
 var _reel: Control
-var _reveal_card: PanelContainer
-var _reveal_vbox: VBoxContainer
 var _flash_rect: ColorRect
 var _tick_player: AudioStreamPlayer
 
@@ -79,19 +78,6 @@ func _ready() -> void:
 	_flash_rect.color = Color(1, 1, 1, 0)
 	add_child(_flash_rect)
 
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(center)
-	_reveal_card = PanelContainer.new()
-	PixelTheme.style_card(_reveal_card)
-	_reveal_card.custom_minimum_size = Vector2(minf(520.0, get_viewport_rect().size.x - 48.0), 0)
-	_reveal_card.visible = false
-	center.add_child(_reveal_card)
-	_reveal_vbox = VBoxContainer.new()
-	_reveal_vbox.add_theme_constant_override("separation", 14)
-	_reveal_card.add_child(_reveal_vbox)
-
 	_tick_player = AudioStreamPlayer.new()
 	if ResourceLoader.exists("res://audio/tick.wav"):
 		_tick_player.stream = load("res://audio/tick.wav")
@@ -104,7 +90,6 @@ func open(crate_id: String) -> void:
 		return
 	_crate_id = crate_id
 	_winner = LootRoller.roll_from_crate(Crates.get_crate(crate_id))
-	_reveal_card.visible = false
 	_flash_rect.color = Color(1, 1, 1, 0)
 	_build_reel()
 	visible = true
@@ -195,50 +180,23 @@ func _play_tick() -> void:
 
 func _on_settle() -> void:
 	_flash(WeaponInstance.color(_winner))
-	# Only reveal if the award actually committed (consume crate + add weapon). Guards
+	# Only proceed if the award actually committed (consume crate + add weapon). Guards
 	# against a false reward if the commit ever fails (e.g. inventory full).
-	if Inventory.commit_crate(_crate_id, _winner):
-		_show_reveal(_winner)
-	else:
+	if not Inventory.commit_crate(_crate_id, _winner):
 		_close()
+		return
+	# Brief beat to enjoy the landed tile + flash, then hand off to the full weapon inspect
+	# (the SAME popup as tapping a gun in the inventory). The owner (MainMenu) opens it.
+	await get_tree().create_timer(0.55).timeout
+	if not is_instance_valid(self):
+		return
+	visible = false
+	weapon_revealed.emit(_winner)
 
 func _flash(col: Color) -> void:
 	_flash_rect.color = Color(col.r, col.g, col.b, 0.5)
 	var tw := create_tween()
 	tw.tween_property(_flash_rect, "color", Color(col.r, col.g, col.b, 0.0), 0.4)
-
-func _show_reveal(inst: Dictionary) -> void:
-	for c in _reveal_vbox.get_children():
-		c.queue_free()
-	var title := Label.new()
-	title.text = WeaponInstance.display_name(inst).to_upper()
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_title(title, 24)
-	title.add_theme_color_override("font_color", WeaponInstance.color(inst))
-	_reveal_vbox.add_child(title)
-	var stats := Label.new()
-	stats.text = "%s  ·  %s" % [WeaponInstance.rarity_name(inst), WeaponInstance.stat_summary(inst)]
-	stats.custom_minimum_size = Vector2(460, 0)
-	stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(stats, 14, PixelTheme.TEXT_DIM)
-	_reveal_vbox.add_child(stats)
-	var tsum: String = WeaponInstance.talent_summary(inst)
-	if tsum != "":
-		var tl := Label.new()
-		tl.text = "⟡ " + tsum
-		tl.custom_minimum_size = Vector2(460, 0)
-		tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		PixelTheme.style_label(tl, 13, PixelTheme.ACCENT)
-		_reveal_vbox.add_child(tl)
-	var cont := Button.new()
-	cont.text = "CONTINUE"
-	PixelTheme.style_button(cont, Vector2(0, 60), 18)
-	cont.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cont.pressed.connect(_close)
-	_reveal_vbox.add_child(cont)
-	_reveal_card.visible = true
 
 func _close() -> void:
 	visible = false
