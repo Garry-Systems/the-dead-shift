@@ -5,6 +5,8 @@ name: Android Build
 on:
   push:
     branches: [ master ]
+    paths-ignore:
+      - '**.md'        # docs-only changes (README etc.) don't need a rebuild
   workflow_dispatch:
 
 permissions:
