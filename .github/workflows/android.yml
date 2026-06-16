@@ -20,30 +20,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Stage Godot templates + editor config under $HOME
+      - name: Diagnostics (what the image actually provides)
         run: |
-          # GitHub container jobs set HOME=/github/home, but the image installs
-          # templates/config under /root — copy them so the headless export finds them.
-          mkdir -p ~/.local/share/godot ~/.config/godot
-          cp -r /root/.local/share/godot/* ~/.local/share/godot/ 2>/dev/null || true
-          cp -r /root/.config/godot/* ~/.config/godot/ 2>/dev/null || true
-          echo "--- export templates under HOME ---"
-          ls -la ~/.local/share/godot/export_templates/ 2>/dev/null || echo "(none)"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$ANDROID_HOME" 2>/dev/null | head || echo "(ANDROID_HOME not set/empty)"
+          echo "HOME=$HOME"
+          echo "--- Android templates in the image (/root) ---"
+          ls -la /root/.local/share/godot/export_templates/4.6.3.stable/ 2>/dev/null | grep -iE "apk|aar" || echo "(no android templates at /root)"
+          echo "ANDROID_HOME=$ANDROID_HOME"; ls "$ANDROID_HOME" 2>/dev/null | head || true
+          echo "--- image editor_settings android lines ---"
+          grep -iE "android_sdk_path|debug_keystore|java_sdk|jdk" /root/.config/godot/editor_settings-4.6.tres 2>/dev/null || echo "(no android lines in image editor_settings)"
 
       - name: Generate a debug keystore
         run: |
-          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
-            -keypass android -keystore /tmp/debug.keystore -storepass android \
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android \
+            -keystore /root/debug.keystore -storepass android \
             -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
-
-      - name: Import resources
-        run: godot --headless --import 2>&1 | tail -8 || true
 
       - name: Export Android debug APK
         env:
-          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /tmp/debug.keystore
+          HOME: /root   # use the image's pre-configured Godot/editor settings (SDK, templates)
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /root/debug.keystore
           GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
