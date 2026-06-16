@@ -8,9 +8,9 @@ class_name LootRoller
 
 ## Roll a full instance. base_id "" = pick a random base weapon from Weapons.all().
 static func roll(rarity: int, base_id: String = "") -> Dictionary:
-	var affixes := Affixes.of_rarity(rarity)
+	var affixes := Affixes.rollable_of_rarity(rarity)
 	if affixes.is_empty():
-		affixes = Affixes.of_rarity(1)
+		affixes = Affixes.rollable_of_rarity(1)
 	var affix: Dictionary = affixes[randi() % affixes.size()]
 
 	if base_id == "":
