@@ -5,8 +5,8 @@ extends Button
 
 signal crate_pressed(crate_id: String)
 
-const TILE_SIZE := Vector2(170, 170)
-const ICON_SIZE := Vector2(96, 96)
+const TILE_SIZE := Vector2(210, 210)
+const ICON_SIZE := Vector2(130, 130)
 
 var _crate_id := ""
 

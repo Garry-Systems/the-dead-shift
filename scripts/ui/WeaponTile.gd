@@ -7,8 +7,8 @@ extends Button
 
 signal tile_pressed(inst: Dictionary)
 
-const TILE_SIZE := Vector2(170, 170)
-const ICON_SIZE := Vector2(96, 96)
+const TILE_SIZE := Vector2(210, 210)
+const ICON_SIZE := Vector2(130, 130)
 
 var _inst: Dictionary
 

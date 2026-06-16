@@ -1,6 +1,6 @@
 extends Control
-## On-screen movement joystick for touch. Drag anywhere in the LEFT HALF of the screen to
-## move; a floating base ring + knob is drawn at the touch point. Reports a normalized
+## On-screen movement joystick for touch. Drag ANYWHERE on the screen to move; a floating
+## base ring + knob is drawn at the touch point. Reports a normalized
 ## direction to the Player via `player.joystick_direction`.
 ##
 ## Uses _input (global) so it works regardless of mouse_filter, and finds the Player via the
@@ -19,10 +19,19 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE   # never eat UI taps (we read raw _input)
 	_player = get_tree().get_first_node_in_group("player") as Player
 
+func _notification(what: int) -> void:
+	# If a drag was active when the game paused (e.g. the player tapped the pause button,
+	# which we also see as a touch), the touch-up arrives while we're paused and we never
+	# get it — leaving a stale touch index that would block movement. Clear it on unpause.
+	if what == NOTIFICATION_UNPAUSED:
+		_touch_index = -1
+		_knob = Vector2.ZERO
+		_set_player_dir(Vector2.ZERO)
+		queue_redraw()
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
-		var left_half: bool = event.position.x < get_viewport_rect().size.x * 0.5
-		if event.pressed and _touch_index == -1 and left_half:
+		if event.pressed and _touch_index == -1:
 			_touch_index = event.index
 			_origin = event.position
 			_knob = Vector2.ZERO

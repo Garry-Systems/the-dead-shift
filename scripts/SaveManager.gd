@@ -18,6 +18,7 @@ const DEFAULTS := {
 	"equipped_weapon": "",    # uid of the equipped instance
 	"unlocked_characters": ["ryan"],   # character ids the player owns (Ryan free)
 	"crates": {},             # owned unopened crates: crate_id -> count
+	"dev_bonus_granted": false,  # DEV (temporary): one-time coin bonus already given?
 }
 
 var _data: Dictionary = {}
@@ -97,6 +98,15 @@ func spend_coins(amount: int) -> bool:
 		return false
 	_data["coins"] = coins() - amount
 	return true
+
+## DEV (temporary): grant a one-time coin bonus so the store/economy is testable. Grants
+## once per save (the flag persists + is saved), so the player can still spend normally.
+func grant_dev_bonus(amount: int) -> void:
+	if bool(_data.get("dev_bonus_granted", false)):
+		return
+	_data["dev_bonus_granted"] = true
+	add_coins(amount)
+	save_game()
 
 func best_wave() -> int:
 	return int(_data.get("best_wave", 0))
