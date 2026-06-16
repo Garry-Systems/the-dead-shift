@@ -30,6 +30,9 @@ const UPGRADE_CHOKE_PCT := 0.30        # "Tighter Choke" spread reduction
 const UPGRADE_BURN_DPS := 8.0          # incendiary damage per second
 const UPGRADE_BURN_DURATION := 3.0     # incendiary burn duration (seconds)
 
+# --- Weapon talents (loot procs) ---
+const TALENT_VULN_MAX := 1.0          # Marked: cap the bonus-damage-taken fraction (+100%)
+
 # --- Enemy ---
 const ENEMY_MOVE_SPEED := 70.0       # px/sec
 const ENEMY_MAX_HEALTH := 50.0
