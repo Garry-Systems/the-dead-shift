@@ -37,6 +37,11 @@ var loot_name := ""
 var talent_payload := {}           # resolved active-talent effects (see TalentEngine)
 var _frenzy_mult := 0.0            # Bloodrush fire-rate surge (fraction; 0 = none)
 var _frenzy_time := 0.0
+var _surge_pierce := 0             # Overflow: bonus pierce on the next shots
+var _surge_shots := 0              # Overflow: extra pellets on the next shots
+var _surge_time := 0.0
+var _reload_nova := {}             # Backblast: {dmg, radius} resolved from talent_payload; {} = none
+var _overpen := {}                 # Railbreaker: {pierce, growth} from talent_payload; {} = none
 
 const MUZZLE_TIME := 0.05         # seconds the muzzle flash stays visible per shot
 
@@ -99,6 +104,8 @@ func apply_loot(inst: Dictionary) -> void:
 			"ricochet": upgrade_ricochet(int(v))
 	# Resolve the talents unlocked at this weapon's level into a per-shot combat payload.
 	talent_payload = TalentEngine.resolve_payload(WeaponInstance.active_talents(inst))
+	_reload_nova = talent_payload.get("reload_nova", {})
+	_overpen = talent_payload.get("overpen", {})
 	_ammo = mag_size   # start the run with a full (boosted) magazine
 
 ## Talent (Bloodrush): temporary fire-rate surge, refreshed on each kill.
@@ -106,10 +113,22 @@ func add_frenzy(pct: float, duration: float) -> void:
 	_frenzy_mult = maxf(_frenzy_mult, pct)
 	_frenzy_time = maxf(_frenzy_time, duration)
 
+## Talent (Overflow): a kill grants bonus pierce + extra pellets to the next shots.
+func add_surge(pierce: int, shots: int, duration: float) -> void:
+	_surge_pierce = maxi(_surge_pierce, pierce)
+	_surge_shots = maxi(_surge_shots, shots)
+	_surge_time = maxf(_surge_time, duration)
+
 func _process(delta: float) -> void:
 	_fade_muzzle(delta)
 	if _frenzy_time > 0.0:
 		_frenzy_time -= delta
+
+	if _surge_time > 0.0:
+		_surge_time -= delta
+		if _surge_time <= 0.0:
+			_surge_pierce = 0
+			_surge_shots = 0
 
 	# aim_direction is set by the Player each frame (the last-faced direction).
 	# The gun no longer picks targets — it fires where the player is looking.
@@ -119,6 +138,8 @@ func _process(delta: float) -> void:
 		if _reload_timer <= 0.0:
 			_ammo = mag_size
 			_reloading = false
+			if not _reload_nova.is_empty():
+				TalentEngine.detonate(global_position, float(_reload_nova["dmg"]), float(_reload_nova["radius"]), get_tree())
 		return
 
 	_cooldown -= delta
@@ -153,14 +174,16 @@ func reload_progress() -> float:
 func _fire(dir: Vector2) -> void:
 	var base_angle := dir.angle()
 	_show_muzzle(base_angle)
-	if projectile_count <= 1:
+	var count: int = projectile_count + (_surge_shots if _surge_time > 0.0 else 0)
+	if count <= 1:
 		var jitter: float = randf_range(-spread, spread) if spread > 0.0 else 0.0
 		_spawn_bullet(Vector2.from_angle(base_angle + jitter))
 		return
-	# Fan multiple pellets evenly across the spread arc, centered on the aim.
-	for i in projectile_count:
-		var t := float(i) / float(projectile_count - 1)
-		var offset := lerpf(-spread * 0.5, spread * 0.5, t)
+	# Fan pellets evenly across the spread arc (force a small fan if a 1-shot gun gained pellets).
+	var arc: float = maxf(spread, 0.20)
+	for i in count:
+		var t := float(i) / float(count - 1)
+		var offset := lerpf(-arc * 0.5, arc * 0.5, t)
 		_spawn_bullet(Vector2.from_angle(base_angle + offset))
 
 ## Pops the muzzle flash at the gun's muzzle, oriented along the shot.
@@ -190,7 +213,8 @@ func _spawn_bullet(dir: Vector2) -> void:
 	bullet.speed = bullet_speed
 	bullet.damage = damage
 	bullet.max_travel = gun_range
-	bullet.pierce_count = pierce_count
+	bullet.pierce_count = pierce_count + (_surge_pierce if _surge_time > 0.0 else 0) + int(_overpen.get("pierce", 0))
+	bullet.overpen_growth = float(_overpen.get("growth", 0.0))
 	bullet.ricochet_count = ricochet_count
 	bullet.talent_payload = talent_payload
 	bullet.talent_player = get_parent() as Player

@@ -81,6 +81,11 @@ static func process_hit(body, hit_pos: Vector2, base_damage: float, killed: bool
 				if alive and body.has_method("health_fraction") and body.health_fraction() <= float(proc["threshold"]) / 100.0:
 					body.take_damage(1_000_000.0)
 
+## Public area-damage helper (used by Gun reload-nova and freeze-shatter). Thin wrapper
+## over _explode so callers don't need to build a ctx dict.
+static func detonate(pos: Vector2, dmg: float, radius: float, tree) -> void:
+	_explode(pos, dmg, radius, { "tree": tree })
+
 static func _roll(chance_pct) -> bool:
 	return randf() * 100.0 < float(chance_pct)
 

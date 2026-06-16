@@ -11,6 +11,7 @@ var max_travel := INF          # px; despawn after flying this far (set to gun_r
 # Talent payload (set by Gun._spawn_bullet; 0/false = vanilla bullet).
 var pierce_count := 0          # extra enemies the bullet passes through
 var ricochet_count := 0        # times it redirects to the next nearest enemy
+var overpen_growth := 0.0      # Railbreaker: % damage gained each time the bullet pierces
 var incendiary := false        # ignites enemies it hits
 var burn_dps := 0.0
 var burn_duration := 0.0
@@ -72,6 +73,8 @@ func _on_body_entered(body) -> void:
 		return
 	if pierce_count > 0:
 		pierce_count -= 1
+		if overpen_growth > 0.0:
+			damage *= (1.0 + overpen_growth / 100.0)
 		return
 	queue_free()
 
