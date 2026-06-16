@@ -25,6 +25,7 @@ var _dash := DashState.new(GameConfig.DASH_DURATION, GameConfig.DASH_COOLDOWN)
 var _last_move_dir := Vector2.RIGHT
 var _has_moved := false          # true after the first move input (gates spawn fire)
 var _last_tap_time := -999.0
+var _last_input_time := -999.0   # de-dupes the same-frame emulated touch/mouse pair
 var _is_dead := false
 
 ## Set by the VirtualJoystick. Vector2.ZERO means "no joystick input, use keyboard".
@@ -144,6 +145,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	var now := Time.get_ticks_msec() / 1000.0
+	# With touch<->mouse emulation on, one physical press can arrive as BOTH a touch and a
+	# mouse event the same frame. Ignore the second so a single tap isn't counted twice.
+	if now - _last_input_time < 0.05:
+		return
+	_last_input_time = now
+
 	if now - _last_tap_time <= GameConfig.DASH_DOUBLE_TAP_WINDOW:
 		_dash.start_dash()
 		_last_tap_time = -999.0  # consume, so a 3rd tap doesn't chain

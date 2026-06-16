@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Texture2D" path="res://art/ground.png" id="10_ground"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://scripts/Main.gd" id="11_main"]
 [ext_resource type="Script" path="res://scripts/GameOver.gd" id="12_gameover"]
 [ext_resource type="Script" path="res://scripts/PauseMenu.gd" id="13_pause"]
+[ext_resource type="Script" path="res://scripts/VirtualJoystick.gd" id="16_joy"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("11_main")
@@ -57,3 +58,9 @@ script = ExtResource("12_gameover")
 
 [node name="PauseMenu" type="CanvasLayer" parent="."]
 script = ExtResource("13_pause")
+
+[node name="JoystickLayer" type="CanvasLayer" parent="."]
+layer = 8
+
+[node name="VirtualJoystick" type="Control" parent="JoystickLayer"]
+script = ExtResource("16_joy")

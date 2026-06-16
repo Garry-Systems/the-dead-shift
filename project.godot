@@ -33,6 +33,10 @@ RunStats="*res://scripts/RunStats.gd"
 SaveManager="*res://scripts/SaveManager.gd"
 Inventory="*res://scripts/loot/Inventory.gd"
 
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
 [dotnet]
 
 project/assembly_name="Mobile Game"

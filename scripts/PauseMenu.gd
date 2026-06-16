@@ -20,13 +20,13 @@ func _process(_delta: float) -> void:
 func _build_button() -> void:
 	_pause_btn = Button.new()
 	_pause_btn.text = "II"
-	PixelTheme.style_button(_pause_btn, Vector2(56, 56), 22)
+	PixelTheme.style_button(_pause_btn, Vector2(76, 76), 28)
 	_pause_btn.anchor_left = 1.0
 	_pause_btn.anchor_right = 1.0
-	_pause_btn.offset_left = -68
-	_pause_btn.offset_right = -12
-	_pause_btn.offset_top = 36
-	_pause_btn.offset_bottom = 92
+	_pause_btn.offset_left = -92
+	_pause_btn.offset_right = -16
+	_pause_btn.offset_top = 72        # down from the very top to clear the status bar / notch
+	_pause_btn.offset_bottom = 148
 	_pause_btn.pressed.connect(_on_pause_pressed)
 	add_child(_pause_btn)
 
