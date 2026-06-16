@@ -36,6 +36,16 @@ static func resolve_payload(active_talents: Array) -> Dictionary:
 				payload["procs"].append({ "kind": "explode", "chance": v.call(0), "dmg": v.call(1), "radius": v.call(2) })
 			"onhit_execute":
 				payload["procs"].append({ "kind": "execute", "threshold": v.call(0) })
+			"onhit_vulnerable":
+				payload["procs"].append({ "kind": "vulnerable", "chance": v.call(0), "amount": v.call(1), "dur": v.call(2) })
+			"onhit_freeze":
+				payload["procs"].append({ "kind": "freeze", "chance": v.call(0), "dur": v.call(1), "shatter": v.call(2), "radius": v.call(3) })
+			"onkill_surge":
+				payload["procs"].append({ "kind": "surge", "pierce": int(round(v.call(0))), "shots": int(round(v.call(1))), "dur": v.call(2) })
+			"onreload_nova":
+				payload["reload_nova"] = { "dmg": v.call(0), "radius": v.call(1) }
+			"overpen":
+				payload["overpen"] = { "pierce": int(round(v.call(0))), "growth": v.call(1) }
 	return payload
 
 ## Roll the damage for one hit (applies crit). Returns { damage, crit }.
@@ -80,6 +90,18 @@ static func process_hit(body, hit_pos: Vector2, base_damage: float, killed: bool
 			"execute":
 				if alive and body.has_method("health_fraction") and body.health_fraction() <= float(proc["threshold"]) / 100.0:
 					body.take_damage(1_000_000.0)
+			"vulnerable":
+				if alive and _roll(proc["chance"]) and body.has_method("apply_vulnerable"):
+					body.apply_vulnerable(float(proc["amount"]) / 100.0, float(proc["dur"]))
+			"freeze":
+				if alive and body.has_method("apply_freeze"):
+					if body.has_method("is_frozen") and body.is_frozen():
+						detonate(hit_pos, float(proc["shatter"]), float(proc["radius"]), ctx.get("tree"))
+					elif _roll(proc["chance"]):
+						body.apply_freeze(float(proc["dur"]))
+			"surge":
+				if killed and ctx.get("gun") != null and is_instance_valid(ctx["gun"]):
+					ctx["gun"].add_surge(int(proc["pierce"]), int(proc["shots"]), float(proc["dur"]))
 
 ## Public area-damage helper (used by Gun reload-nova and freeze-shatter). Thin wrapper
 ## over _explode so callers don't need to build a ctx dict.
