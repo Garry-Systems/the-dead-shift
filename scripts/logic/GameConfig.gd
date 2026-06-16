@@ -159,3 +159,6 @@ const HIVE_MAX_BROOD := 8             # lifetime cap on shamblers one hive can b
 # --- Boss Rush mode (always-N bosses + trash) ---
 const BOSS_RUSH_BASE_COUNT := 3        # concurrent bosses kept on the map from the start
 const BOSS_RUSH_LEVELS_PER_BOSS := 5   # +1 concurrent boss every this many player levels
+const BOSS_RUSH_REWARD_MULT := 0.35    # boss-rush XP-gem reward fraction (toned down — bosses die constantly)
+const BOSS_RUSH_HEAL_FRAC := 0.2       # boss-rush heal per kill (vs a FULL heal in endless)
+const BOSS_RUSH_RELIC_CHANCE := 0.3    # boss-rush chance to drop a relic per boss kill

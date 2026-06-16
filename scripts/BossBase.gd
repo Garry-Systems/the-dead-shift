@@ -166,22 +166,31 @@ func _die() -> void:
 
 func _reward() -> void:
 	RunStats.add_boss()
-	# Big XP burst — scattered around the boss, enough to pop a level-up.
+	# In Boss Rush bosses die constantly, so its rewards are toned down vs Endless.
+	var boss_rush: bool = RunConfig.mode == "boss_rush"
+	# XP burst — scattered around the boss, enough to pop a level-up (fewer in Boss Rush).
 	if xp_gem_scene != null:
-		for i in GameConfig.BOSS_XP_REWARD:
+		var gems := GameConfig.BOSS_XP_REWARD
+		if boss_rush:
+			gems = int(gems * GameConfig.BOSS_RUSH_REWARD_MULT)
+		for i in gems:
 			var gem = xp_gem_scene.instantiate()
 			get_tree().current_scene.add_child(gem)
 			var a := randf_range(0.0, TAU)
 			gem.global_position = global_position + Vector2(cos(a), sin(a)) * randf_range(8.0, 64.0)
-	# Full heal.
+	# Heal — full in Endless; only a small top-up in Boss Rush.
 	if _target and is_instance_valid(_target):
-		_target.full_heal()
-	# Relic drop: one relic neither owned nor banned this run.
-	var bar := get_tree().get_first_node_in_group("relic_bar")
-	if bar != null and relic_pickup_scene != null:
-		var id: String = bar.call("roll_drop")
-		if id != "":
-			var pickup = relic_pickup_scene.instantiate()
-			pickup.relic_id = id
-			get_tree().current_scene.add_child(pickup)
-			pickup.global_position = global_position
+		if boss_rush:
+			_target.heal(_target.max_hp() * GameConfig.BOSS_RUSH_HEAL_FRAC)
+		else:
+			_target.full_heal()
+	# Relic drop: always in Endless; only sometimes in Boss Rush so you aren't flooded.
+	if not boss_rush or randf() < GameConfig.BOSS_RUSH_RELIC_CHANCE:
+		var bar := get_tree().get_first_node_in_group("relic_bar")
+		if bar != null and relic_pickup_scene != null:
+			var id: String = bar.call("roll_drop")
+			if id != "":
+				var pickup = relic_pickup_scene.instantiate()
+				pickup.relic_id = id
+				get_tree().current_scene.add_child(pickup)
+				pickup.global_position = global_position

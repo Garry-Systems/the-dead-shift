@@ -15,7 +15,8 @@ const REEL_COUNT := 80
 const LAND_INDEX := 58      # winner slot — 21 decoy guns TRAIL it so the strip never runs out
 const FAST_SPEED := 2200.0   # px/sec linear phase (lowered to lengthen the spin ~2s)
 const SLOW_DIST := 2400.0    # begin ease-out this far from target — long, drawn-out decel
-const SLOWDOWN := 2.0        # mid ease-out lerp factor (x delta)
+const SLOWDOWN := 0.9        # mid ease-out lerp factor — kept under FAST_SPEED/SLOW_DIST so the
+                            # reel decelerates smoothly instead of speeding up at the ease-out
 const CRAWL_DIST := 340.0    # final crawl begins ~2.3 tiles out — the tease zone
 const CRAWL_SLOWDOWN := 0.82  # ultra-gentle final creep — slow-rolls past the flanking special
 const TICK_PX := 148.0      # one tile-width per tick
