@@ -1,0 +1,62 @@
+name: Android Build
+
+# Builds a debug APK in the cloud on every push to master (and on demand),
+# then publishes it to a rolling "android-latest" Release you can download on your phone.
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to publish the Release
+
+jobs:
+  android:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6.3   # standard Godot 4.6.3 + Android templates + SDK
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage Godot templates + editor config under $HOME
+        run: |
+          # GitHub container jobs set HOME=/github/home, but the image installs
+          # templates/config under /root — copy them so the headless export finds them.
+          mkdir -p ~/.local/share/godot ~/.config/godot
+          cp -r /root/.local/share/godot/* ~/.local/share/godot/ 2>/dev/null || true
+          cp -r /root/.config/godot/* ~/.config/godot/ 2>/dev/null || true
+          echo "--- export templates under HOME ---"
+          ls -la ~/.local/share/godot/export_templates/ 2>/dev/null || echo "(none)"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME" 2>/dev/null | head || echo "(ANDROID_HOME not set/empty)"
+
+      - name: Generate a debug keystore
+        run: |
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
+            -keypass android -keystore /tmp/debug.keystore -storepass android \
+            -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+
+      - name: Import resources
+        run: godot --headless --import 2>&1 | tail -8 || true
+
+      - name: Export Android debug APK
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /tmp/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          mkdir -p build
+          godot --headless --verbose --export-debug "Android" build/the-dead-shift.apk
+          echo "--- build output ---"
+          ls -la build/
+
+      - name: Publish rolling Release (android-latest)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          name: The Dead Shift — latest Android (debug)
+          body: "Auto-built debug APK. On your phone, download the .apk below and tap to install (allow installs from this source)."
+          prerelease: true
+          files: build/the-dead-shift.apk
