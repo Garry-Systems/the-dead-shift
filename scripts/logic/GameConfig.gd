@@ -155,3 +155,7 @@ const EXPLODER_BLAST_DAMAGE := 35.0   # flat damage on detonation
 const HIVE_SPAWN_INTERVAL := 4.0      # seconds between brood spawns
 const HIVE_SPAWN_COUNT := 2           # shamblers per spawn tick
 const HIVE_MAX_BROOD := 8             # lifetime cap on shamblers one hive can birth
+
+# --- Boss Rush mode (always-N bosses + trash) ---
+const BOSS_RUSH_BASE_COUNT := 3        # concurrent bosses kept on the map from the start
+const BOSS_RUSH_LEVELS_PER_BOSS := 5   # +1 concurrent boss every this many player levels

@@ -6,6 +6,7 @@ extends CanvasLayer
 
 var _overlay: Control
 var _pause_btn: Button
+var _relics_box: VBoxContainer
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -59,6 +60,16 @@ func _build_overlay() -> void:
 	vbox.add_child(title)
 	vbox.add_child(_spacer(6))
 
+	var relics_header := Label.new()
+	relics_header.text = "RELICS"
+	relics_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(relics_header, 22, PixelTheme.ACCENT)
+	vbox.add_child(relics_header)
+	_relics_box = VBoxContainer.new()
+	_relics_box.add_theme_constant_override("separation", 12)
+	vbox.add_child(_relics_box)
+	vbox.add_child(_spacer(6))
+
 	vbox.add_child(_menu_button("RESUME", _on_resume))
 	vbox.add_child(_menu_button("RESTART RUN", _on_restart))
 	vbox.add_child(_menu_button("BACK TO MENU", _on_back))
@@ -75,9 +86,61 @@ func _menu_button(text: String, cb: Callable) -> Button:
 	b.pressed.connect(cb)
 	return b
 
+## Rebuilds the held-relic list: each relic's name + what it does + a REMOVE button.
+## Refreshed every time the pause overlay opens (relics change during the run).
+func _populate_relics() -> void:
+	if _relics_box == null:
+		return
+	for c in _relics_box.get_children():
+		c.queue_free()
+	var bar := get_tree().get_first_node_in_group("relic_bar")
+	var ids: Array = bar.call("held_ids") if bar != null else []
+	if ids.is_empty():
+		var none := Label.new()
+		none.text = "No relics yet — beat a boss to earn one."
+		none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		none.custom_minimum_size = Vector2(440, 0)
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		PixelTheme.style_label(none, 16, PixelTheme.TEXT_DIM)
+		_relics_box.add_child(none)
+		return
+	for id in ids:
+		var r: Dictionary = Relics.get_relic(String(id))
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 2)
+		var nm := Label.new()
+		nm.text = String(r.get("name", id)).to_upper()
+		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelTheme.style_label(nm, 18, PixelTheme.ACCENT)
+		row.add_child(nm)
+		var desc := Label.new()
+		desc.text = String(r.get("desc", ""))
+		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		desc.custom_minimum_size = Vector2(440, 0)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		PixelTheme.style_label(desc, 14, PixelTheme.TEXT_DIM)
+		row.add_child(desc)
+		var rm := Button.new()
+		rm.text = "REMOVE"
+		PixelTheme.style_button(rm, Vector2(220, 52), 16)
+		rm.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		rm.add_theme_color_override("font_color", PixelTheme.DANGER)
+		var rid := String(id)
+		rm.pressed.connect(func(): _on_remove_relic(rid))
+		row.add_child(rm)
+		_relics_box.add_child(row)
+
+## Removes a held relic (the RelicBar reverses its stat effect), then refreshes the list.
+func _on_remove_relic(id: String) -> void:
+	var bar := get_tree().get_first_node_in_group("relic_bar")
+	if bar != null:
+		bar.call("remove_relic", id)
+	_populate_relics()
+
 func _on_pause_pressed() -> void:
 	if get_tree().paused:
 		return                       # another menu owns the pause; don't stack
+	_populate_relics()
 	get_tree().paused = true
 	_overlay.visible = true
 	_pause_btn.visible = false

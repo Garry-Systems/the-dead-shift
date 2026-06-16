@@ -1,8 +1,9 @@
 extends Node2D
 ## Spawns enemies/bosses. Behavior depends on `mode` (set by Main.gd from RunConfig):
 ##  - "endless": time-based difficulty waves + a boss every BOSS_WAVE_INTERVAL waves.
-##  - "boss_rush": no trash enemies; one boss at a time, back-to-back, each scaled by
-##    its boss number.
+##  - "boss_rush": the trash-enemy slate PLUS always-N bosses on the map at once
+##    (BOSS_RUSH_BASE_COUNT, +1 per BOSS_RUSH_LEVELS_PER_BOSS player levels), refilled as
+##    they die — so it gets more crowded with bosses the longer you survive.
 
 var mode := "endless"
 var boss_rush_count := 0      # bosses spawned so far in boss_rush (drives scaling + HUD)
@@ -20,7 +21,7 @@ func _process(delta: float) -> void:
 	if _player == null:
 		return
 	if mode == "boss_rush":
-		_process_boss_rush()
+		_process_boss_rush(delta)
 		return
 	_process_endless(delta)
 
@@ -47,12 +48,29 @@ func _check_boss() -> void:
 	_last_boss_wave = w
 	_spawn_boss(DifficultyManager.boss_stats())
 
-# --- Boss Rush ---
-func _process_boss_rush() -> void:
-	if _boss_alive():
+# --- Boss Rush: always-N bosses + the trash slate ---
+func _process_boss_rush(delta: float) -> void:
+	# Keep the map topped up to the target boss count (3, +1 every few player levels),
+	# refilling as bosses die.
+	var target := GameConfig.BOSS_RUSH_BASE_COUNT + _player_level() / GameConfig.BOSS_RUSH_LEVELS_PER_BOSS
+	var alive := get_tree().get_nodes_in_group("boss").size()
+	while alive < target:
+		boss_rush_count += 1
+		_spawn_boss(DifficultyCurve.boss_stats(boss_rush_count))
+		alive += 1
+	# Trash enemies too, on the normal time-scaled cadence.
+	if Enemies.all().is_empty():
 		return
-	boss_rush_count += 1
-	_spawn_boss(DifficultyCurve.boss_stats(boss_rush_count))
+	_timer += delta
+	if _timer >= DifficultyManager.spawn_interval():
+		_timer = 0.0
+		_spawn_enemy()
+
+## The player's current level (0 if unavailable) — drives the Boss Rush boss count.
+func _player_level() -> int:
+	if _player == null or not is_instance_valid(_player):
+		return 0
+	return int(_player.get("level"))
 
 # --- shared ---
 func _boss_alive() -> bool:
