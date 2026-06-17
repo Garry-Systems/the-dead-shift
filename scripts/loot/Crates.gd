@@ -7,13 +7,28 @@ static func all() -> Array:
 	return [
 		{
 			"id": "footlocker", "name": "Footlocker", "price": 150,
-			"rarity_floor": 1, "rarity_ceil": 4,
-			"desc": "Rusted to Lethal. Scrounged gear.",
+			"rarity_floor": 1, "rarity_ceil": 7,
+			"desc": "Any gun, any rarity — a real gamble.",
 		},
 		{
 			"id": "munitions_cache", "name": "Munitions Cache", "price": 600,
 			"rarity_floor": 4, "rarity_ceil": 7,
 			"desc": "Lethal and up — a real shot at Carnage.",
+		},
+		{
+			"id": "precision_pack", "name": "Buckshot & Bolts", "price": 500,
+			"rarity_floor": 1, "rarity_ceil": 7, "bases": ["sniper", "shotgun"],
+			"desc": "Snipers & shotguns. Any rarity up to Carnage.",
+		},
+		{
+			"id": "auto_case", "name": "Full Auto Case", "price": 500,
+			"rarity_floor": 1, "rarity_ceil": 7, "bases": ["smg", "ak47"],
+			"desc": "SMGs & AK-47s. Any rarity up to Carnage.",
+		},
+		{
+			"id": "standard_arms", "name": "Standard Arms", "price": 500,
+			"rarity_floor": 1, "rarity_ceil": 7, "bases": ["pistol", "rifle", "minigun"],
+			"desc": "Pistols, rifles & miniguns. Any rarity up to Carnage.",
 		},
 	]
 

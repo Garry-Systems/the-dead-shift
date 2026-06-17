@@ -62,7 +62,9 @@ static func _roll_talents(affix: Dictionary) -> Array:
 ## Roll using a crate def: resolve its rarity (explicit floor/ceil ladder), then roll.
 static func roll_from_crate(crate: Dictionary) -> Dictionary:
 	var rarity := Rarity.roll(int(crate.get("rarity_floor", 1)), int(crate.get("rarity_ceil", Rarity.MAX_ID)))
-	return roll(rarity, String(crate.get("force_base", "")))
+	var bases: Array = crate.get("bases", [])
+	var base_id: String = String(bases[randi() % bases.size()]) if not bases.is_empty() else String(crate.get("force_base", ""))
+	return roll(rarity, base_id)
 
 static func _uid() -> String:
 	# Unique enough for local single-player: time + counter-ish randomness.
