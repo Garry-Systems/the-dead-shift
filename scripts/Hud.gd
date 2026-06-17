@@ -21,34 +21,34 @@ func _ready() -> void:
 	_bar.offset_left = 12
 	_bar.offset_right = -12
 	_bar.offset_top = 10
-	_bar.offset_bottom = 52
+	_bar.offset_bottom = 58
 	add_child(_bar)
 
 	_label = Label.new()
 	_label.offset_left = 14
-	_label.offset_top = 58
+	_label.offset_top = 64
 	add_child(_label)
 
 	_hp_bar = ProgressBar.new()
 	_hp_bar.show_percentage = false
 	_hp_bar.max_value = 1.0
 	_hp_bar.offset_left = 14
-	_hp_bar.offset_right = 214
-	_hp_bar.offset_top = 84
-	_hp_bar.offset_bottom = 110
+	_hp_bar.offset_right = 330
+	_hp_bar.offset_top = 96
+	_hp_bar.offset_bottom = 128
 	add_child(_hp_bar)
 
 	_hp_label = Label.new()
 	_hp_label.offset_left = 18
-	_hp_label.offset_top = 84
+	_hp_label.offset_top = 100
 	add_child(_hp_label)
 
 	_wave_label = Label.new()
 	_wave_label.anchor_left = 1.0
 	_wave_label.anchor_right = 1.0
-	_wave_label.offset_left = -180
+	_wave_label.offset_left = -260
 	_wave_label.offset_right = -76
-	_wave_label.offset_top = 58
+	_wave_label.offset_top = 64
 	_wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(_wave_label)
 
@@ -70,7 +70,7 @@ func _ready() -> void:
 	_ammo_label.anchor_top = 1.0
 	_ammo_label.anchor_bottom = 1.0
 	_ammo_label.offset_left = 14
-	_ammo_label.offset_top = -80
+	_ammo_label.offset_top = -96
 	_ammo_label.offset_bottom = -16
 	add_child(_ammo_label)
 
@@ -80,8 +80,8 @@ func _ready() -> void:
 	_reload_bar.anchor_top = 1.0
 	_reload_bar.anchor_bottom = 1.0
 	_reload_bar.offset_left = 14
-	_reload_bar.offset_right = 380
-	_reload_bar.offset_top = -120
+	_reload_bar.offset_right = 440
+	_reload_bar.offset_top = -130
 	_reload_bar.offset_bottom = -88
 	_reload_bar.visible = false
 	add_child(_reload_bar)
@@ -90,10 +90,10 @@ func _ready() -> void:
 
 ## Applies the shared PixelTheme look to every HUD label and bar.
 func _apply_pixel_style() -> void:
-	_label_px(_label, 18, PixelTheme.TEXT)
-	_label_px(_hp_label, 13, PixelTheme.TEXT)
-	_label_px(_wave_label, 16, PixelTheme.TEXT)
-	_label_px(_ammo_label, 40, PixelTheme.ACCENT)
+	_label_px(_label, 26, PixelTheme.TEXT)
+	_label_px(_hp_label, 22, PixelTheme.TEXT)
+	_label_px(_wave_label, 24, PixelTheme.TEXT)
+	_label_px(_ammo_label, 48, PixelTheme.ACCENT)
 	_style_bar(_bar, PixelTheme.SELECT)        # XP — C4 lavender (full-width strip up top)
 	_style_bar(_hp_bar, PixelTheme.ACCENT)     # health — C4 lavender (player/action color)
 	_style_bar(_boss_bar, PixelTheme.DANGER)   # boss — C3 gray-tan (the enemy/threat color)

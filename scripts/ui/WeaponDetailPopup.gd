@@ -61,7 +61,7 @@ func _rebuild() -> void:
 	var sub := Label.new()
 	sub.text = "%s  ·  Level %d" % [WeaponInstance.rarity_name(_inst), int(_inst.get("level", 1))]
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(sub, 18, PixelTheme.TEXT_DIM)
+	PixelTheme.readable_label(sub, 18, PixelTheme.TEXT_DIM)
 	_card_vbox.add_child(sub)
 
 	# XP bar.
@@ -124,7 +124,7 @@ func _build_xp_row() -> Control:
 	var lbl := Label.new()
 	lbl.text = "%d / %d XP" % [int(prog.xp), int(prog.needed)]
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(lbl, 16, PixelTheme.TEXT_DIM)
+	PixelTheme.readable_label(lbl, 16, PixelTheme.TEXT_DIM)
 	box.add_child(lbl)
 	return box
 
@@ -140,18 +140,18 @@ func _build_stats_section(parent: VBoxContainer) -> void:
 		var name_l := Label.new()
 		name_l.text = String(row.label)
 		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		PixelTheme.style_label(name_l, 18, PixelTheme.TEXT_DIM)
+		PixelTheme.readable_label(name_l, 18, PixelTheme.TEXT_DIM)
 		line.add_child(name_l)
 		var val_l := Label.new()
 		val_l.text = String(row.value)
 		val_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		PixelTheme.style_label(val_l, 18, PixelTheme.TEXT)
+		PixelTheme.readable_label(val_l, 18, PixelTheme.TEXT)
 		line.add_child(val_l)
 		if String(row.bonus) != "":
 			var bonus_l := Label.new()
 			bonus_l.text = String(row.bonus)
 			bonus_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-			PixelTheme.style_label(bonus_l, 16, PixelTheme.SELECT)
+			PixelTheme.readable_label(bonus_l, 16, PixelTheme.SELECT)
 			line.add_child(bonus_l)
 		block.add_child(line)
 		if row.has("roll"):
@@ -176,13 +176,13 @@ func _build_talents_section(parent: VBoxContainer) -> void:
 		var suffix: String = ("  (LOCKED — LV%d)" % int(t.unlock_level)) if locked else ""
 		nm.text = String(t.name).to_upper() + suffix
 		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		PixelTheme.style_label(nm, 18, PixelTheme.TEXT_DIM if locked else PixelTheme.ACCENT)
+		PixelTheme.readable_label(nm, 18, PixelTheme.TEXT_DIM if locked else PixelTheme.ACCENT)
 		head.add_child(nm)
 		var q: float = float(t.get("quality", 0.0))
 		var ql := Label.new()
 		ql.text = "%s %d%%" % [String(t.get("quality_label", "")), int(round(q * 100.0))]
 		ql.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		PixelTheme.style_label(ql, 14, PixelTheme.TEXT_DIM if locked else (PixelTheme.ACCENT if q >= 0.75 else PixelTheme.SELECT))
+		PixelTheme.readable_label(ql, 14, PixelTheme.TEXT_DIM if locked else (PixelTheme.ACCENT if q >= 0.75 else PixelTheme.SELECT))
 		head.add_child(ql)
 		row.add_child(head)
 		var qbar := _mini_bar(q)
@@ -192,14 +192,14 @@ func _build_talents_section(parent: VBoxContainer) -> void:
 		eff.text = String(t.effect)
 		eff.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		eff.custom_minimum_size = Vector2(maxf(200.0, _card_w - 80.0), 0)
-		PixelTheme.style_label(eff, 16, PixelTheme.TEXT_DIM)
+		PixelTheme.readable_label(eff, 16, PixelTheme.TEXT_DIM)
 		row.add_child(eff)
 		parent.add_child(row)
 
 func _section_header(text: String) -> Label:
 	var l := Label.new()
 	l.text = text
-	PixelTheme.style_label(l, 18, PixelTheme.SELECT)
+	PixelTheme.readable_label(l, 18, PixelTheme.SELECT)
 	return l
 
 ## A thin horizontal divider line (separates the STATS and TALENTS sections).
@@ -217,7 +217,7 @@ func _mini_bar(frac: float) -> ProgressBar:
 	bar.max_value = 1.0
 	bar.value = clampf(frac, 0.0, 1.0)
 	bar.show_percentage = false
-	bar.custom_minimum_size = Vector2(120, 12)
+	bar.custom_minimum_size = Vector2(90, 8)
 	var bg := StyleBoxFlat.new()
 	bg.bg_color = PixelTheme.DARK
 	bg.border_color = PixelTheme.ACCENT_DIM
@@ -240,7 +240,7 @@ func _stat_quality_line(row: Dictionary) -> HBoxContainer:
 	if bool(row.get("fixed", false)):
 		var maxed := Label.new()
 		maxed.text = "MAX"
-		PixelTheme.style_label(maxed, 14, PixelTheme.SELECT)
+		PixelTheme.readable_label(maxed, 14, PixelTheme.SELECT)
 		hb.add_child(maxed)
 		var fbar := _mini_bar(1.0)
 		fbar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -249,18 +249,18 @@ func _stat_quality_line(row: Dictionary) -> HBoxContainer:
 	var q := float(row.roll)
 	var lo := Label.new()
 	lo.text = String(row.lo)
-	PixelTheme.style_label(lo, 14, PixelTheme.TEXT_DIM)
+	PixelTheme.readable_label(lo, 14, PixelTheme.TEXT_DIM)
 	hb.add_child(lo)
 	var bar := _mini_bar(q)
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(bar)
 	var hi := Label.new()
 	hi.text = String(row.hi)
-	PixelTheme.style_label(hi, 14, PixelTheme.TEXT_DIM)
+	PixelTheme.readable_label(hi, 14, PixelTheme.TEXT_DIM)
 	hb.add_child(hi)
 	var flag := Label.new()
 	flag.text = ("★ " + WeaponInstance.quality_label(q)) if q >= 0.95 else WeaponInstance.quality_label(q)
-	PixelTheme.style_label(flag, 14, PixelTheme.ACCENT if q >= 0.75 else PixelTheme.TEXT_DIM)
+	PixelTheme.readable_label(flag, 14, PixelTheme.ACCENT if q >= 0.75 else PixelTheme.TEXT_DIM)
 	hb.add_child(flag)
 	return hb
 
@@ -306,7 +306,7 @@ func _show_scrap_confirm() -> void:
 	var q := Label.new()
 	q.text = "Scrap for %d-%d coins?" % [int(band[0]), int(band[1])]
 	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(q, 18, PixelTheme.DANGER)
+	PixelTheme.readable_label(q, 18, PixelTheme.DANGER)
 	_confirm_row.add_child(q)
 	var hb := HBoxContainer.new()
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER

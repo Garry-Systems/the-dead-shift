@@ -88,6 +88,13 @@ static func style_label(l: Label, size: int = 22, col: Color = TEXT) -> void:
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", col)
 
+## Readable body label using Godot's built-in anti-aliased font (NOT the blocky pixel font) —
+## for dense info panels like the weapon-detail popup. No font override = engine default; we
+## only set size + color, so stat/talent text stays crisp and legible.
+static func readable_label(l: Label, size: int = 18, col: Color = TEXT) -> void:
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+
 ## Turns a PanelContainer into the translucent dark "card" the menu content sits on.
 static func style_card(p: PanelContainer) -> void:
 	var sb := StyleBoxFlat.new()
