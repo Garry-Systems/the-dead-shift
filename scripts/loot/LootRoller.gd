@@ -59,12 +59,23 @@ static func _roll_talents(affix: Dictionary) -> Array:
 		})
 	return out
 
-## Roll using a crate def: resolve its rarity (explicit floor/ceil ladder), then roll.
+## Roll using a crate def: resolve its rarity (special flag or the floor/ceil ladder), then
+## roll an instance of a base from the crate's pool (empty pool = any gun).
 static func roll_from_crate(crate: Dictionary) -> Dictionary:
-	var rarity := Rarity.roll(int(crate.get("rarity_floor", 1)), int(crate.get("rarity_ceil", Rarity.MAX_ID)))
+	var rarity := _crate_rarity(crate)
 	var bases: Array = crate.get("bases", [])
 	var base_id: String = String(bases[randi() % bases.size()]) if not bases.is_empty() else String(crate.get("force_base", ""))
 	return roll(rarity, base_id)
+
+## Resolve the rarity a crate rolls. Default = the factorial ladder bounded by floor/ceil.
+## A `special` flag overrides: "5050" is a flat coin-flip between the crate's ceil and floor
+## (Savage/Rusted on the 50/50 Crate) — a faithful port of TTT's "50/50 Collection".
+static func _crate_rarity(crate: Dictionary) -> int:
+	match String(crate.get("special", "")):
+		"5050":
+			return int(crate.get("rarity_ceil", 5)) if randf() < 0.5 else int(crate.get("rarity_floor", 1))
+		_:
+			return Rarity.roll(int(crate.get("rarity_floor", 1)), int(crate.get("rarity_ceil", Rarity.MAX_ID)))
 
 static func _uid() -> String:
 	# Unique enough for local single-player: time + counter-ish randomness.
