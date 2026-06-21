@@ -34,5 +34,7 @@ func _process(delta: float) -> void:
 			queue_free()
 
 func _draw() -> void:
-	# C3 (threat) hazard dot. Distinct from the player's C4 bullets.
-	draw_circle(Vector2.ZERO, 8.0, Color(0.549, 0.522, 0.451, 1.0))
+	# Red threat dot (Larry 2026-06-21) — enemy/boss projectiles read as danger, distinct
+	# from the player's pale C4 bullets. A darker red rim gives it a touch of pop on dark ground.
+	draw_circle(Vector2.ZERO, 9.0, Color(0.45, 0.0, 0.0, 1.0))
+	draw_circle(Vector2.ZERO, 8.0, Color(1.0, 0.18, 0.18, 1.0))

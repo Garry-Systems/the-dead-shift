@@ -7,8 +7,8 @@ extends Button
 
 signal tile_pressed(inst: Dictionary)
 
-const TILE_SIZE := Vector2(210, 210)
-const ICON_SIZE := Vector2(130, 130)
+const TILE_SIZE := Vector2(273, 273)
+const ICON_SIZE := Vector2(169, 169)
 
 var _inst: Dictionary
 
@@ -42,14 +42,14 @@ func setup(inst: Dictionary, is_equipped: bool) -> void:
 	name_lbl.text = String(WeaponInstance.base_def(inst).get("name", "?"))
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	PixelTheme.style_label(name_lbl, 15, PixelTheme.TEXT)
+	PixelTheme.style_label(name_lbl, 20, PixelTheme.TEXT)
 	box.add_child(name_lbl)
 
 	var rarity_lbl := Label.new()
 	rarity_lbl.text = WeaponInstance.rarity_name(inst)
 	rarity_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rarity_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	PixelTheme.style_label(rarity_lbl, 11, WeaponInstance.color(inst))
+	PixelTheme.style_label(rarity_lbl, 14, WeaponInstance.color(inst))
 	box.add_child(rarity_lbl)
 
 	if is_equipped:

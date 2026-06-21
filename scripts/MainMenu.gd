@@ -21,6 +21,9 @@ var _last_unbox_color: Color = PixelTheme.TEXT
 var _char_vbox: VBoxContainer    # character panel content (rebuilt by _populate_characters)
 var _crate_opener: CrateOpener   # reused full-screen reel, opened from a crate tile
 
+## A crate win at this rarity or better (Merciless/orange and up) rains confetti on reveal.
+const CONFETTI_MIN_RARITY := 6
+
 func _ready() -> void:
 	Inventory.grant_starter()  # first-launch seed so the inventory is never empty
 	SaveManager.grant_dev_bonus(10000)  # DEV (for now): one-time 10k coins to test the economy
@@ -67,7 +70,7 @@ func _card_vbox(parent: Control, separation: int = 18) -> VBoxContainer:
 	card.add_child(vbox)
 	return vbox
 
-func _make_title(parent: VBoxContainer, text: String, size: int = 44) -> void:
+func _make_title(parent: VBoxContainer, text: String, size: int = 57) -> void:
 	var title := Label.new()
 	title.text = text
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -94,18 +97,18 @@ func _show_only(panel: Control) -> void:
 func _build_hub() -> void:
 	_hub = _make_panel()
 	var vbox := _card_vbox(_hub, 20)
-	_make_title(vbox, "THE DEAD\nSHIFT", 60)
+	_make_title(vbox, "THE DEAD\nSHIFT", 78)
 	var tagline := Label.new()
 	tagline.text = "Your shift just got a lot longer."
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tagline.custom_minimum_size = Vector2(620, 0)
+	tagline.custom_minimum_size = Vector2(800, 0)
 	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	PixelTheme.style_label(tagline, 24, PixelTheme.TEXT_DIM)
+	PixelTheme.style_label(tagline, 31, PixelTheme.TEXT_DIM)
 	vbox.add_child(tagline)
 	_hub_coins = Label.new()
 	_hub_coins.text = "COINS: %d" % SaveManager.coins()
 	_hub_coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(_hub_coins, 30, PixelTheme.ACCENT)
+	PixelTheme.style_label(_hub_coins, 39, PixelTheme.ACCENT)
 	vbox.add_child(_hub_coins)
 	vbox.add_child(_spacer(8))
 	vbox.add_child(_make_button("PLAY", _on_play))
@@ -330,9 +333,20 @@ func _on_tile_pressed(inst: Dictionary) -> void:
 func _on_crate_tile_pressed(crate_id: String) -> void:
 	_crate_opener.open(crate_id)
 
-## The reel landed on a weapon → show the SAME full inspect popup as tapping a gun in the grid.
+## The reel landed on a weapon → show the SAME full inspect popup as tapping a gun in the grid,
+## and rain confetti over the reveal for a rare (orange+) win.
 func _on_crate_weapon_revealed(inst: Dictionary) -> void:
 	_detail_popup.open(inst, String(inst.get("uid", "")) == Inventory.equipped_uid())
+	if int(inst.get("rarity", 1)) >= CONFETTI_MIN_RARITY:
+		_celebrate(WeaponInstance.color(inst))
+
+## Confetti pop over the inventory panel, tinted toward the won weapon's rarity color.
+func _celebrate(rarity_color: Color) -> void:
+	var c := Confetti.new()
+	_inv_panel.add_child(c)
+	var vp := get_viewport_rect().size
+	c.position = Vector2(vp.x * 0.5, vp.y * 0.42)
+	c.burst(130, [rarity_color])
 
 ## Scrap confirmed in the popup → deconstruct for coins and refresh the grid.
 func _on_scrap(inst: Dictionary) -> void:

@@ -58,7 +58,7 @@ static func _box(bg: Color, border: Color, bw: int = 3) -> StyleBoxFlat:
 	return sb
 
 ## Big, touch-friendly pixel button with hover/press states.
-static func style_button(b: Button, min_size: Vector2 = Vector2(620, 104), font_size: int = 30) -> void:
+static func style_button(b: Button, min_size: Vector2 = Vector2(806, 135), font_size: int = 39) -> void:
 	b.custom_minimum_size = min_size
 	b.add_theme_font_override("font", body_font())
 	b.add_theme_font_size_override("font_size", font_size)

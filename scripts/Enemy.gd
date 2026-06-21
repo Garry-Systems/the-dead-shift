@@ -29,6 +29,7 @@ var _vuln_time := 0.0
 var _frozen := false           # Cold Snap: fully stopped while true
 var _freeze_time := 0.0
 var _knockback := Vector2.ZERO # decaying impulse (Concussive talent)
+var _contact_cd := 0.0         # bite cooldown: counts down between contact hits so we bounce, not stick
 var _flash_mat: ShaderMaterial
 var _health_bar: EnemyHealthBar
 
@@ -164,11 +165,21 @@ func _physics_process(delta: float) -> void:
 	if not _frozen:
 		_act(delta)
 
-	# Deal damage-per-second whenever we're actually colliding with the player. A fixed
-	# distance check failed here: move_and_slide de-penetrates us to the sum of the
-	# collider radii (24+20=44), which sat just outside the old 40px threshold.
-	if _touching_player():
-		_target.take_damage(touch_damage * delta)
+	# Bite-and-bounce (Larry 2026-06-21): on contact deal ONE discrete hit, then shove
+	# ourselves away from the player so we don't clamp on and grind them down. The existing
+	# knockback channel carries the bounce out; the chase brings us back for the next bite.
+	# A short cooldown stops one touch from registering multiple hits across frames.
+	# (Contact uses the slide collision, not a distance check: move_and_slide de-penetrates
+	# us to the sum of the collider radii — 24+20=44 — just outside any small threshold.)
+	if _contact_cd > 0.0:
+		_contact_cd -= delta
+	if _contact_cd <= 0.0 and _touching_player():
+		_target.take_damage(touch_damage)
+		var away := _target.global_position.direction_to(global_position)
+		if away == Vector2.ZERO:
+			away = Vector2.RIGHT
+		apply_knockback(away * GameConfig.ENEMY_BOUNCE_SPEED)
+		_contact_cd = GameConfig.ENEMY_CONTACT_HIT_CD
 
 ## Base movement intent (before slow/knockback). Override per enemy. Default = chase the player.
 func _desired_velocity() -> Vector2:

@@ -36,7 +36,9 @@ const TALENT_VULN_MAX := 1.0          # Marked: cap the bonus-damage-taken fract
 # --- Enemy ---
 const ENEMY_MOVE_SPEED := 70.0       # px/sec
 const ENEMY_MAX_HEALTH := 50.0
-const ENEMY_TOUCH_DAMAGE := 10.0     # damage per second while touching the player
+const ENEMY_TOUCH_DAMAGE := 10.0     # damage per BITE on contact (discrete hit-and-bounce, not per-second)
+const ENEMY_CONTACT_HIT_CD := 0.6    # seconds an enemy must wait between contact bites (can't multi-hit on one touch)
+const ENEMY_BOUNCE_SPEED := 700.0    # px/sec shove away from the player on each bite (decays via Enemy.KNOCKBACK_DECAY)
 
 # --- Spawner ---
 const SPAWN_INTERVAL := 1.0           # seconds between spawns

@@ -5,8 +5,8 @@ extends Button
 
 signal crate_pressed(crate_id: String)
 
-const TILE_SIZE := Vector2(210, 210)
-const ICON_SIZE := Vector2(130, 130)
+const TILE_SIZE := Vector2(273, 273)
+const ICON_SIZE := Vector2(169, 169)
 
 var _crate_id := ""
 
@@ -39,7 +39,7 @@ func setup(crate: Dictionary, count: int) -> void:
 	name_lbl.text = String(crate.get("name", "Crate"))
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	PixelTheme.style_label(name_lbl, 13, PixelTheme.TEXT)
+	PixelTheme.style_label(name_lbl, 17, PixelTheme.TEXT)
 	box.add_child(name_lbl)
 
 	if count > 1:
