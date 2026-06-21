@@ -12,37 +12,42 @@ static func all() -> Array:
 		},
 		{
 			"id": "footlocker", "name": "Footlocker", "price": 150,
-			"rarity_floor": 1, "rarity_ceil": 7,
+			"rarity_floor": 1, "rarity_ceil": 8,
 			"desc": "Any gun, any rarity — a real gamble.",
 		},
 		{
 			"id": "munitions_cache", "name": "Munitions Cache", "price": 600,
-			"rarity_floor": 4, "rarity_ceil": 7,
+			"rarity_floor": 4, "rarity_ceil": 8,
 			"desc": "Lethal and up — a real shot at Carnage.",
 		},
 		{
 			"id": "titan_crate", "name": "Titan Crate", "price": 2500,
-			"rarity_floor": 5, "rarity_ceil": 7,
+			"rarity_floor": 5, "rarity_ceil": 8,
 			"desc": "Savage and up. Real odds at Merciless, a shot at Carnage.",
 		},
 		{
 			"id": "apex_crate", "name": "Apex Crate", "price": 9000,
-			"rarity_floor": 6, "rarity_ceil": 7,
+			"rarity_floor": 6, "rarity_ceil": 8,
 			"desc": "Merciless guaranteed. The best shot at Carnage there is.",
 		},
 		{
+			"id": "apocalypse_crate", "name": "Apocalypse Crate", "price": 30000,
+			"rarity_floor": 7, "rarity_ceil": 8,
+			"desc": "Carnage guaranteed. The only real shot at an Apocalypse weapon.",
+		},
+		{
 			"id": "precision_pack", "name": "Buckshot & Bolts", "price": 500,
-			"rarity_floor": 1, "rarity_ceil": 7, "bases": ["sniper", "shotgun"],
+			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["sniper", "shotgun"],
 			"desc": "Snipers & shotguns. Any rarity up to Carnage.",
 		},
 		{
 			"id": "auto_case", "name": "Full Auto Case", "price": 500,
-			"rarity_floor": 1, "rarity_ceil": 7, "bases": ["smg", "ak47"],
+			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["smg", "ak47"],
 			"desc": "SMGs & AK-47s. Any rarity up to Carnage.",
 		},
 		{
 			"id": "standard_arms", "name": "Standard Arms", "price": 500,
-			"rarity_floor": 1, "rarity_ceil": 7, "bases": ["pistol", "rifle", "minigun"],
+			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["pistol", "rifle", "minigun"],
 			"desc": "Pistols, rifles & miniguns. Any rarity up to Carnage.",
 		},
 		{
