@@ -110,6 +110,7 @@ const CHAR_ALSTAR_SHOCK_DAMAGE := 50.0      # flat damage to every enemy caught 
 const CHAR_ALSTAR_SHOCK_FORCE := 1200.0     # px/sec knockback impulse away from him (decays via Enemy.KNOCKBACK_DECAY)
 # Ryan Ace: his dash purges every enemy projectile + instant-reloads an equipped AK.
 const CHAR_RYAN_PURGE_FX_RADIUS := 520.0    # px radius of the (cosmetic) purge pulse ring
+const CHAR_RYAN_ABILITY_COOLDOWN := 15.0    # seconds between purges (the dash itself stays on DASH_COOLDOWN)
 
 # --- Reload (Spec 2) ---
 const RELOAD_TIME_FLOOR := 0.15             # seconds; minimum effective reload after speed bonuses

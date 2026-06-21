@@ -54,6 +54,7 @@ var _sprite: Sprite2D
 var _facing := 2          # index into DIR_TEX; 2 = south (faces the camera at start)
 var _fire_lock_time := 0.0   # boss "jam" debuff: gun can't fire while > 0
 var _dash_ability := ""      # special dash effect for the chosen character ("" = plain dash); set by Main
+var _ability_cd := 0.0       # Ryan's purge cooldown remaining (seconds); the dash movement is unaffected
 var _ext_slow_factor := 1.0  # boss "slow" debuff: move-speed multiplier (1.0 = none)
 var _ext_slow_time := 0.0
 
@@ -78,6 +79,8 @@ func _physics_process(delta: float) -> void:
 	_dash.tick(delta)
 	if _flash_cd > 0.0:
 		_flash_cd -= delta
+	if _ability_cd > 0.0:
+		_ability_cd -= delta
 	if _fire_lock_time > 0.0:
 		_fire_lock_time -= delta
 	if _ext_slow_time > 0.0:
@@ -180,18 +183,33 @@ func _spawn_shockwave() -> void:
 	sw.blast(GameConfig.CHAR_ALSTAR_SHOCK_RADIUS, GameConfig.CHAR_ALSTAR_SHOCK_DAMAGE,
 		GameConfig.CHAR_ALSTAR_SHOCK_FORCE, gun, self)
 
-## Ryan Ace: wipe every enemy projectile off the map, instant-reload an equipped AK, and pop a
-## cosmetic pulse ring so the clear reads as a deliberate ability.
+## Ryan Ace: wipe every enemy projectile off the map, instant-reload an equipped AK, and fire
+## a white screen flash + pulse ring. On its own cooldown — the dash (movement) still happens
+## while it's recharging, it just doesn't purge.
 func _purge_projectiles() -> void:
+	if _ability_cd > 0.0:
+		return
+	_ability_cd = GameConfig.CHAR_RYAN_ABILITY_COOLDOWN
 	for p in get_tree().get_nodes_in_group("enemy_projectiles"):
 		if is_instance_valid(p):
 			p.queue_free()
 	if gun != null and gun.weapon_id == "ak47":
 		gun.instant_reload()
+	get_tree().current_scene.add_child(ScreenFlash.new())   # full-screen white flash
 	var fx := Shockwave.new()
 	get_tree().current_scene.add_child(fx)
 	fx.global_position = global_position
 	fx.flash(GameConfig.CHAR_RYAN_PURGE_FX_RADIUS)
+
+## --- Dash-ability readouts for the HUD ---
+
+## True if this run's character has the purge dash ability (gates the HUD cooldown readout).
+func has_purge_ability() -> bool:
+	return _dash_ability == "purge"
+
+## Seconds left on the purge cooldown (0 = ready).
+func ability_cooldown_remaining() -> float:
+	return maxf(_ability_cd, 0.0)
 
 ## Called by enemies while they touch the player.
 func take_damage(amount: float) -> void:
