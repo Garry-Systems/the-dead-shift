@@ -153,3 +153,15 @@ func grant_starter() -> void:
 		SaveManager.add_coins(150 - coins())
 	SaveManager.save_game()
 	inventory_changed.emit()
+
+## DEV (temporary): append one weapon of every rarity tier (1..MAX, random base each) so all
+## tiers can be inspected/felt at once. Repeatable. Reuses add() (cap-aware, auto-equips the
+## first if nothing equipped, saves, emits). Returns the number actually added.
+## REMOVE before release — paired with SaveManager.grant_dev_bonus (the 10k-coin grant).
+func grant_all_rarities() -> int:
+	var added := 0
+	for tier in range(1, Rarity.MAX_ID + 1):
+		if not add(LootRoller.roll(tier, "")):
+			break   # inventory full
+		added += 1
+	return added
