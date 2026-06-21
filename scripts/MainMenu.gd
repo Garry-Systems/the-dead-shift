@@ -430,6 +430,14 @@ func _populate_store() -> void:
 		cb.pressed.connect(_on_buy_crate.bind(String(crate["id"])))
 		list.add_child(cb)
 
+	# DEV (temporary): instantly stock one weapon of every rarity for inspect/feel testing.
+	# REMOVE before release (with the 10k-coin grant_dev_bonus in _ready).
+	var dev := Button.new()
+	dev.text = "DEV: GRANT ALL RARITIES"
+	PixelTheme.style_button(dev, Vector2(660, 88), 20)
+	dev.pressed.connect(_on_dev_grant_all)
+	list.add_child(dev)
+
 	_store_result = Label.new()
 	_store_result.text = _last_unbox
 	_store_result.custom_minimum_size = Vector2(660, 0)
@@ -458,6 +466,12 @@ func _on_buy_crate(crate_id: String) -> void:
 	else:
 		_last_unbox = "Not enough coins."
 		_last_unbox_color = PixelTheme.TEXT_DIM
+	_populate_store()
+
+func _on_dev_grant_all() -> void:
+	var n := Inventory.grant_all_rarities()
+	_last_unbox = "DEV: granted %d weapons (one of each rarity)." % n
+	_last_unbox_color = PixelTheme.SELECT
 	_populate_store()
 
 func _on_inv_back() -> void:
