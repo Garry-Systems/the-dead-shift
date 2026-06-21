@@ -11,6 +11,7 @@ func _ready() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Player
 	if player != null:
 		Characters.apply_base(player, RunConfig.character_id)
+		player.set_dash_ability(Characters.dash_ability(RunConfig.character_id))
 		_equip_loadout(player)
 
 	var spawner := get_tree().get_first_node_in_group("spawner")

@@ -53,6 +53,7 @@ var _flash_cd := 0.0
 var _sprite: Sprite2D
 var _facing := 2          # index into DIR_TEX; 2 = south (faces the camera at start)
 var _fire_lock_time := 0.0   # boss "jam" debuff: gun can't fire while > 0
+var _dash_ability := ""      # special dash effect for the chosen character ("" = plain dash); set by Main
 var _ext_slow_factor := 1.0  # boss "slow" debuff: move-speed multiplier (1.0 = none)
 var _ext_slow_time := 0.0
 
@@ -152,10 +153,25 @@ func _unhandled_input(event: InputEvent) -> void:
 	_last_input_time = now
 
 	if now - _last_tap_time <= GameConfig.DASH_DOUBLE_TAP_WINDOW:
-		_dash.start_dash()
+		if _dash.start_dash():
+			_on_dash_started()
 		_last_tap_time = -999.0  # consume, so a 3rd tap doesn't chain
 	else:
 		_last_tap_time = now
+
+## Set by Main at run start from the chosen character. "shockwave" = Alstar's dash blast.
+func set_dash_ability(ability: String) -> void:
+	_dash_ability = ability
+
+## Runs the moment a dash actually begins (gated by the dash cooldown). Plain characters do
+## nothing extra; Alstar drops a Shockwave at the dash's origin (push + damage + gun talents).
+func _on_dash_started() -> void:
+	if _dash_ability == "shockwave":
+		var sw := Shockwave.new()
+		get_tree().current_scene.add_child(sw)
+		sw.global_position = global_position
+		sw.blast(GameConfig.CHAR_ALSTAR_SHOCK_RADIUS, GameConfig.CHAR_ALSTAR_SHOCK_DAMAGE,
+			GameConfig.CHAR_ALSTAR_SHOCK_FORCE, gun, self)
 
 ## Called by enemies while they touch the player.
 func take_damage(amount: float) -> void:

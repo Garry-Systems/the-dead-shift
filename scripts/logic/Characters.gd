@@ -17,6 +17,10 @@ static func all() -> Array:
 			"id": "bob", "name": "Zombie Bob", "price": 400,
 			"desc": "+25% XP pickup radius (magnet).",
 		},
+		{
+			"id": "alstar", "name": "Alstar Tuck", "price": 2400,
+			"desc": "Double-tap DASH unleashes a shockwave: knocks back & damages nearby enemies and hits them with your gun's talents. +30% fire rate with Savage (purple) guns or better.",
+		},
 	]
 
 static func get_character(id: String) -> Dictionary:
@@ -40,6 +44,8 @@ static func apply_base(player: Player, id: String) -> void:
 			player.upgrade_move_speed(GameConfig.CHAR_JIMBO_SPEED_PCT)
 		"bob":
 			player.upgrade_pickup_radius(GameConfig.CHAR_BOB_MAGNET_PCT)
+		"alstar":
+			pass   # no always-on stat — his kit is the shockwave dash + the purple-gun fire-rate perk
 
 ## Weapon-conditional perks — applied after the gun is configured (Main.gd), and only
 ## if the equipped weapon matches.
@@ -59,3 +65,16 @@ static func apply_weapon(player: Player, id: String) -> void:
 				player.gun.upgrade_reload_speed(GameConfig.CHAR_JIMBO_SNIPER_RELOAD_PCT)
 		"bob":
 			pass
+		"alstar":
+			# +fire rate whenever the equipped gun is purple (Savage) or better.
+			if player.gun.loot_rarity >= GameConfig.CHAR_ALSTAR_PURPLE_MIN_RARITY:
+				player.gun.upgrade_fire_rate(GameConfig.CHAR_ALSTAR_PURPLE_FIRE_PCT)
+
+## The special double-tap dash ability for a character, or "" for the plain dash. Read by
+## the Player at run start (via Main) to decide what a dash does beyond the movement.
+static func dash_ability(id: String) -> String:
+	match id:
+		"alstar":
+			return "shockwave"
+		_:
+			return ""

@@ -102,6 +102,12 @@ const CHAR_JIMBO_SPEED_PCT := 0.50       # Jimbo: +move speed always
 const CHAR_JIMBO_SNIPER_DMG_PCT := 0.25  # Jimbo: +damage when wielding a sniper
 const CHAR_JIMBO_SNIPER_FIRE_PCT := 0.15 # Jimbo: +fire rate when wielding a sniper
 const CHAR_BOB_MAGNET_PCT := 0.25        # Bob: +pickup radius always
+# Alstar Tuck: a shockwave on his dash + a fire-rate buff on high-rarity guns.
+const CHAR_ALSTAR_PURPLE_FIRE_PCT := 0.30   # Alstar: +fire rate when the equipped gun is purple+
+const CHAR_ALSTAR_PURPLE_MIN_RARITY := 5    # "purple or above" = Savage (rarity 5) and up
+const CHAR_ALSTAR_SHOCK_RADIUS := 320.0     # px reach of his dash shockwave (push + damage + talents)
+const CHAR_ALSTAR_SHOCK_DAMAGE := 50.0      # flat damage to every enemy caught in the blast
+const CHAR_ALSTAR_SHOCK_FORCE := 1200.0     # px/sec knockback impulse away from him (decays via Enemy.KNOCKBACK_DECAY)
 
 # --- Reload (Spec 2) ---
 const RELOAD_TIME_FLOOR := 0.15             # seconds; minimum effective reload after speed bonuses
