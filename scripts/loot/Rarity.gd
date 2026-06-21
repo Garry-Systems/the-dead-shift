@@ -13,9 +13,10 @@ const TIERS := [
 	{ "id": 5, "name": "Savage",    "weight": 5,   "scrap": [300, 600],    "color": Color("a64bff") },
 	{ "id": 6, "name": "Merciless", "weight": 6,   "scrap": [800, 1500],   "color": Color("ff7a18") },
 	{ "id": 7, "name": "Carnage",   "weight": 7,   "scrap": [2000, 4000],  "color": Color("ff2d2d") },
+	{ "id": 8, "name": "Apocalypse","weight": 8,   "scrap": [5000, 10000], "color": Color("00ffff") },
 ]
 
-const MAX_ID := 7
+const MAX_ID := 8
 
 ## Returns the tier dict for a rarity id (clamped to valid range).
 static func tier(id: int) -> Dictionary:
