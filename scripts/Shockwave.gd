@@ -5,7 +5,8 @@ extends Node2D
 ## the SAME TalentEngine path bullets use — ignite/freeze/poison/slow/chain/vulnerable/etc.).
 ## Then it draws an expanding C4-lavender ring + flash and frees itself. Spawned by the Player
 ## on dash when the character has the "shockwave" dash ability. Self-contained: blast() does
-## the gameplay, _process/_draw do the visual.
+## the gameplay, _process/_draw do the visual. flash() is a visual-only variant (no damage or
+## knockback) used for Ryan Ace's projectile-purge pulse.
 
 const RING_TIME := 0.35                       # seconds the visual ring expands + fades
 const RING_COLOR := Color(0.878, 0.898, 1.0)  # C4 lavender (the player's color)
@@ -47,6 +48,13 @@ func blast(radius: float, damage: float, force: float, gun, player) -> void:
 				"dir": dir,
 				"tree": tree,
 			})
+	queue_redraw()
+
+## Visual-only burst (no damage / no knockback) — the expanding ring + flash on its own.
+## Used for Ryan Ace's projectile-purge feedback. Caller sets position + adds to the tree first.
+func flash(radius: float) -> void:
+	_radius = radius
+	z_index = 50
 	queue_redraw()
 
 func _process(delta: float) -> void:

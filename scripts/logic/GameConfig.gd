@@ -108,6 +108,8 @@ const CHAR_ALSTAR_PURPLE_MIN_RARITY := 5    # "purple or above" = Savage (rarity
 const CHAR_ALSTAR_SHOCK_RADIUS := 320.0     # px reach of his dash shockwave (push + damage + talents)
 const CHAR_ALSTAR_SHOCK_DAMAGE := 50.0      # flat damage to every enemy caught in the blast
 const CHAR_ALSTAR_SHOCK_FORCE := 1200.0     # px/sec knockback impulse away from him (decays via Enemy.KNOCKBACK_DECAY)
+# Ryan Ace: his dash purges every enemy projectile + instant-reloads an equipped AK.
+const CHAR_RYAN_PURGE_FX_RADIUS := 520.0    # px radius of the (cosmetic) purge pulse ring
 
 # --- Reload (Spec 2) ---
 const RELOAD_TIME_FLOOR := 0.15             # seconds; minimum effective reload after speed bonuses

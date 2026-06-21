@@ -165,3 +165,15 @@ func grant_all_rarities() -> int:
 			break   # inventory full
 		added += 1
 	return added
+
+## DEV (temporary): add one unopened crate of every type so all crates can be opened/felt at
+## once. Repeatable; crates ignore the weapon cap. Returns how many crate types were granted.
+## REMOVE before release — paired with the other DEV grants.
+func grant_one_of_each_crate() -> int:
+	var added := 0
+	for crate in Crates.all():
+		SaveManager.add_crate(String(crate.get("id", "")))
+		added += 1
+	SaveManager.save_game()
+	inventory_changed.emit()
+	return added

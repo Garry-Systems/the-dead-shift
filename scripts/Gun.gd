@@ -160,6 +160,12 @@ func _start_reload() -> void:
 	_reloading = true
 	_reload_timer = maxf(reload_time * reload_mult, GameConfig.RELOAD_TIME_FLOOR)
 
+## Instantly finish any reload and refill the magazine (Ryan Ace's AK dash perk).
+func instant_reload() -> void:
+	_reloading = false
+	_reload_timer = 0.0
+	_ammo = mag_size
+
 # --- Read access for the HUD (keeps magazine state private) ---
 func ammo() -> int:
 	return _ammo

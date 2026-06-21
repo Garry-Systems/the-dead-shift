@@ -20,6 +20,7 @@ func setup(dir: Vector2, spd: float, dmg: float) -> void:
 	damage = dmg
 
 func _ready() -> void:
+	add_to_group("enemy_projectiles")   # so Ryan's dash can purge every projectile on the map
 	_player = get_tree().get_first_node_in_group("player") as Node2D
 
 func _process(delta: float) -> void:

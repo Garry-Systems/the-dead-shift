@@ -70,6 +70,7 @@ func _on_player_died() -> void:
 
 	SaveManager.add_coins(earned)
 	SaveManager.record_run(wave, bosses)
+	SaveManager.add_game_played()   # counts toward the every-10-games free reward (granted at the menu)
 	SaveManager.save_game()
 
 	# Weapon-loot: award XP to the equipped weapon so its talents unlock over time.

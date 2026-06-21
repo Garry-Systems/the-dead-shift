@@ -24,17 +24,23 @@ var _crate_opener: CrateOpener   # reused full-screen reel, opened from a crate 
 ## A crate win at this rarity or better (Merciless/orange and up) rains confetti on reveal.
 const CONFETTI_MIN_RARITY := 6
 
+var _reward_popup: RewardPopup   # reveals daily-login + every-10-games free rewards on entry
+var _reward_queue: Array = []    # pending {title, reward} dicts shown one at a time
+
 func _ready() -> void:
 	Inventory.grant_starter()  # first-launch seed so the inventory is never empty
-	SaveManager.grant_dev_bonus(10000)  # DEV (for now): one-time 10k coins to test the economy
+	SaveManager.grant_dev_bonus(30000)  # DEV (for now): one-time 30k coins to test the economy
 	_add_background()
 	_build_hub()
 	_build_mode_panel()
 	_build_char_panel()
 	_build_inventory_panel()
 	_build_store_panel()
+	_build_reward_popup()
 	_ensure_valid_character()
 	_show_only(_hub)
+	# Hand out any free rewards earned since last time (daily login + every-10-games), over the hub.
+	_check_free_rewards()
 
 func _add_background() -> void:
 	var bg := TextureRect.new()
@@ -452,6 +458,12 @@ func _populate_store() -> void:
 	dev.pressed.connect(_on_dev_grant_all)
 	list.add_child(dev)
 
+	var dev_crates := Button.new()
+	dev_crates.text = "DEV: 1 OF EACH CRATE"
+	PixelTheme.style_button(dev_crates, Vector2(660, 88), 20)
+	dev_crates.pressed.connect(_on_dev_grant_crates)
+	list.add_child(dev_crates)
+
 	_store_result = Label.new()
 	_store_result.text = _last_unbox
 	_store_result.custom_minimum_size = Vector2(660, 0)
@@ -488,6 +500,52 @@ func _on_dev_grant_all() -> void:
 	_last_unbox_color = PixelTheme.SELECT
 	_populate_store()
 
+func _on_dev_grant_crates() -> void:
+	var n := Inventory.grant_one_of_each_crate()
+	_last_unbox = "DEV: granted 1 of each crate (%d types)." % n
+	_last_unbox_color = PixelTheme.SELECT
+	_populate_store()
+
 func _on_inv_back() -> void:
 	_inv_from_play = false
 	_show_only(_hub)
+
+# --- Free rewards: daily login + every-10-games milestone ---
+func _build_reward_popup() -> void:
+	_reward_popup = RewardPopup.new()
+	add_child(_reward_popup)   # added last → draws above every panel
+	_reward_popup.claimed.connect(_show_next_reward)
+
+## Grant everything owed since last menu entry, queue the reveals, then show the first.
+func _check_free_rewards() -> void:
+	_reward_queue.clear()
+	if SaveManager.is_daily_due():
+		_reward_queue.append({ "title": "DAILY REWARD", "reward": _grant_reward(Rewards.roll_daily()) })
+		SaveManager.mark_daily_claimed()
+	while SaveManager.pending_game_rewards() > 0:
+		_reward_queue.append({ "title": "10-GAME REWARD", "reward": _grant_reward(Rewards.roll_milestone()) })
+		SaveManager.mark_game_reward_given()
+	SaveManager.save_game()
+	_show_next_reward()
+
+## Adds the reward to the player's stuff and returns the (possibly converted) descriptor to reveal.
+func _grant_reward(reward: Dictionary) -> Dictionary:
+	match String(reward.get("kind", "")):
+		"crate":
+			SaveManager.add_crate(String(reward.get("crate_id", "")))
+		"gun":
+			if not Inventory.add(reward.get("inst", {})):
+				# Inventory full → convert to a crate so the reward isn't lost (crates ignore the cap).
+				var cid := Rewards.random_crate_id()
+				SaveManager.add_crate(cid)
+				return { "kind": "crate", "crate_id": cid }
+	return reward
+
+## Reveals the next queued reward, or refreshes the hub once the queue is empty.
+func _show_next_reward() -> void:
+	if _reward_queue.is_empty():
+		if _hub_coins != null:
+			_hub_coins.text = "COINS: %d" % SaveManager.coins()
+		return
+	var entry: Dictionary = _reward_queue.pop_front()
+	_reward_popup.open(String(entry["title"]), entry["reward"])

@@ -164,14 +164,34 @@ func set_dash_ability(ability: String) -> void:
 	_dash_ability = ability
 
 ## Runs the moment a dash actually begins (gated by the dash cooldown). Plain characters do
-## nothing extra; Alstar drops a Shockwave at the dash's origin (push + damage + gun talents).
+## nothing extra; a character with a special dash ability resolves it here.
 func _on_dash_started() -> void:
-	if _dash_ability == "shockwave":
-		var sw := Shockwave.new()
-		get_tree().current_scene.add_child(sw)
-		sw.global_position = global_position
-		sw.blast(GameConfig.CHAR_ALSTAR_SHOCK_RADIUS, GameConfig.CHAR_ALSTAR_SHOCK_DAMAGE,
-			GameConfig.CHAR_ALSTAR_SHOCK_FORCE, gun, self)
+	match _dash_ability:
+		"shockwave":
+			_spawn_shockwave()
+		"purge":
+			_purge_projectiles()
+
+## Alstar Tuck: a radial blast at the dash origin — push + damage + the gun's on-hit talents.
+func _spawn_shockwave() -> void:
+	var sw := Shockwave.new()
+	get_tree().current_scene.add_child(sw)
+	sw.global_position = global_position
+	sw.blast(GameConfig.CHAR_ALSTAR_SHOCK_RADIUS, GameConfig.CHAR_ALSTAR_SHOCK_DAMAGE,
+		GameConfig.CHAR_ALSTAR_SHOCK_FORCE, gun, self)
+
+## Ryan Ace: wipe every enemy projectile off the map, instant-reload an equipped AK, and pop a
+## cosmetic pulse ring so the clear reads as a deliberate ability.
+func _purge_projectiles() -> void:
+	for p in get_tree().get_nodes_in_group("enemy_projectiles"):
+		if is_instance_valid(p):
+			p.queue_free()
+	if gun != null and gun.weapon_id == "ak47":
+		gun.instant_reload()
+	var fx := Shockwave.new()
+	get_tree().current_scene.add_child(fx)
+	fx.global_position = global_position
+	fx.flash(GameConfig.CHAR_RYAN_PURGE_FX_RADIUS)
 
 ## Called by enemies while they touch the player.
 func take_damage(amount: float) -> void:

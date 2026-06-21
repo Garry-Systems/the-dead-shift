@@ -7,7 +7,7 @@ static func all() -> Array:
 	return [
 		{
 			"id": "ryan", "name": "Ryan Ace", "price": 0,
-			"desc": "Starts with 150 HP. Bonus damage & fire rate with the AK-47.",
+			"desc": "Starts with 150 HP. Bonus damage & fire rate with the AK-47. DASH wipes every enemy projectile off the map — and instantly reloads an equipped AK.",
 		},
 		{
 			"id": "jimbo", "name": "Jimbo James", "price": 600,
@@ -74,6 +74,8 @@ static func apply_weapon(player: Player, id: String) -> void:
 ## the Player at run start (via Main) to decide what a dash does beyond the movement.
 static func dash_ability(id: String) -> String:
 	match id:
+		"ryan":
+			return "purge"        # clear every enemy projectile (+ instant AK reload)
 		"alstar":
 			return "shockwave"
 		_:

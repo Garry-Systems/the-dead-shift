@@ -18,7 +18,11 @@ const DEFAULTS := {
 	"equipped_weapon": "",    # uid of the equipped instance
 	"unlocked_characters": ["ryan"],   # character ids the player owns (Ryan free)
 	"crates": {},             # owned unopened crates: crate_id -> count
-	"dev_bonus_granted": false,  # DEV (temporary): one-time coin bonus already given?
+	"dev_bonus_granted": false,     # DEV (legacy): the old 10k one-time bonus flag (superseded)
+	"dev_bonus_v2_granted": false,  # DEV (temporary): the 30k start bonus already given?
+	"last_daily_claim": "",   # "YYYY-MM-DD" of the last claimed daily-login reward ("" = never)
+	"games_played": 0,        # completed runs (game-over count) — drives the every-10-games reward
+	"game_rewards_given": 0,  # how many 10-game milestone rewards have already been handed out
 }
 
 var _data: Dictionary = {}
@@ -102,11 +106,38 @@ func spend_coins(amount: int) -> bool:
 ## DEV (temporary): grant a one-time coin bonus so the store/economy is testable. Grants
 ## once per save (the flag persists + is saved), so the player can still spend normally.
 func grant_dev_bonus(amount: int) -> void:
-	if bool(_data.get("dev_bonus_granted", false)):
+	if bool(_data.get("dev_bonus_v2_granted", false)):
 		return
-	_data["dev_bonus_granted"] = true
+	_data["dev_bonus_v2_granted"] = true
 	add_coins(amount)
 	save_game()
+
+# --- Free rewards: daily login + every-10-games milestone (mutators are memory-only; save after) ---
+
+## Local calendar date as "YYYY-MM-DD" — the daily reward resets on a new local day.
+func today_string() -> String:
+	return Time.get_date_string_from_system(false)
+
+## True if today's daily-login reward hasn't been claimed yet.
+func is_daily_due() -> bool:
+	return String(_data.get("last_daily_claim", "")) != today_string()
+
+func mark_daily_claimed() -> void:
+	_data["last_daily_claim"] = today_string()
+
+func games_played() -> int:
+	return int(_data.get("games_played", 0))
+
+## Count one completed run (called from GameOver). Caller saves.
+func add_game_played() -> void:
+	_data["games_played"] = games_played() + 1
+
+## How many every-10-games milestone rewards are still owed (handles multiples / missed menus).
+func pending_game_rewards() -> int:
+	return maxi(int(games_played() / 10) - int(_data.get("game_rewards_given", 0)), 0)
+
+func mark_game_reward_given() -> void:
+	_data["game_rewards_given"] = int(_data.get("game_rewards_given", 0)) + 1
 
 func best_wave() -> int:
 	return int(_data.get("best_wave", 0))
