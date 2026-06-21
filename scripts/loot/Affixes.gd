@@ -52,6 +52,10 @@ static func all() -> Array:
 		{ "id": "r7_heavy", "name": "Heavy", "rarity": 7, "min_stats": 4, "max_stats": 5, "min_talents": 3, "max_talents": 3, "stats": { "mag": [55, 105], "multishot": [2, 4], "damage": [70, 120], "reload": [35, 60], "pierce": [2, 4] } },
 		{ "id": "r7_hollow", "name": "Hollow", "rarity": 7, "min_stats": 4, "max_stats": 5, "min_talents": 3, "max_talents": 3, "stats": { "pierce": [2, 4], "multishot": [2, 4], "damage": [64, 116], "ricochet": [1, 2], "range": [45, 75] } },
 		{ "id": "r7_brutal", "name": "Brutal", "rarity": 7, "min_stats": 5, "max_stats": 6, "min_talents": 3, "max_talents": 3, "stats": { "damage": [80, 140], "multishot": [2, 4], "pierce": [2, 4], "ricochet": [1, 2], "fire_rate": [35, 55], "bullet_speed": [40, 80] } },
+		{ "id": "r8_razor",  "name": "Razor",  "rarity": 8, "min_stats": 5, "max_stats": 6, "min_talents": 3, "max_talents": 3, "stats": { "damage": [115, 195], "fire_rate": [45, 68], "range": [58, 95], "bullet_speed": [52, 100], "reload": [45, 72], "mag": [55, 105] } },
+		{ "id": "r8_heavy",  "name": "Heavy",  "rarity": 8, "min_stats": 4, "max_stats": 5, "min_talents": 3, "max_talents": 3, "stats": { "mag": [72, 135], "multishot": [3, 5], "damage": [95, 160], "reload": [45, 72], "pierce": [3, 5] } },
+		{ "id": "r8_hollow", "name": "Hollow", "rarity": 8, "min_stats": 4, "max_stats": 5, "min_talents": 3, "max_talents": 3, "stats": { "pierce": [3, 5], "multishot": [3, 5], "damage": [88, 155], "ricochet": [1, 3], "range": [58, 95] } },
+		{ "id": "r8_brutal", "name": "Brutal", "rarity": 8, "min_stats": 5, "max_stats": 6, "min_talents": 3, "max_talents": 3, "stats": { "damage": [110, 185], "multishot": [3, 5], "pierce": [3, 5], "ricochet": [2, 3], "fire_rate": [45, 68], "bullet_speed": [52, 100] } },
 	]
 
 static func get_affix(id: String) -> Dictionary:
