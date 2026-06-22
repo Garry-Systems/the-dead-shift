@@ -10,6 +10,7 @@ var _current_cards: Array = []
 var _root: Control
 var _title: Label
 var _buttons: Array[Button] = []
+var _card_titles: Array[Label] = []
 var _descs: Array[Label] = []
 
 func _ready() -> void:
@@ -48,27 +49,49 @@ func _build_ui() -> void:
 
 	_title = Label.new()
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.custom_minimum_size = Vector2(460, 0)
+	_title.custom_minimum_size = Vector2(740, 0)
 	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	PixelTheme.style_label(_title, 18, PixelTheme.ACCENT)
+	PixelTheme.style_label(_title, 30, PixelTheme.ACCENT)
 	vbox.add_child(_title)
 
+	# 3 big tappable cards: a chunky button with the upgrade name (pixel font) over a
+	# readable (anti-aliased) description, so the choices are easy to read at a glance.
 	for i in 3:
-		var row := VBoxContainer.new()
-		row.add_theme_constant_override("separation", 2)
 		var b := Button.new()
-		PixelTheme.style_button(b, Vector2(460, 64), 20)
+		b.clip_contents = true
+		PixelTheme.style_button(b, Vector2(760, 188))   # pass size — the default would force 806x135 (too short)
+		b.text = ""
 		b.pressed.connect(_on_card_pressed.bind(i))
-		row.add_child(b)
-		_buttons.append(b)
+
+		var content := VBoxContainer.new()
+		content.alignment = BoxContainer.ALIGNMENT_CENTER
+		content.add_theme_constant_override("separation", 10)
+		content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		content.offset_left = 26
+		content.offset_right = -26
+		content.offset_top = 14
+		content.offset_bottom = -14
+		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(content)
+
+		var name_lbl := Label.new()
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		PixelTheme.style_label(name_lbl, 30, PixelTheme.ACCENT)
+		content.add_child(name_lbl)
+		_card_titles.append(name_lbl)
+
 		var desc := Label.new()
-		desc.custom_minimum_size = Vector2(460, 0)
-		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		PixelTheme.style_label(desc, 13, PixelTheme.TEXT_DIM)
-		row.add_child(desc)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.custom_minimum_size = Vector2(700, 0)
+		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		PixelTheme.readable_label(desc, 24, PixelTheme.TEXT)
+		content.add_child(desc)
 		_descs.append(desc)
-		vbox.add_child(row)
+
+		_buttons.append(b)
+		vbox.add_child(b)
 
 func _on_player_leveled_up() -> void:
 	_queue.append(_player.level)
@@ -81,7 +104,7 @@ func _show_next() -> void:
 	_title.text = "LEVEL %d — choose a %s upgrade" % [lvl, Upgrades.label_for_level(lvl)]
 	for i in 3:
 		var c: Dictionary = _current_cards[i]
-		_buttons[i].text = String(c["title"]).to_upper()
+		_card_titles[i].text = String(c["title"]).to_upper()
 		_descs[i].text = String(c["desc"])
 	_root.visible = true
 	get_tree().paused = true
