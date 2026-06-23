@@ -13,6 +13,12 @@ var bullet_speed := GameConfig.BULLET_SPEED
 var gun_range := GameConfig.GUN_RANGE
 var projectile_count := 1
 var spread := 0.0                  # total fan arc in radians across the projectiles
+var fire_mode := "projectile"      # "projectile" (default) | "cone" | "lightning"
+var base_pierce := 0               # pierce baked into every shot (Nail Gun)
+var cone_angle := 1.05             # cone mode: total arc in radians (~60°)
+var jump_count := 0                # lightning mode: max arcs after the first hit
+var jump_radius := 320.0           # lightning mode: max px to the next arc target
+var jump_falloff := 0.8            # lightning mode: damage x this per jump
 
 # Talent payload carried onto every bullet (raised by weapon talent cards).
 var pierce_count := 0
@@ -77,6 +83,12 @@ func configure(def: Dictionary) -> void:
 	spread = float(def["spread"])
 	mag_size = int(def["mag_size"])
 	reload_time = float(def["reload_time"])
+	fire_mode = String(def.get("fire_mode", "projectile"))
+	base_pierce = int(def.get("base_pierce", 0))
+	cone_angle = float(def.get("cone_angle", 1.05))
+	jump_count = int(def.get("jump_count", 0))
+	jump_radius = float(def.get("jump_radius", 320.0))
+	jump_falloff = float(def.get("jump_falloff", 0.8))
 	_ammo = mag_size
 	_reloading = false
 	_reload_timer = 0.0
@@ -143,7 +155,9 @@ func _process(delta: float) -> void:
 		return
 
 	_cooldown -= delta
-	if _cooldown > 0.0 or bullet_scene == null:
+	if _cooldown > 0.0:
+		return
+	if fire_mode == "projectile" and bullet_scene == null:
 		return
 
 	# Hold fire while moving (stop-to-shoot) or before the player has aimed.
@@ -178,6 +192,12 @@ func reload_progress() -> float:
 	return clampf(1.0 - _reload_timer / dur, 0.0, 1.0)
 
 func _fire(dir: Vector2) -> void:
+	match fire_mode:
+		"cone":      _fire_cone(dir)
+		"lightning": _fire_lightning(dir)
+		_:           _fire_projectile(dir)
+
+func _fire_projectile(dir: Vector2) -> void:
 	var base_angle := dir.angle()
 	_show_muzzle(base_angle)
 	var count: int = projectile_count + (_surge_shots if _surge_time > 0.0 else 0)
@@ -268,3 +288,10 @@ func upgrade_reload_speed(pct: float) -> void:
 
 func upgrade_mag_size(pct: float) -> void:
 	mag_size = int(ceil(mag_size * (1.0 + pct)))   # ceil so small mags still gain >= 1
+
+# Stub functions for fire modes added in later tasks
+func _fire_cone(dir: Vector2) -> void:
+	pass
+
+func _fire_lightning(dir: Vector2) -> void:
+	pass
