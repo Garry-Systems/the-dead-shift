@@ -265,6 +265,9 @@ func upgrade_range(pct: float) -> void:
 	gun_range *= (1.0 + pct)
 
 func upgrade_add_projectile(n: int) -> void:
+	if fire_mode == "lightning":
+		jump_count += n               # "+1 projectile" card = "+1 jump" for the Tesla
+		return
 	projectile_count += n
 	if spread <= 0.0:               # give single-shot guns a small fan once they multi-fire
 		spread = 0.20
@@ -289,9 +292,77 @@ func upgrade_reload_speed(pct: float) -> void:
 func upgrade_mag_size(pct: float) -> void:
 	mag_size = int(ceil(mag_size * (1.0 + pct)))   # ceil so small mags still gain >= 1
 
+func _fire_lightning(dir: Vector2) -> void:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var first := _nearest_enemy(global_position, gun_range, enemies)
+	if first == null:
+		return
+	_show_muzzle(dir.angle())
+	var chain := _chain_targets(first, jump_count, jump_radius, enemies)
+	var player := get_parent() as Player
+	var points: Array = [global_position]
+	var dmg := damage
+	for e in chain:
+		if not is_instance_valid(e):
+			continue
+		points.append(e.global_position)
+		var hit_pos: Vector2 = e.global_position
+		var roll := TalentEngine.roll_damage(dmg, talent_payload)
+		e.take_damage(float(roll["damage"]))
+		var killed := not is_instance_valid(e)
+		if not killed and e.has_method("flash_hit"):
+			e.flash_hit()
+		if not talent_payload.is_empty():
+			TalentEngine.process_hit(e, hit_pos, dmg, killed, talent_payload, {
+				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
+			})
+		dmg *= jump_falloff
+	_spawn_lightning(points)
+
+func _spawn_lightning(points: Array) -> void:
+	if points.size() < 2:
+		return
+	var bolt := Lightning.new()
+	bolt.points = points
+	get_tree().current_scene.add_child(bolt)
+
 # Stub functions for fire modes added in later tasks
 func _fire_cone(dir: Vector2) -> void:
 	pass
 
-func _fire_lightning(dir: Vector2) -> void:
-	pass
+# --- Lightning targeting (static + pure so probes can verify selection headlessly) ---
+
+## Nearest enemy to `origin` within `max_range`. null if none.
+static func _nearest_enemy(origin: Vector2, max_range: float, enemies: Array) -> Node2D:
+	var best: Node2D = null
+	var best_d := max_range * max_range
+	for e in enemies:
+		if e == null or not is_instance_valid(e):
+			continue
+		var d: float = origin.distance_squared_to(e.global_position)
+		if d <= best_d:
+			best_d = d
+			best = e
+	return best
+
+## Ordered arc chain starting at `first`: each next jump goes to the nearest
+## not-yet-chained enemy within `jump_radius`, up to `jump_count` extra jumps.
+static func _chain_targets(first: Node2D, jump_count: int, jump_radius: float, enemies: Array) -> Array:
+	var chain: Array = [first]
+	var current := first
+	var r2 := jump_radius * jump_radius
+	for _i in jump_count:
+		var best: Node2D = null
+		var best_d := r2
+		for e in enemies:
+			if e == null or not is_instance_valid(e) or e in chain:
+				continue
+			var d: float = current.global_position.distance_squared_to(e.global_position)
+			if d <= best_d:
+				best_d = d
+				best = e
+		if best == null:
+			break
+		chain.append(best)
+		current = best
+	return chain

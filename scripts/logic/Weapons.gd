@@ -63,6 +63,14 @@ static func all() -> Array:
 			"mag_size": 25, "reload_time": 1.3,
 			"upgrades": ["damage", "fire_rate", "pierce", "bullet_speed", "choke", "ricochet", "reload", "mag"],
 		},
+		{
+			"id": "tesla", "name": "Tesla Gun", "desc": "Arc lightning — chains through the horde", "category": "Special",
+			"fire_mode": "lightning", "jump_count": 4, "jump_radius": 320.0, "jump_falloff": 0.8,
+			"damage": 30.0, "fire_interval": 0.35, "bullet_speed": 0.0,
+			"range": 600.0, "projectiles": 1, "spread": 0.0,
+			"mag_size": 20, "reload_time": 1.8,
+			"upgrades": ["damage", "fire_rate", "range", "projectile", "incendiary", "reload", "mag"],
+		},
 	]
 
 ## The upgrade-card id-list for a given weapon id (empty if unknown).
