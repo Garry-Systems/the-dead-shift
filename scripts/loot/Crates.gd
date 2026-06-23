@@ -42,7 +42,7 @@ static func all() -> Array:
 		},
 		{
 			"id": "auto_case", "name": "Full Auto Case", "price": 500,
-			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["smg", "ak47"],
+			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["smg", "ak47", "nailgun"],
 			"desc": "SMGs & AK-47s. Any rarity up to Apocalypse.",
 		},
 		{
