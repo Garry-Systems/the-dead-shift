@@ -164,7 +164,8 @@ func _process(delta: float) -> void:
 	if hold_fire or aim_direction == Vector2.ZERO:
 		return
 
-	_fire(aim_direction)
+	if not _fire(aim_direction):
+		return                      # no shot happened (e.g. Tesla with no target) — don't waste ammo/cooldown
 	_cooldown = (fire_interval * (1.0 - _frenzy_mult)) if _frenzy_time > 0.0 else fire_interval
 	_ammo -= 1
 	if _ammo <= 0:
@@ -191,26 +192,28 @@ func reload_progress() -> float:
 	var dur := maxf(reload_time * reload_mult, GameConfig.RELOAD_TIME_FLOOR)
 	return clampf(1.0 - _reload_timer / dur, 0.0, 1.0)
 
-func _fire(dir: Vector2) -> void:
+func _fire(dir: Vector2) -> bool:
 	match fire_mode:
-		"cone":      _fire_cone(dir)
-		"lightning": _fire_lightning(dir)
-		_:           _fire_projectile(dir)
+		"cone":      return _fire_cone(dir)
+		"lightning": return _fire_lightning(dir)
+		_:           return _fire_projectile(dir)
+	return false  # unreachable; satisfies the static checker
 
-func _fire_projectile(dir: Vector2) -> void:
+func _fire_projectile(dir: Vector2) -> bool:
 	var base_angle := dir.angle()
 	_show_muzzle(base_angle)
 	var count: int = projectile_count + (_surge_shots if _surge_time > 0.0 else 0)
 	if count <= 1:
 		var jitter: float = randf_range(-spread, spread) if spread > 0.0 else 0.0
 		_spawn_bullet(Vector2.from_angle(base_angle + jitter))
-		return
+		return true
 	# Fan pellets evenly across the spread arc (force a small fan if a 1-shot gun gained pellets).
 	var arc: float = maxf(spread, 0.20)
 	for i in count:
 		var t := float(i) / float(count - 1)
 		var offset := lerpf(-arc * 0.5, arc * 0.5, t)
 		_spawn_bullet(Vector2.from_angle(base_angle + offset))
+	return true
 
 ## Pops the muzzle flash at the gun's muzzle, oriented along the shot.
 func _show_muzzle(angle: float) -> void:
@@ -292,11 +295,11 @@ func upgrade_reload_speed(pct: float) -> void:
 func upgrade_mag_size(pct: float) -> void:
 	mag_size = int(ceil(mag_size * (1.0 + pct)))   # ceil so small mags still gain >= 1
 
-func _fire_lightning(dir: Vector2) -> void:
+func _fire_lightning(dir: Vector2) -> bool:
 	var enemies := get_tree().get_nodes_in_group("enemies")
-	var first := _nearest_enemy(global_position, gun_range, enemies)
+	var first := _nearest_enemy(global_position, gun_range, enemies)  # gun_range governs initial target acquisition only; chain hops use jump_radius
 	if first == null:
-		return
+		return false
 	_show_muzzle(dir.angle())
 	var chain := _chain_targets(first, jump_count, jump_radius, enemies)
 	var player := get_parent() as Player
@@ -318,6 +321,7 @@ func _fire_lightning(dir: Vector2) -> void:
 			})
 		dmg *= jump_falloff
 	_spawn_lightning(points)
+	return true
 
 func _spawn_lightning(points: Array) -> void:
 	if points.size() < 2:
@@ -326,7 +330,7 @@ func _spawn_lightning(points: Array) -> void:
 	bolt.points = points
 	get_tree().current_scene.add_child(bolt)
 
-func _fire_cone(dir: Vector2) -> void:
+func _fire_cone(dir: Vector2) -> bool:
 	_show_muzzle(dir.angle())
 	var enemies := get_tree().get_nodes_in_group("enemies")
 	var hits := _enemies_in_cone(global_position, dir, gun_range, cone_angle * 0.5, enemies)
@@ -350,6 +354,7 @@ func _fire_cone(dir: Vector2) -> void:
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
 			})
 	_spawn_flame(dir)
+	return true
 
 func _spawn_flame(dir: Vector2) -> void:
 	var flame := FlameCone.new()
