@@ -326,9 +326,38 @@ func _spawn_lightning(points: Array) -> void:
 	bolt.points = points
 	get_tree().current_scene.add_child(bolt)
 
-# Stub functions for fire modes added in later tasks
 func _fire_cone(dir: Vector2) -> void:
-	pass
+	_show_muzzle(dir.angle())
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var hits := _enemies_in_cone(global_position, dir, gun_range, cone_angle * 0.5, enemies)
+	var player := get_parent() as Player
+	var bdps := maxf(GameConfig.FLAME_BURN_DPS, burn_dps)      # base burn, strengthened by incendiary upgrades
+	var btime := maxf(GameConfig.FLAME_BURN_TIME, burn_duration)
+	for e in hits:
+		if not is_instance_valid(e):
+			continue
+		var hit_pos: Vector2 = e.global_position
+		var roll := TalentEngine.roll_damage(damage, talent_payload)
+		e.take_damage(float(roll["damage"]))
+		var killed := not is_instance_valid(e)
+		if not killed:
+			if e.has_method("flash_hit"):
+				e.flash_hit()
+			if e.has_method("ignite"):
+				e.ignite(bdps, btime)
+		if not talent_payload.is_empty():
+			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
+				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
+			})
+	_spawn_flame(dir)
+
+func _spawn_flame(dir: Vector2) -> void:
+	var flame := FlameCone.new()
+	flame.aim = dir
+	flame.length = gun_range
+	flame.half_angle = cone_angle * 0.5
+	get_tree().current_scene.add_child(flame)
+	flame.global_position = global_position
 
 # --- Lightning targeting (static + pure so probes can verify selection headlessly) ---
 
@@ -366,3 +395,18 @@ static func _chain_targets(first: Node2D, jump_count: int, jump_radius: float, e
 		chain.append(best)
 		current = best
 	return chain
+
+## Every enemy within `max_range` of `origin` and within `half_angle` rad of `dir`.
+## Static + pure so probes can verify the cone shape headlessly.
+static func _enemies_in_cone(origin: Vector2, dir: Vector2, max_range: float, half_angle: float, enemies: Array) -> Array:
+	var hits: Array = []
+	var r2 := max_range * max_range
+	for e in enemies:
+		if e == null or not is_instance_valid(e):
+			continue
+		var to: Vector2 = e.global_position - origin
+		if to.length_squared() > r2:
+			continue
+		if absf(dir.angle_to(to)) <= half_angle:
+			hits.append(e)
+	return hits

@@ -71,6 +71,14 @@ static func all() -> Array:
 			"mag_size": 20, "reload_time": 1.8,
 			"upgrades": ["damage", "fire_rate", "range", "projectile", "incendiary", "reload", "mag"],
 		},
+		{
+			"id": "flamethrower", "name": "Flamethrower", "desc": "Fuel-hose cone — always burns", "category": "Special",
+			"fire_mode": "cone", "cone_angle": 1.05,
+			"damage": 6.0, "fire_interval": 0.05, "bullet_speed": 0.0,
+			"range": 280.0, "projectiles": 1, "spread": 0.0,
+			"mag_size": 100, "reload_time": 2.5,
+			"upgrades": ["damage", "fire_rate", "range", "incendiary", "reload", "mag"],
+		},
 	]
 
 ## The upgrade-card id-list for a given weapon id (empty if unknown).
