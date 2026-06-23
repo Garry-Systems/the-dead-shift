@@ -55,6 +55,14 @@ static func all() -> Array:
 			"mag_size": 5, "reload_time": 2.2,
 			"upgrades": ["damage", "fire_rate", "range", "pierce", "ricochet", "incendiary", "reload", "mag"],
 		},
+		{
+			"id": "nailgun", "name": "Nail Gun", "desc": "Hardware-aisle rapid-fire — cheap, pierces", "category": "SMG",
+			"fire_mode": "projectile", "base_pierce": 1,
+			"damage": 9.0, "fire_interval": 0.07, "bullet_speed": 950.0,
+			"range": 500.0, "projectiles": 1, "spread": 0.05,
+			"mag_size": 25, "reload_time": 1.3,
+			"upgrades": ["damage", "fire_rate", "pierce", "bullet_speed", "choke", "ricochet", "reload", "mag"],
+		},
 	]
 
 ## The upgrade-card id-list for a given weapon id (empty if unknown).

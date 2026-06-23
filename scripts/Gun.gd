@@ -239,7 +239,7 @@ func _spawn_bullet(dir: Vector2) -> void:
 	bullet.speed = bullet_speed
 	bullet.damage = damage
 	bullet.max_travel = gun_range
-	bullet.pierce_count = pierce_count + (_surge_pierce if _surge_time > 0.0 else 0) + int(_overpen.get("pierce", 0))
+	bullet.pierce_count = pierce_count + base_pierce + (_surge_pierce if _surge_time > 0.0 else 0) + int(_overpen.get("pierce", 0))
 	bullet.overpen_growth = float(_overpen.get("growth", 0.0))
 	bullet.ricochet_count = ricochet_count
 	bullet.talent_payload = talent_payload
