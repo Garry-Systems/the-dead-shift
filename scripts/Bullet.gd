@@ -26,6 +26,9 @@ var _hit: Array = []           # enemies already damaged (so pierce/ricochet don
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
+	# Detect cover (block) + destructibles (damage) in addition to enemies (default bit 1).
+	set_collision_mask_value(GameConfig.COVER_LAYER_BIT, true)
+	set_collision_mask_value(GameConfig.DESTRUCTIBLE_LAYER_BIT, true)
 
 func _physics_process(delta: float) -> void:
 	global_position += direction * speed * delta
@@ -38,6 +41,24 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 func _on_body_entered(body) -> void:
+	# Solid cover damages-then-stops the bullet (cars are clearable; rubble shrugs it off).
+	if body.is_in_group("cover"):
+		if body.has_method("take_damage"):
+			body.take_damage(damage)
+		queue_free()
+		return
+	# Non-solid destructible props take raw damage (no talents); the bullet pierces or stops.
+	if body.is_in_group("destructibles"):
+		if body in _hit:
+			return
+		_hit.append(body)
+		if body.has_method("take_damage"):
+			body.take_damage(damage)
+		if pierce_count > 0:
+			pierce_count -= 1
+			return
+		queue_free()
+		return
 	if not body.is_in_group("enemies") or body in _hit:
 		return
 
@@ -79,12 +100,15 @@ func _on_body_entered(body) -> void:
 	queue_free()
 
 func _nearest_unhit_enemy() -> Node2D:
+	var space := get_world_2d().direct_space_state
 	var best: Node2D = null
 	var best_dist := INF
 	for z in get_tree().get_nodes_in_group("enemies"):
 		if z in _hit:
 			continue
 		var node := z as Node2D
+		if not LineOfSight.is_clear(global_position, node.global_position, space):
+			continue
 		var d := global_position.distance_squared_to(node.global_position)
 		if d < best_dist:
 			best_dist = d
