@@ -60,6 +60,7 @@ var _ext_slow_time := 0.0
 
 func _ready() -> void:
 	add_to_group("player")
+	set_collision_mask_value(GameConfig.COVER_LAYER_BIT, true)   # collide with solid cover (|= safe: keeps the default bit 1)
 	_xp_to_next = XpCurve.xp_for_level(0)
 	gun = get_node_or_null("Gun") as Gun
 	_setup_flash()
