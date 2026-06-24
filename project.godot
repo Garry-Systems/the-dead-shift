@@ -37,6 +37,11 @@ Inventory="*res://scripts/loot/Inventory.gd"
 
 pointing/emulate_touch_from_mouse=true
 
+[layer_names]
+
+2d_physics/layer_4="cover"
+2d_physics/layer_5="destructible"
+
 [dotnet]
 
 project/assembly_name="Mobile Game"
