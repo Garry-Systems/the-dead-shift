@@ -43,6 +43,7 @@ func configure(stats: Dictionary) -> void:
 
 func _ready() -> void:
 	add_to_group("enemies")
+	set_collision_mask_value(GameConfig.COVER_LAYER_BIT, true)   # collide with solid cover (|= safe: keeps the default bit 1)
 	_target = get_tree().get_first_node_in_group("player") as Player
 	if _health == null:                       # spawned without configure() -> base stats
 		_health = Health.new(max_health)
@@ -181,9 +182,19 @@ func _physics_process(delta: float) -> void:
 		apply_knockback(away * GameConfig.ENEMY_BOUNCE_SPEED)
 		_contact_cd = GameConfig.ENEMY_CONTACT_HIT_CD
 
-## Base movement intent (before slow/knockback). Override per enemy. Default = chase the player.
+## Base movement intent (before slow/knockback). Override per enemy. Default = chase the player,
+## but if we slid against solid cover last frame, steer tangentially around it (no pathfinding —
+## just peel along the obstacle toward the player so a nav-less horde doesn't wedge on a car).
 func _desired_velocity() -> Vector2:
 	var dir := (_target.global_position - global_position).normalized()
+	for i in get_slide_collision_count():
+		var col := get_slide_collision(i)
+		var other := col.get_collider()
+		if other != null and other is Node and (other as Node).is_in_group("cover"):
+			var tangent := Vector2(-col.get_normal().y, col.get_normal().x)
+			if tangent.dot(dir) < 0.0:
+				tangent = -tangent
+			return (dir + tangent * GameConfig.ENEMY_COVER_STEER).normalized() * move_speed
 	return dir * move_speed
 
 ## Per-frame action hook (e.g. ranged firing). Default no-op. Called after movement.
