@@ -16,6 +16,11 @@ var incendiary := false        # ignites enemies it hits
 var burn_dps := 0.0
 var burn_duration := 0.0
 
+# Delivery-shell on-death effects (set by Gun._spawn_bullet; inert on a normal bullet).
+var explode_radius := 0.0      # >0: detonate a Shockwave on death (Grenade Launcher)
+var explode_force := 0.0       # knockback force for the explosion
+var pool_cfg := {}             # non-empty: spawn an enemy-only HazardZone on death (Acid Cannon)
+
 # Weapon-loot talents: resolved combat payload + the firing player (for lifesteal/frenzy).
 var talent_payload := {}       # {} = no talents on this weapon
 var talent_player: Player = null
@@ -34,13 +39,19 @@ func _physics_process(delta: float) -> void:
 	global_position += direction * speed * delta
 	_traveled += speed * delta
 	if _traveled >= max_travel:
-		queue_free()
+		_expire()
 		return
 	_life += delta
 	if _life >= GameConfig.BULLET_LIFETIME:
-		queue_free()
+		_expire()
 
 func _on_body_entered(body) -> void:
+	if _is_shell():
+		# Delivery shells ignore direct damage/pierce — detonate on the first solid contact.
+		if body.is_in_group("cover") or body.is_in_group("destructibles") or body.is_in_group("enemies"):
+			_detonate()
+			queue_free()
+		return
 	# Solid cover damages-then-stops the bullet (cars are clearable; rubble shrugs it off).
 	if body.is_in_group("cover"):
 		if body.has_method("take_damage"):
@@ -97,6 +108,30 @@ func _on_body_entered(body) -> void:
 		if overpen_growth > 0.0:
 			damage *= (1.0 + overpen_growth / 100.0)
 		return
+	queue_free()
+
+## True when this bullet delivers an on-death effect instead of a direct hit.
+func _is_shell() -> bool:
+	return explode_radius > 0.0 or not pool_cfg.is_empty()
+
+## Run the on-death effect(s) at the current position. No-op on a normal bullet.
+func _detonate() -> void:
+	if explode_radius > 0.0:
+		var blast := Shockwave.new()
+		get_tree().current_scene.add_child(blast)
+		blast.global_position = global_position
+		var gun = (talent_player.gun if (talent_player != null and is_instance_valid(talent_player)) else null)
+		blast.blast(explode_radius, damage, explode_force, gun, talent_player)
+	if not pool_cfg.is_empty():
+		var zone := HazardZone.new()
+		get_tree().current_scene.add_child(zone)
+		zone.global_position = global_position
+		zone.configure_hazard(pool_cfg)
+
+## Detonate (if a shell) then free. Used at every end-of-life exit.
+func _expire() -> void:
+	if _is_shell():
+		_detonate()
 	queue_free()
 
 func _nearest_unhit_enemy() -> Node2D:
