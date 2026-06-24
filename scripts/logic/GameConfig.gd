@@ -178,3 +178,62 @@ const BOSS_RUSH_LEVELS_PER_BOSS := 5   # +1 concurrent boss every this many play
 const BOSS_RUSH_REWARD_MULT := 0.35    # boss-rush XP-gem reward fraction (toned down — bosses die constantly)
 const BOSS_RUSH_HEAL_FRAC := 0.2       # boss-rush heal per kill (vs a FULL heal in endless)
 const BOSS_RUSH_RELIC_CHANCE := 0.3    # boss-rush chance to drop a relic per boss kill
+
+# --- Environmental hazards: collision layers (the project's first) ---
+const COVER_LAYER_BIT := 4              # solid cover (cars/rubble) physics layer (1-indexed)
+const DESTRUCTIBLE_LAYER_BIT := 5       # non-solid props (barrels/drums/crates) physics layer
+const COVER_MASK := 1 << 3              # bitmask for layer 4, for raycast line-of-sight queries
+
+# --- Obstacles: placement & caps ---
+const OBSTACLE_TARGET_COUNT := 12       # destructibles to keep near the player (ambient density)
+const OBSTACLE_HARD_CAP := 24           # max destructibles alive at once
+const MAX_HAZARD_ZONES := 10            # max lingering hazard pools at once
+const OBSTACLE_SPAWN_INTERVAL := 0.4    # seconds between ambient top-up spawns
+const OBSTACLE_SPAWN_MIN_R := 1000.0    # ambient spawn ring inner radius (just off-screen)
+const OBSTACLE_SPAWN_MAX_R := 1300.0    # ambient spawn ring outer radius
+const OBSTACLE_KEEP_RADIUS := 1400.0    # destructibles within this count toward the target density
+const OBSTACLE_CULL_RADIUS := 1800.0    # free destructibles beyond this from the player
+const OBSTACLE_CULL_INTERVAL := 1.0     # seconds between cull passes
+const OBSTACLE_CLUSTER_SIZE := 4        # obstacles dropped at each new wave
+const OBSTACLE_CLUSTER_RADIUS := 500.0  # spread of a wave-drop cluster around the player
+
+# --- Obstacle HP (flat; no wave scaling) + crate loot ---
+const BARREL_HP := 60.0
+const DRUM_HP := 70.0
+const TRANSFORMER_HP := 90.0
+const COVER_CAR_HP := 400.0             # tanky but clearable
+const RUBBLE_HP := -1.0                 # < 0 = indestructible
+const CRATE_HP := 25.0
+const CRATE_GEM_COUNT := 5
+const CRATE_COIN_REWARD := 3            # coins added to the run tally when a crate is smashed
+
+# --- Barrel burst (reuses Shockwave) + chain ---
+const BARREL_BURST_DAMAGE := 60.0
+const BARREL_BURST_RADIUS := 140.0
+const BARREL_BURST_FORCE := 900.0
+const BARREL_CHAIN_RADIUS := 160.0      # neighboring barrels within this get a chain fuse
+const CHAIN_DELAY := 0.1                # seconds before a fused barrel detonates (a time-spread ripple)
+const CHAIN_MAX_PER_TICK := 3           # max fused barrels that may detonate in one frame (excess slips to the next)
+
+# --- Hazard zones (lingering pools) ---
+const HAZARD_WINDUP := 0.12             # brief arm/telegraph for a destructible-spawned zone (bypasses the boss PATTERN_WINDUP clamp)
+const HAZARD_TICK_INTERVAL := 0.2       # ~5 Hz both-sides damage tick (not per-frame)
+const ENEMY_HAZARD_DMG_MULT := 1.0      # anti-herding lever (lower if herding dominates)
+const PLAYER_HAZARD_DMG_MULT := 1.0     # keep area-denial genuinely risky to the player
+const FIRE_DPS := 25.0
+const FIRE_RADIUS := 110.0
+const FIRE_DURATION := 4.0
+const ACID_DPS := 18.0
+const ACID_RADIUS := 120.0
+const ACID_DURATION := 5.0
+const ACID_SLOW_FACTOR := 0.45          # acid slows whatever stands in it
+const ACID_SLOW_DURATION := 0.5         # refreshed each tick while inside
+const ACID_DRIFT_SPEED := 20.0          # px/sec gentle cloud drift
+const ELEC_DPS := 15.0
+const ELEC_RADIUS := 130.0
+const ELEC_DURATION := 3.0
+const ELEC_STUN_DURATION := 0.4         # electric stuns enemies (reuses freeze); refreshed each tick
+const ELEC_CHAIN_COUNT := 4             # enemies the field arcs to per tick (visual + in-radius)
+
+# --- Enemy anti-wedge steering around cover ---
+const ENEMY_COVER_STEER := 0.8          # tangential nudge strength when a chasing enemy hits cover
