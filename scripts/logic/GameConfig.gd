@@ -196,6 +196,7 @@ const OBSTACLE_CULL_RADIUS := 1800.0    # free destructibles beyond this from th
 const OBSTACLE_CULL_INTERVAL := 1.0     # seconds between cull passes
 const OBSTACLE_CLUSTER_SIZE := 4        # obstacles dropped at each new wave
 const OBSTACLE_CLUSTER_RADIUS := 500.0  # spread of a wave-drop cluster around the player
+const OBSTACLE_CLUSTER_MIN_R := 120.0   # inner radius of wave-drop cluster ring
 
 # --- Obstacle HP (flat; no wave scaling) + crate loot ---
 const BARREL_HP := 60.0

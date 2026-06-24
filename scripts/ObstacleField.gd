@@ -48,7 +48,7 @@ func _drop_cluster() -> void:
 		if get_tree().get_nodes_in_group("destructibles").size() >= GameConfig.OBSTACLE_HARD_CAP:
 			return
 		var ang := randf_range(0.0, TAU)
-		var r := randf_range(120.0, GameConfig.OBSTACLE_CLUSTER_RADIUS)
+		var r := randf_range(GameConfig.OBSTACLE_CLUSTER_MIN_R, GameConfig.OBSTACLE_CLUSTER_RADIUS)
 		_spawn_at(_player.global_position + Vector2(cos(ang), sin(ang)) * r)
 
 func _spawn_at(pos: Vector2) -> void:
