@@ -20,6 +20,7 @@ var _drift_dir := Vector2.ZERO
 var _armed := false
 var _time_left := 0.0
 var _tick := 0.0
+var _hurts_player := true
 
 ## Configure from a Hazards.stats_for() dict. Caller sets global_position + add_child FIRST.
 func configure_hazard(cfg: Dictionary) -> void:
@@ -32,6 +33,7 @@ func configure_hazard(cfg: Dictionary) -> void:
 	_stun = float(cfg.get("stun", 0.0))
 	_chain = int(cfg.get("chain", 0))
 	_drift = float(cfg.get("drift", 0.0))
+	_hurts_player = bool(cfg.get("hurts_player", true))
 	add_to_group("hazard_zones")
 	setup(null, null, {})                  # AttackPattern grabs the player from the group
 	_windup = GameConfig.HAZARD_WINDUP     # short arm, bypassing the boss PATTERN_WINDUP clamp
@@ -73,12 +75,13 @@ func _apply(dt: float) -> void:
 			e.apply_freeze(_stun)
 	if _chain > 0:
 		_zap_arc(enemies)
-	var player := tree.get_first_node_in_group("player")
-	if player != null and is_instance_valid(player):
-		if (player as Node2D).global_position.distance_squared_to(global_position) <= r2:
-			player.take_damage(_dps * dt * GameConfig.PLAYER_HAZARD_DMG_MULT)
-			if _slow > 0.0 and player.has_method("apply_slow"):
-				player.apply_slow(_slow, _slow_dur)
+	if _hurts_player:
+		var player := tree.get_first_node_in_group("player")
+		if player != null and is_instance_valid(player):
+			if (player as Node2D).global_position.distance_squared_to(global_position) <= r2:
+				player.take_damage(_dps * dt * GameConfig.PLAYER_HAZARD_DMG_MULT)
+				if _slow > 0.0 and player.has_method("apply_slow"):
+					player.apply_slow(_slow, _slow_dur)
 
 ## Cosmetic cyan arcs to a few in-radius enemies (electric flavor; damage/stun already applied).
 func _zap_arc(enemies: Array) -> void:
