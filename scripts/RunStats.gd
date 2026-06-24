@@ -6,11 +6,13 @@ extends Node
 
 var kills := 0
 var bosses_killed := 0
+var bonus_coins := 0     # coins from in-world sources (e.g. smashed crates), added to the run payout
 
 ## Zero the counters for a fresh run.
 func reset() -> void:
 	kills = 0
 	bosses_killed = 0
+	bonus_coins = 0
 
 ## A trash enemy was killed.
 func add_kill() -> void:
@@ -19,3 +21,7 @@ func add_kill() -> void:
 ## A boss was killed.
 func add_boss() -> void:
 	bosses_killed += 1
+
+## Add coins earned from an in-world source (smashed crate, etc.).
+func add_coins(n: int) -> void:
+	bonus_coins += n

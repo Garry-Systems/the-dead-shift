@@ -66,7 +66,7 @@ func _spacer(h: int) -> Control:
 func _on_player_died() -> void:
 	var wave := DifficultyManager.wave
 	var bosses := RunStats.bosses_killed
-	var earned := CoinReward.payout(wave, bosses, RunStats.kills)
+	var earned := CoinReward.payout(wave, bosses, RunStats.kills) + RunStats.bonus_coins
 
 	SaveManager.add_coins(earned)
 	SaveManager.record_run(wave, bosses)
