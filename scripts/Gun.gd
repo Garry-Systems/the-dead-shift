@@ -19,6 +19,14 @@ var cone_angle := 1.05             # cone mode: total arc in radians (~60°)
 var jump_count := 0                # lightning mode: max arcs after the first hit
 var jump_radius := 320.0           # lightning mode: max px to the next arc target
 var jump_falloff := 0.8            # lightning mode: damage x this per jump
+var explode_radius := 0.0          # explosive shell blast radius (Grenade Launcher)
+var explode_force := 0.0           # explosive shell knockback force
+var pool_family := ""              # hazard-pool shell kind ("" = none; "acid" = Acid Cannon)
+var pool_radius := 90.0
+var pool_duration := 3.0
+var pool_slow := 0.0
+var pool_slow_dur := 0.0
+var beam_width := 28.0             # beam mode: half-corridor width (px)
 
 # Talent payload carried onto every bullet (raised by weapon talent cards).
 var pierce_count := 0
@@ -89,6 +97,14 @@ func configure(def: Dictionary) -> void:
 	jump_count = int(def.get("jump_count", 0))
 	jump_radius = float(def.get("jump_radius", 320.0))
 	jump_falloff = float(def.get("jump_falloff", 0.8))
+	explode_radius = float(def.get("explode_radius", 0.0))
+	explode_force = float(def.get("explode_force", 0.0))
+	pool_family = String(def.get("pool", ""))
+	pool_radius = float(def.get("pool_radius", 90.0))
+	pool_duration = float(def.get("pool_duration", 3.0))
+	pool_slow = float(def.get("pool_slow", 0.0))
+	pool_slow_dur = float(def.get("pool_slow_dur", 0.0))
+	beam_width = float(def.get("beam_width", 28.0))
 	_ammo = mag_size
 	_reloading = false
 	_reload_timer = 0.0
@@ -196,6 +212,7 @@ func _fire(dir: Vector2) -> bool:
 	match fire_mode:
 		"cone":      return _fire_cone(dir)
 		"lightning": return _fire_lightning(dir)
+		"beam":      return _fire_beam(dir)
 		_:           return _fire_projectile(dir)
 	return false  # unreachable; satisfies the static checker
 
@@ -251,8 +268,22 @@ func _spawn_bullet(dir: Vector2) -> void:
 		bullet.incendiary = true
 		bullet.burn_dps = burn_dps
 		bullet.burn_duration = burn_duration
+	bullet.explode_radius = explode_radius
+	bullet.explode_force = explode_force
+	if pool_family != "":
+		bullet.pool_cfg = _build_pool_cfg()
 	get_tree().current_scene.add_child(bullet)
 	bullet.global_position = global_position
+
+## Build the enemy-only HazardZone config for a pool-dropping shell (Acid Cannon).
+## dps = this gun's damage, so damage cards/affixes scale the pool.
+func _build_pool_cfg() -> Dictionary:
+	var color = Hazards.GREEN if pool_family == "acid" else Hazards.ORANGE
+	return {
+		"color": color, "dps": damage, "radius": pool_radius, "duration": pool_duration,
+		"slow": pool_slow, "slow_dur": pool_slow_dur, "stun": 0.0, "chain": 0,
+		"drift": 0.0, "hurts_player": false,
+	}
 
 # --- Upgrade hooks (called by Upgrades.apply) ---
 func upgrade_damage(pct: float) -> void:
@@ -330,6 +361,36 @@ func _spawn_lightning(points: Array) -> void:
 	bolt.points = points
 	get_tree().current_scene.add_child(bolt)
 
+func _fire_beam(dir: Vector2) -> bool:
+	_show_muzzle(dir.angle())
+	var enemies := LineOfSight.filter_visible(global_position, get_tree().get_nodes_in_group("enemies"), get_world_2d().direct_space_state)
+	var hits := _enemies_in_beam(global_position, dir, gun_range, beam_width, enemies)
+	var player := get_parent() as Player
+	for e in hits:
+		if not is_instance_valid(e):
+			continue
+		var hit_pos: Vector2 = e.global_position
+		var roll := TalentEngine.roll_damage(damage, talent_payload)
+		e.take_damage(float(roll["damage"]))
+		var killed := not is_instance_valid(e)
+		if not killed:
+			if e.has_method("flash_hit"):
+				e.flash_hit()
+			if incendiary and e.has_method("ignite"):
+				e.ignite(burn_dps, burn_duration)
+		if not talent_payload.is_empty():
+			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
+				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
+			})
+	_spawn_beam(dir)
+	return true
+
+func _spawn_beam(dir: Vector2) -> void:
+	var beam := Beam.new()
+	beam.start = global_position
+	beam.end = global_position + dir * gun_range
+	get_tree().current_scene.add_child(beam)
+
 func _fire_cone(dir: Vector2) -> bool:
 	_show_muzzle(dir.angle())
 	var enemies := LineOfSight.filter_visible(global_position, get_tree().get_nodes_in_group("enemies"), get_world_2d().direct_space_state)
@@ -400,6 +461,26 @@ static func _chain_targets(first: Node2D, jump_count: int, jump_radius: float, e
 		chain.append(best)
 		current = best
 	return chain
+
+## Pure geometry: is world point `p` inside the beam corridor from `origin` along `dir`?
+static func _beam_contains(origin: Vector2, dir: Vector2, max_range: float, half_width: float, p: Vector2) -> bool:
+	var d := dir.normalized()
+	var to := p - origin
+	var along := to.dot(d)
+	if along < 0.0 or along > max_range:
+		return false
+	return absf(to.dot(d.orthogonal())) <= half_width
+
+## Every enemy inside the beam corridor. Static + pure (delegates to _beam_contains) so a
+## probe can verify selection headlessly.
+static func _enemies_in_beam(origin: Vector2, dir: Vector2, max_range: float, half_width: float, enemies: Array) -> Array:
+	var hits: Array = []
+	for e in enemies:
+		if e == null or not is_instance_valid(e):
+			continue
+		if _beam_contains(origin, dir, max_range, half_width, (e as Node2D).global_position):
+			hits.append(e)
+	return hits
 
 ## Every enemy within `max_range` of `origin` and within `half_angle` rad of `dir`.
 ## Static + pure so probes can verify the cone shape headlessly.
