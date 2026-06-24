@@ -296,7 +296,7 @@ func upgrade_mag_size(pct: float) -> void:
 	mag_size = int(ceil(mag_size * (1.0 + pct)))   # ceil so small mags still gain >= 1
 
 func _fire_lightning(dir: Vector2) -> bool:
-	var enemies := get_tree().get_nodes_in_group("enemies")
+	var enemies := LineOfSight.filter_visible(global_position, get_tree().get_nodes_in_group("enemies"), get_world_2d().direct_space_state)
 	var first := _nearest_enemy(global_position, gun_range, enemies)  # gun_range governs initial target acquisition only; chain hops use jump_radius
 	if first == null:
 		return false
@@ -332,7 +332,7 @@ func _spawn_lightning(points: Array) -> void:
 
 func _fire_cone(dir: Vector2) -> bool:
 	_show_muzzle(dir.angle())
-	var enemies := get_tree().get_nodes_in_group("enemies")
+	var enemies := LineOfSight.filter_visible(global_position, get_tree().get_nodes_in_group("enemies"), get_world_2d().direct_space_state)
 	var hits := _enemies_in_cone(global_position, dir, gun_range, cone_angle * 0.5, enemies)
 	var player := get_parent() as Player
 	var bdps := maxf(GameConfig.FLAME_BURN_DPS, burn_dps)      # base burn, strengthened by incendiary upgrades
