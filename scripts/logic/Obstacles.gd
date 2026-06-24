@@ -19,13 +19,17 @@ class_name Obstacles
 ##   min_wave  : int     not eligible until this wave
 
 const C3 := Color(0.549, 0.522, 0.451)   # gray-tan props (palette)
+# Body tints so the player reads a hazard prop at a glance — the 3 sanctioned exceptions.
+const FIRE_TINT := Color(0.85, 0.45, 0.2)   # palette exception (orange = fire barrel)
+const ACID_TINT := Color(0.4, 0.8, 0.2)     # palette exception (green = chem drum)
+const ELEC_TINT := Color(0.2, 0.8, 0.85)    # palette exception (cyan = transformer)
 
 ## Built fresh each call (rows reference GameConfig consts) — small + read-only by use.
 static func all() -> Array:
 	return [
-		{ "id":"barrel",      "kind":"hazard", "shape":"circle", "size":18.0, "solid":false, "hp":GameConfig.BARREL_HP,      "hazard_id":"fire",     "loot":"",     "gem_count":0,                       "color":Color(0.85,0.45,0.2), "weight":30, "min_wave":1 },
-		{ "id":"chem_drum",   "kind":"hazard", "shape":"circle", "size":18.0, "solid":false, "hp":GameConfig.DRUM_HP,        "hazard_id":"acid",     "loot":"",     "gem_count":0,                       "color":Color(0.4,0.8,0.2),   "weight":25, "min_wave":2 },
-		{ "id":"transformer", "kind":"hazard", "shape":"rect",   "size":20.0, "solid":false, "hp":GameConfig.TRANSFORMER_HP, "hazard_id":"electric", "loot":"",     "gem_count":0,                       "color":Color(0.2,0.8,0.85),  "weight":20, "min_wave":3 },
+		{ "id":"barrel",      "kind":"hazard", "shape":"circle", "size":18.0, "solid":false, "hp":GameConfig.BARREL_HP,      "hazard_id":"fire",     "loot":"",     "gem_count":0,                       "color":FIRE_TINT, "weight":30, "min_wave":1 },
+		{ "id":"chem_drum",   "kind":"hazard", "shape":"circle", "size":18.0, "solid":false, "hp":GameConfig.DRUM_HP,        "hazard_id":"acid",     "loot":"",     "gem_count":0,                       "color":ACID_TINT, "weight":25, "min_wave":2 },
+		{ "id":"transformer", "kind":"hazard", "shape":"rect",   "size":20.0, "solid":false, "hp":GameConfig.TRANSFORMER_HP, "hazard_id":"electric", "loot":"",     "gem_count":0,                       "color":ELEC_TINT, "weight":20, "min_wave":3 },
 		{ "id":"crate",       "kind":"loot",   "shape":"rect",   "size":16.0, "solid":false, "hp":GameConfig.CRATE_HP,       "hazard_id":"",         "loot":"gems", "gem_count":GameConfig.CRATE_GEM_COUNT, "color":C3,                    "weight":40, "min_wave":1 },
 		{ "id":"car",         "kind":"cover",  "shape":"rect",   "size":48.0, "solid":true,  "hp":GameConfig.COVER_CAR_HP,   "hazard_id":"",         "loot":"",     "gem_count":0,                       "color":C3,                    "weight":18, "min_wave":1 },
 		{ "id":"rubble",      "kind":"cover",  "shape":"circle", "size":34.0, "solid":true,  "hp":GameConfig.RUBBLE_HP,      "hazard_id":"",         "loot":"",     "gem_count":0,                       "color":C3,                    "weight":15, "min_wave":1 },
