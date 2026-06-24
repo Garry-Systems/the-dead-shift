@@ -19,12 +19,12 @@
 
 ### Verification commands (used by every task)
 
-**Compile gate** (run from WSL bash; the Windows binary runs via interop). Expected: **no output** (the benign `menu_background.jpg` JPEG-decode line is excluded):
+**Compile gate** (run from WSL bash; the Windows binary runs via interop). Expected: **no output** (two benign lines are excluded: the `menu_background.jpg` JPEG-decode line and the `shutdown_adb_on_exit` EditorSettings line emitted on every headless quit):
 
 ```bash
 "/mnt/c/Tools/Godot_v4.6.3-stable_mono_win64/Godot_v4.6.3-stable_mono_win64_console.exe" \
   --path "C:\Users\thela\Documents\mobile-game" --headless --editor --quit 2>&1 \
-  | grep -iE "error|SCRIPT ERROR|Parse Error" | grep -v "menu_background.jpg"
+  | grep -iE "error|SCRIPT ERROR|Parse Error" | grep -v "menu_background.jpg" | grep -v "shutdown_adb_on_exit"
 ```
 
 **Logic probe** (Task 15 only):
@@ -32,7 +32,7 @@
 ```bash
 "/mnt/c/Tools/Godot_v4.6.3-stable_mono_win64/Godot_v4.6.3-stable_mono_win64_console.exe" \
   --path "C:\Users\thela\Documents\mobile-game" --headless --editor --script res://probe_obstacles.gd 2>&1 \
-  | grep -iE "PROBE|error"
+  | grep -iE "PROBE|error" | grep -v "shutdown_adb_on_exit"
 ```
 
 ### File map
@@ -1250,7 +1250,7 @@ func _init() -> void:
 ```bash
 "/mnt/c/Tools/Godot_v4.6.3-stable_mono_win64/Godot_v4.6.3-stable_mono_win64_console.exe" \
   --path "C:\Users\thela\Documents\mobile-game" --headless --editor --script res://probe_obstacles.gd 2>&1 \
-  | grep -iE "PROBE|error"
+  | grep -iE "PROBE|error" | grep -v "shutdown_adb_on_exit"
 ```
 
 Expected: `PROBE PASS: all obstacle/hazard logic checks green` (no `PROBE FAIL` lines). Fix the relevant task's code if any check fails.
