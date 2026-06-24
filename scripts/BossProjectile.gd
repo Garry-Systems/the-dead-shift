@@ -24,9 +24,14 @@ func _ready() -> void:
 	_player = get_tree().get_first_node_in_group("player") as Node2D
 
 func _process(delta: float) -> void:
+	var prev := global_position
 	global_position += direction * speed * delta
 	_life += delta
 	if _life >= GameConfig.BOSS_PROJECTILE_LIFETIME:
+		queue_free()
+		return
+	# Solid cover absorbs the shot (swept check — robust against the projectile's speed).
+	if not LineOfSight.is_clear(prev, global_position, get_world_2d().direct_space_state):
 		queue_free()
 		return
 	if _player != null and is_instance_valid(_player):
