@@ -4,6 +4,11 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.27 — Inventory Scroll & Bigger Crate Reel (2026-06-24)
+
+- **Inventory scrolls from anywhere** — drag anywhere on the inventory screen to scroll your collection; a tap still selects a gun or crate.
+- **Bigger crate opening** — the reel now fills most of the screen as it rolls by, so each gun is large and easy to read as it passes.
+
 ## v0.1.26 — Arsenal Expansion (2026-06-24)
 
 The biggest weapon drop yet — the roster goes from **10 to 21 guns**, so every
