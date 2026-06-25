@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.28 — Store Drag-Scroll (2026-06-24)
+
+- **The Store scrolls from anywhere too** — just like the inventory: drag anywhere on the store screen to scroll the list, and a tap still buys or selects. Accidental buys from a scroll-drag are prevented.
+
 ## v0.1.27 — Inventory Scroll & Bigger Crate Reel (2026-06-24)
 
 - **Inventory scrolls from anywhere** — drag anywhere on the inventory screen to scroll your collection; a tap still selects a gun or crate.
