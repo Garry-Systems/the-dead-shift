@@ -20,6 +20,7 @@ var burn_duration := 0.0
 var explode_radius := 0.0      # >0: detonate a Shockwave on death (Grenade Launcher)
 var explode_force := 0.0       # knockback force for the explosion
 var pool_cfg := {}             # non-empty: spawn an enemy-only HazardZone on death (Acid Cannon)
+var _detonated := false        # guard: the on-death effect fires at most once
 
 # Weapon-loot talents: resolved combat payload + the firing player (for lifesteal/frenzy).
 var talent_payload := {}       # {} = no talents on this weapon
@@ -116,6 +117,9 @@ func _is_shell() -> bool:
 
 ## Run the on-death effect(s) at the current position. No-op on a normal bullet.
 func _detonate() -> void:
+	if _detonated:
+		return
+	_detonated = true
 	if explode_radius > 0.0:
 		var blast := Shockwave.new()
 		get_tree().current_scene.add_child(blast)
