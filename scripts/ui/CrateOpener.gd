@@ -8,20 +8,20 @@ extends Control
 signal closed()
 signal weapon_revealed(inst: Dictionary)   # reel landed + committed → owner shows the full inspect
 
-const TILE_W := 182.0
-const TILE_H := 234.0
-const ITEM_PX := 242.0       # TILE_H + 8 gap — the VERTICAL pitch (reel runs top→bottom)
+const TILE_W := 840.0        # big reel tiles that fill most of the 1080-wide screen as they roll
+const TILE_H := 620.0
+const ITEM_PX := 632.0       # TILE_H + 12 gap — the VERTICAL pitch (reel runs top→bottom)
 const REEL_COUNT := 80
 const LAND_INDEX := 21       # winner slot near the TOP of the strip: the reel scrolls DOWN onto it,
                              # so tiles 22..79 stream through the reticle first and 0..20 buffer the overshoot
 const START_INDEX := 73      # tile centered when the spin starts — sets the spin length (73→21 ≈ 52 tiles)
-const FAST_SPEED := 3645.0   # px/sec linear phase (scaled to the taller vertical pitch; ~2s spin)
-const SLOW_DIST := 3975.0    # begin ease-out this far from target — long, drawn-out decel
-const SLOWDOWN := 0.9        # mid ease-out lerp factor — kept under FAST_SPEED/SLOW_DIST so the
-                            # reel decelerates smoothly instead of speeding up at the ease-out
-const CRAWL_DIST := 563.0    # final crawl begins ~2.3 tiles out — the tease zone
-const CRAWL_SLOWDOWN := 0.82  # ultra-gentle final creep — slow-rolls past the flanking special
-const TICK_PX := 242.0       # one tile-height per tick
+const FAST_SPEED := 9520.0   # px/sec linear phase (scaled ~2.61x to the bigger vertical pitch; ~2.5s spin)
+const SLOW_DIST := 10380.0   # begin ease-out this far from target — long, drawn-out decel
+const SLOWDOWN := 0.9        # mid ease-out lerp factor (per-sec rate; unitless, unchanged by tile size) — kept
+                            # so the reel decelerates smoothly instead of speeding up at the ease-out
+const CRAWL_DIST := 1470.0   # final crawl begins ~2.3 tiles out — the tease zone
+const CRAWL_SLOWDOWN := 0.82  # ultra-gentle final creep (per-sec rate; unchanged by tile size)
+const TICK_PX := 632.0       # one tile-height per tick
 const TICK_CD := 0.03        # min seconds between ticks
 
 var _crate_id := ""
@@ -128,17 +128,17 @@ func _reel_tile(inst: Dictionary) -> Control:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = PixelTheme.BTN_BG
 	sb.border_color = WeaponInstance.color(inst)
-	sb.set_border_width_all(4)
+	sb.set_border_width_all(6)
 	sb.set_corner_radius_all(0)
 	sb.anti_aliasing = false
 	p.add_theme_stylebox_override("panel", sb)
 	var icon := TextureRect.new()
 	icon.texture = WeaponInstance.icon(inst)
 	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	icon.offset_left = 10
-	icon.offset_top = 10
-	icon.offset_right = -10
-	icon.offset_bottom = -10
+	icon.offset_left = 40
+	icon.offset_top = 40
+	icon.offset_right = -40
+	icon.offset_bottom = -40
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
