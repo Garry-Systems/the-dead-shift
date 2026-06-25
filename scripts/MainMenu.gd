@@ -13,6 +13,16 @@ var _inv_vbox: VBoxContainer   # inventory card content (rebuilt by _populate_in
 var _hub_coins: Label          # hub coin readout (refreshed when returning to hub)
 var _inv_from_play := false    # true when the inventory was opened by PLAY (no weapon equipped)
 var _detail_popup: WeaponDetailPopup   # reused modal shown when a tile is tapped
+
+# Drag-anywhere scrolling for the inventory grid: a drag that starts ANYWHERE on the
+# inventory screen (even on a tile) scrolls; a plain tap still selects a tile. Driven from
+# _input so the gesture is caught before the GUI consumes it.
+var _inv_scroll: ScrollContainer       # current inventory grid scroll (null when grid is empty / not shown)
+var _inv_touch_id := -1
+var _inv_touch_start := Vector2.ZERO
+var _inv_dragging := false
+var _inv_suppress_tap := false         # set on a drag-release so the ending touch is not a tile tap
+const INV_DRAG_THRESHOLD := 24.0       # px of movement before a touch becomes a scroll (vs a tap)
 var _store_panel: Control
 var _store_vbox: VBoxContainer
 var _store_result: Label
@@ -260,6 +270,7 @@ func _show_inventory(from_play: bool) -> void:
 func _populate_inventory() -> void:
 	for c in _inv_vbox.get_children():
 		c.queue_free()
+	_inv_scroll = null   # cleared each rebuild; re-set below only when a scrollable grid exists
 
 	_make_title(_inv_vbox, "INVENTORY", 44)
 
@@ -296,6 +307,8 @@ func _populate_inventory() -> void:
 		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE   # built-in touch scroll off; we drive it from _input so a drag anywhere (even on a tile) scrolls
+		_inv_scroll = scroll
 		_inv_vbox.add_child(scroll)
 		var grid_center := HBoxContainer.new()
 		grid_center.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -330,13 +343,43 @@ func _on_equip(inst: Dictionary) -> void:
 	else:
 		_populate_inventory()     # browsing → just refresh the EQUIPPED highlight
 
+## Drag ANYWHERE on the inventory screen to scroll the grid; a plain tap still selects a
+## tile. Read at the _input stage (before the GUI) so a drag that starts on a tile still
+## scrolls. We never consume the event, so taps still reach the tile Buttons — instead we
+## flag _inv_suppress_tap on a drag-release so the ending touch isn't treated as a tap.
+func _input(event: InputEvent) -> void:
+	if _inv_scroll == null or not _inv_panel.visible:
+		return
+	if _detail_popup.visible or _crate_opener.visible:
+		return                                  # a modal is up — let it own the input
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_inv_touch_id = event.index
+			_inv_touch_start = event.position
+			_inv_dragging = false
+		elif event.index == _inv_touch_id:
+			_inv_suppress_tap = _inv_dragging   # a drag-release must not count as a tile tap
+			_inv_touch_id = -1
+			_inv_dragging = false
+	elif event is InputEventScreenDrag and event.index == _inv_touch_id:
+		if not _inv_dragging and event.position.distance_to(_inv_touch_start) > INV_DRAG_THRESHOLD:
+			_inv_dragging = true
+		if _inv_dragging:
+			_inv_scroll.scroll_vertical -= int(event.relative.y)
+
 ## Tile tapped → open the detail popup for that instance.
 func _on_tile_pressed(inst: Dictionary) -> void:
+	if _inv_suppress_tap:
+		_inv_suppress_tap = false
+		return                                  # this "tap" was the end of a scroll drag
 	var is_eq: bool = String(inst.get("uid", "")) == Inventory.equipped_uid()
 	_detail_popup.open(inst, is_eq)
 
 ## Crate tile tapped → open the CS:GO reel for that crate.
 func _on_crate_tile_pressed(crate_id: String) -> void:
+	if _inv_suppress_tap:
+		_inv_suppress_tap = false
+		return                                  # this "tap" was the end of a scroll drag
 	_crate_opener.open(crate_id)
 
 ## The reel landed on a weapon → show the SAME full inspect popup as tapping a gun in the grid,
@@ -507,6 +550,9 @@ func _on_dev_grant_crates() -> void:
 	_populate_store()
 
 func _on_inv_back() -> void:
+	if _inv_suppress_tap:
+		_inv_suppress_tap = false
+		return                                  # this "tap" was the end of a scroll drag
 	_inv_from_play = false
 	_show_only(_hub)
 
