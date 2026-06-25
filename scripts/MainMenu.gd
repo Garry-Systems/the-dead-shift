@@ -14,14 +14,16 @@ var _hub_coins: Label          # hub coin readout (refreshed when returning to h
 var _inv_from_play := false    # true when the inventory was opened by PLAY (no weapon equipped)
 var _detail_popup: WeaponDetailPopup   # reused modal shown when a tile is tapped
 
-# Drag-anywhere scrolling for the inventory grid: a drag that starts ANYWHERE on the
-# inventory screen (even on a tile) scrolls; a plain tap still selects a tile. Driven from
-# _input so the gesture is caught before the GUI consumes it.
+# Drag-anywhere scrolling for the inventory grid AND the store list: a drag that starts
+# ANYWHERE on the screen (even on a tile/button) scrolls; a plain tap still selects. Driven
+# from _input so the gesture is caught before the GUI consumes it. State is shared — only one
+# of these lists is visible at a time.
 var _inv_scroll: ScrollContainer       # current inventory grid scroll (null when grid is empty / not shown)
+var _store_scroll: ScrollContainer     # current store list scroll (null when not shown)
 var _inv_touch_id := -1
 var _inv_touch_start := Vector2.ZERO
 var _inv_dragging := false
-var _inv_suppress_tap := false         # set on a drag-release so the ending touch is not a tile tap
+var _inv_suppress_tap := false         # set on a drag-release so the ending touch is not a tap (inventory tiles + store buttons)
 const INV_DRAG_THRESHOLD := 24.0       # px of movement before a touch becomes a scroll (vs a tap)
 var _store_panel: Control
 var _store_vbox: VBoxContainer
@@ -348,24 +350,37 @@ func _on_equip(inst: Dictionary) -> void:
 ## scrolls. We never consume the event, so taps still reach the tile Buttons — instead we
 ## flag _inv_suppress_tap on a drag-release so the ending touch isn't treated as a tap.
 func _input(event: InputEvent) -> void:
-	if _inv_scroll == null or not _inv_panel.visible:
+	# Resolve which list is currently drag-scrollable (inventory or store; one at a time).
+	var sc: ScrollContainer = null
+	if _inv_panel.visible and _inv_scroll != null and not (_detail_popup.visible or _crate_opener.visible):
+		sc = _inv_scroll
+	elif _store_panel.visible and _store_scroll != null:
+		sc = _store_scroll
+	if sc == null:
 		return
-	if _detail_popup.visible or _crate_opener.visible:
-		return                                  # a modal is up — let it own the input
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			_inv_touch_id = event.index
 			_inv_touch_start = event.position
 			_inv_dragging = false
 		elif event.index == _inv_touch_id:
-			_inv_suppress_tap = _inv_dragging   # a drag-release must not count as a tile tap
+			_inv_suppress_tap = _inv_dragging   # a drag-release must not count as a tap
 			_inv_touch_id = -1
 			_inv_dragging = false
 	elif event is InputEventScreenDrag and event.index == _inv_touch_id:
 		if not _inv_dragging and event.position.distance_to(_inv_touch_start) > INV_DRAG_THRESHOLD:
 			_inv_dragging = true
 		if _inv_dragging:
-			_inv_scroll.scroll_vertical -= int(event.relative.y)
+			sc.scroll_vertical -= int(event.relative.y)
+
+## Wraps a zero-arg button callback so it's a no-op when the press was actually the END of a
+## scroll drag (drag-anywhere scrolling for the store list). Mirrors the inventory tap guards.
+func _guarded(cb: Callable) -> Callable:
+	return func() -> void:
+		if _inv_suppress_tap:
+			_inv_suppress_tap = false
+			return
+		cb.call()
 
 ## Tile tapped → open the detail popup for that instance.
 func _on_tile_pressed(inst: Dictionary) -> void:
@@ -432,6 +447,7 @@ func _store_header(parent: VBoxContainer, text: String) -> void:
 func _populate_store() -> void:
 	for c in _store_vbox.get_children():
 		c.queue_free()
+	_store_scroll = null   # cleared each rebuild; re-set below
 
 	_make_title(_store_vbox, "STORE", 44)
 
@@ -445,6 +461,8 @@ func _populate_store() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE   # built-in touch scroll off; we drive it from _input so a drag anywhere (even on a button) scrolls
+	_store_scroll = scroll
 	_store_vbox.add_child(scroll)
 	# Center a fixed-width column inside the full-width scroll so buttons don't stretch
 	# edge-to-edge. The HBox centers; the list shrinks to its widest child (the buttons).
@@ -471,7 +489,7 @@ func _populate_store() -> void:
 		else:
 			b.text = "%s — UNLOCK %d" % [String(c["name"]).to_upper(), price]
 			b.disabled = SaveManager.coins() < price
-			b.pressed.connect(_on_buy_character.bind(cid, price))
+			b.pressed.connect(_guarded(_on_buy_character.bind(cid, price)))
 		PixelTheme.style_button(b, Vector2(660, 92), 22)
 		row.add_child(b)
 		var desc := Label.new()
@@ -490,7 +508,7 @@ func _populate_store() -> void:
 		cb.text = "%s — %d" % [String(crate["name"]).to_upper(), int(crate["price"])]
 		PixelTheme.style_button(cb, Vector2(660, 88), 22)
 		cb.disabled = SaveManager.coins() < int(crate["price"])
-		cb.pressed.connect(_on_buy_crate.bind(String(crate["id"])))
+		cb.pressed.connect(_guarded(_on_buy_crate.bind(String(crate["id"]))))
 		list.add_child(cb)
 
 	# DEV (temporary): instantly stock one weapon of every rarity for inspect/feel testing.
@@ -498,13 +516,13 @@ func _populate_store() -> void:
 	var dev := Button.new()
 	dev.text = "DEV: GRANT ALL RARITIES"
 	PixelTheme.style_button(dev, Vector2(660, 88), 20)
-	dev.pressed.connect(_on_dev_grant_all)
+	dev.pressed.connect(_guarded(_on_dev_grant_all))
 	list.add_child(dev)
 
 	var dev_crates := Button.new()
 	dev_crates.text = "DEV: 1 OF EACH CRATE"
 	PixelTheme.style_button(dev_crates, Vector2(660, 88), 20)
-	dev_crates.pressed.connect(_on_dev_grant_crates)
+	dev_crates.pressed.connect(_guarded(_on_dev_grant_crates))
 	list.add_child(dev_crates)
 
 	_store_result = Label.new()
@@ -515,7 +533,7 @@ func _populate_store() -> void:
 	PixelTheme.style_label(_store_result, 18, _last_unbox_color)
 	list.add_child(_store_result)
 
-	var back := _make_button("BACK", func(): _show_only(_hub))
+	var back := _make_button("BACK", _guarded(func(): _show_only(_hub)))
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_store_vbox.add_child(back)
 
