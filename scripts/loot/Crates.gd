@@ -37,17 +37,17 @@ static func all() -> Array:
 		},
 		{
 			"id": "precision_pack", "name": "Buckshot & Bolts", "price": 500,
-			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["sniper", "shotgun"],
+			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["sniper", "shotgun", "auto_shotgun", "slug_gun", "railgun", "anti_materiel"],
 			"desc": "Snipers & shotguns. Any rarity up to Apocalypse.",
 		},
 		{
 			"id": "auto_case", "name": "Full Auto Case", "price": 500,
-			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["smg", "ak47", "nailgun"],
+			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["smg", "ak47", "nailgun", "pdw", "machine_pistol", "lmg"],
 			"desc": "SMGs & AK-47s. Any rarity up to Apocalypse.",
 		},
 		{
 			"id": "standard_arms", "name": "Standard Arms", "price": 500,
-			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["pistol", "rifle", "minigun"],
+			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["pistol", "rifle", "minigun", "magnum", "battle_rifle", "grenade_launcher"],
 			"desc": "Pistols, rifles & miniguns. Any rarity up to Apocalypse.",
 		},
 		{
