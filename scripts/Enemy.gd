@@ -8,6 +8,7 @@ extends CharacterBody2D
 const FLASH_SHADER := preload("res://shaders/flash.gdshader")
 const KNOCKBACK_DECAY := 900.0    # px/s^2 the talent knockback impulse bleeds off
 const FROZEN_TINT := Color("3D0099")   # C2 indigo — frozen tell (palette-compliant)
+const PIN_TINT := Color("E0E5FF")      # C4 lavender — Nail Gun "nailed" tell (palette-compliant)
 
 @export var xp_gem_scene: PackedScene
 
@@ -28,6 +29,8 @@ var _vuln_bonus := 0.0         # extra damage-taken fraction (Marked talent); 0 
 var _vuln_time := 0.0
 var _frozen := false           # Cold Snap: fully stopped while true
 var _freeze_time := 0.0
+var _pinned := false           # Nail Gun: rooted in place (movement only) while true
+var _pin_time := 0.0
 var _knockback := Vector2.ZERO # decaying impulse (Concussive talent)
 var _contact_cd := 0.0         # bite cooldown: counts down between contact hits so we bounce, not stick
 var _flash_mat: ShaderMaterial
@@ -103,16 +106,39 @@ func apply_freeze(duration: float) -> void:
 	_freeze_time = maxf(_freeze_time, duration)
 	if not _frozen:
 		_frozen = true
-		if _flash_mat != null:
-			_flash_mat.set_shader_parameter("base_tint", FROZEN_TINT)
+		_refresh_tint()
 
 func is_frozen() -> bool:
 	return _frozen
 
 func _thaw() -> void:
 	_frozen = false
+	_refresh_tint()
+
+## Nail Gun: root the enemy in place for `duration`s (movement only — it can still act).
+## Lavender "nailed" tell, distinct from the indigo freeze; does NOT set is_frozen().
+func apply_pin(duration: float) -> void:
+	_pin_time = maxf(_pin_time, duration)
+	if not _pinned:
+		_pinned = true
+		_refresh_tint()
+
+func is_pinned() -> bool:
+	return _pinned
+
+## Pure: persistent base tint by status precedence (freeze > pin > none).
+## Static so a probe can verify the precedence headlessly.
+static func _resolve_tint(frozen: bool, pinned: bool) -> Color:
+	if frozen:
+		return FROZEN_TINT
+	if pinned:
+		return PIN_TINT
+	return Color(1, 1, 1, 1)
+
+## Push the resolved tint to the flash material (no-op before the sprite material exists).
+func _refresh_tint() -> void:
 	if _flash_mat != null:
-		_flash_mat.set_shader_parameter("base_tint", Color(1, 1, 1, 1))
+		_flash_mat.set_shader_parameter("base_tint", _resolve_tint(_frozen, _pinned))
 
 ## Remaining-health fraction (for the above-head bar).
 func health_fraction() -> float:
@@ -150,6 +176,12 @@ func _physics_process(delta: float) -> void:
 		if _freeze_time <= 0.0:
 			_thaw()
 
+	if _pin_time > 0.0:
+		_pin_time -= delta
+		if _pin_time <= 0.0:
+			_pinned = false
+			_refresh_tint()
+
 	if _target == null or not is_instance_valid(_target):
 		return
 
@@ -159,7 +191,7 @@ func _physics_process(delta: float) -> void:
 		velocity += _knockback
 		_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
 
-	if _frozen:
+	if _frozen or _pinned:
 		velocity = Vector2.ZERO
 
 	move_and_slide()
