@@ -56,8 +56,9 @@ static func all() -> Array:
 			"upgrades": ["damage", "fire_rate", "range", "pierce", "ricochet", "incendiary", "reload", "mag"],
 		},
 		{
-			"id": "nailgun", "name": "Nail Gun", "desc": "Hardware-aisle rapid-fire — cheap, pierces", "category": "SMG",
+			"id": "nailgun", "name": "Nail Gun", "desc": "Hardware-aisle rapid-fire — pins what it pierces", "category": "SMG",
 			"fire_mode": "projectile", "base_pierce": 1,
+			"pin_chance": 0.12, "pin_dur": 0.45,
 			"damage": 9.0, "fire_interval": 0.07, "bullet_speed": 950.0,
 			"range": 500.0, "projectiles": 1, "spread": 0.05,
 			"mag_size": 25, "reload_time": 1.3,

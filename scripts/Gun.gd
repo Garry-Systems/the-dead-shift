@@ -34,6 +34,8 @@ var ricochet_count := 0
 var incendiary := false
 var burn_dps := 0.0
 var burn_duration := 0.0
+var pin_chance := 0.0              # Nail Gun: chance per hit to root the enemy (0 = none)
+var pin_dur := 0.0                 # Nail Gun: pin (root) duration in seconds
 
 # Magazine / reload (Spec 2). reload_mult is NOT reset by configure (perks apply after it).
 var mag_size := 12
@@ -105,6 +107,8 @@ func configure(def: Dictionary) -> void:
 	pool_slow = float(def.get("pool_slow", 0.0))
 	pool_slow_dur = float(def.get("pool_slow_dur", 0.0))
 	beam_width = float(def.get("beam_width", 28.0))
+	pin_chance = float(def.get("pin_chance", 0.0))
+	pin_dur = float(def.get("pin_dur", 0.0))
 	_ammo = mag_size
 	_reloading = false
 	_reload_timer = 0.0
@@ -270,6 +274,8 @@ func _spawn_bullet(dir: Vector2) -> void:
 		bullet.burn_duration = burn_duration
 	bullet.explode_radius = explode_radius
 	bullet.explode_force = explode_force
+	bullet.pin_chance = pin_chance
+	bullet.pin_dur = pin_dur
 	if pool_family != "":
 		bullet.pool_cfg = _build_pool_cfg()
 	get_tree().current_scene.add_child(bullet)

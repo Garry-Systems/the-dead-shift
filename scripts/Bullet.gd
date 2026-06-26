@@ -15,6 +15,8 @@ var overpen_growth := 0.0      # Railbreaker: % damage gained each time the bull
 var incendiary := false        # ignites enemies it hits
 var burn_dps := 0.0
 var burn_duration := 0.0
+var pin_chance := 0.0          # Nail Gun: chance to root the enemy on hit (0 = none)
+var pin_dur := 0.0             # Nail Gun: root duration (seconds)
 
 # Delivery-shell on-death effects (set by Gun._spawn_bullet; inert on a normal bullet).
 var explode_radius := 0.0      # >0: detonate a Shockwave on death (Grenade Launcher)
@@ -87,6 +89,8 @@ func _on_body_entered(body) -> void:
 			body.flash_hit()
 		if incendiary and body.has_method("ignite"):
 			body.ignite(burn_dps, burn_duration)
+		if pin_chance > 0.0 and body.has_method("apply_pin") and randf() < pin_chance:
+			body.apply_pin(pin_dur)
 
 	# Fire talent procs: on-hit statuses, lifesteal, chain, on-kill explode/frenzy.
 	if not talent_payload.is_empty():
