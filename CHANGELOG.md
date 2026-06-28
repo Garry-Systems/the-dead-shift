@@ -4,6 +4,16 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.30 — Smaller Crate Reveal & Gunmetal Weapons (2026-06-27)
+
+- **Crate opening is 20% smaller** — the reveal reel had grown a touch oversized; it's scaled back down 20% while keeping the exact same spin and snap.
+- **No more spoiler tiles** — the weapons sitting on either side of your prize are no longer forced to be rares, so the reel doesn't give away the result before it lands.
+- **All 21 weapons redrawn** — every gun icon is remade as detailed 64×64 "gunmetal" pixel art (metal body, lit top edge, dark outline, with energy cores, scopes and barrels picked out) in place of the old flat silhouettes.
+
+## v0.1.29 — Nail Gun Pin (2026-06-26)
+
+- **The Nail Gun can PIN zombies** — each nail now has a chance to nail a zombie to the spot for a moment, marked by a lavender "pinned" flash. It roots their feet, not their aim — pinned shooters still fire back. Bosses are immune.
+
 ## v0.1.28 — Store Drag-Scroll (2026-06-24)
 
 - **The Store scrolls from anywhere too** — just like the inventory: drag anywhere on the store screen to scroll the list, and a tap still buys or selects. Accidental buys from a scroll-drag are prevented.
