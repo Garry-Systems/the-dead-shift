@@ -420,6 +420,12 @@ func _fire_cone(dir: Vector2) -> bool:
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
 			})
+	# The flame also scorches destructibles (barrels, drums, crates, cover) caught in the cone
+	# — raw damage like a bullet hit (no talents; a torched barrel still bursts via its own
+	# _die). Reuses the cone geometry on the destructibles group.
+	for d in _enemies_in_cone(global_position, dir, gun_range, cone_angle * 0.5, get_tree().get_nodes_in_group("destructibles")):
+		if is_instance_valid(d) and d.has_method("take_damage"):
+			d.take_damage(damage)
 	_spawn_flame(dir)
 	return true
 
