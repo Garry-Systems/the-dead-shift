@@ -8,20 +8,20 @@ extends Control
 signal closed()
 signal weapon_revealed(inst: Dictionary)   # reel landed + committed → owner shows the full inspect
 
-const TILE_W := 840.0        # big reel tiles that fill most of the 1080-wide screen as they roll
-const TILE_H := 620.0
-const ITEM_PX := 632.0       # TILE_H + 12 gap — the VERTICAL pitch (reel runs top→bottom)
+const TILE_W := 672.0        # reel tiles at ~80% of the old size (20% smaller per Larry 2026-06-27)
+const TILE_H := 496.0
+const ITEM_PX := 505.6       # TILE_H + ~10 gap — the VERTICAL pitch (reel runs top→bottom)
 const REEL_COUNT := 80
 const LAND_INDEX := 21       # winner slot near the TOP of the strip: the reel scrolls DOWN onto it,
                              # so tiles 22..79 stream through the reticle first and 0..20 buffer the overshoot
 const START_INDEX := 73      # tile centered when the spin starts — sets the spin length (73→21 ≈ 52 tiles)
-const FAST_SPEED := 9520.0   # px/sec linear phase (scaled ~2.61x to the bigger vertical pitch; ~2.5s spin)
-const SLOW_DIST := 10380.0   # begin ease-out this far from target — long, drawn-out decel
+const FAST_SPEED := 7616.0   # px/sec linear phase (scales WITH the pitch so the ~2.5s spin feel is unchanged)
+const SLOW_DIST := 8304.0    # begin ease-out this far from target — long, drawn-out decel
 const SLOWDOWN := 0.9        # mid ease-out lerp factor (per-sec rate; unitless, unchanged by tile size) — kept
                             # so the reel decelerates smoothly instead of speeding up at the ease-out
-const CRAWL_DIST := 1470.0   # final crawl begins ~2.3 tiles out — the tease zone
+const CRAWL_DIST := 1176.0   # final crawl begins ~2.3 tiles out — the tease zone
 const CRAWL_SLOWDOWN := 0.82  # ultra-gentle final creep (per-sec rate; unchanged by tile size)
-const TICK_PX := 632.0       # one tile-height per tick
+const TICK_PX := 505.6       # one tile-height per tick
 const TICK_CD := 0.03        # min seconds between ticks
 
 var _crate_id := ""
@@ -105,10 +105,12 @@ func _build_reel() -> void:
 		ch.queue_free()
 	var crate := Crates.get_crate(_crate_id)
 	var ceil_rarity := int(crate.get("rarity_ceil", Rarity.MAX_ID))
-	# Salt the reel with top-of-crate "tease" tiles among those that stream past before the
-	# winner, plus ones flanking the winner so a special slowly rolls THROUGH the reticle right
-	# before the real drop lands (the "so close" heartbreak), with another sitting just off-center.
-	var tease := {28: true, 40: true, 52: true, 64: true, 70: true, (LAND_INDEX - 1): true, (LAND_INDEX + 1): true}
+	# Salt the reel with top-of-crate "tease" tiles among those that stream PAST before the
+	# winner lands (the "so close" heartbreak as a special rolls through the reticle early).
+	# The winner's immediate neighbors (LAND_INDEX ± 1) are deliberately left as ordinary
+	# crate rolls — a forced rare sitting right beside the landing slot would telegraph the
+	# result before it settles, so we never seed one there.
+	var tease := {28: true, 40: true, 52: true, 64: true, 70: true}
 	for i in REEL_COUNT:
 		var inst: Dictionary
 		if i == LAND_INDEX:
@@ -135,10 +137,10 @@ func _reel_tile(inst: Dictionary) -> Control:
 	var icon := TextureRect.new()
 	icon.texture = WeaponInstance.icon(inst)
 	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	icon.offset_left = 40
-	icon.offset_top = 40
-	icon.offset_right = -40
-	icon.offset_bottom = -40
+	icon.offset_left = 32
+	icon.offset_top = 32
+	icon.offset_right = -32
+	icon.offset_bottom = -32
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
