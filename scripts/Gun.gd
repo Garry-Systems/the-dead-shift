@@ -334,11 +334,15 @@ func upgrade_mag_size(pct: float) -> void:
 
 func _fire_lightning(dir: Vector2) -> bool:
 	var enemies := LineOfSight.filter_visible(global_position, get_tree().get_nodes_in_group("enemies"), get_world_2d().direct_space_state)
-	var first := _nearest_enemy(global_position, gun_range, enemies)  # gun_range governs initial target acquisition only; chain hops use jump_radius
+	# Barrels/props conduct too — the bolt can target and arc through destructibles (raw damage,
+	# no talents), so a torched barrel bursts via its own _die. Appended without LoS, like the cone.
+	var conductors: Array = enemies.duplicate()
+	conductors.append_array(get_tree().get_nodes_in_group("destructibles"))
+	var first := _nearest_enemy(global_position, gun_range, conductors)  # gun_range governs initial target acquisition only; chain hops use jump_radius
 	if first == null:
 		return false
 	_show_muzzle(dir.angle())
-	var chain := _chain_targets(first, jump_count, jump_radius, enemies)
+	var chain := _chain_targets(first, jump_count, jump_radius, conductors)
 	var player := get_parent() as Player
 	var points: Array = [global_position]
 	var dmg := damage
@@ -347,6 +351,11 @@ func _fire_lightning(dir: Vector2) -> bool:
 			continue
 		points.append(e.global_position)
 		var hit_pos: Vector2 = e.global_position
+		if not e.is_in_group("enemies"):
+			if e.has_method("take_damage"):
+				e.take_damage(dmg)            # destructible link: raw damage, no talents/crit
+			dmg *= jump_falloff
+			continue
 		var roll := TalentEngine.roll_damage(dmg, talent_payload)
 		e.take_damage(float(roll["damage"]))
 		var killed := not is_instance_valid(e)
@@ -388,6 +397,11 @@ func _fire_beam(dir: Vector2) -> bool:
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
 			})
+	# Destructibles in the beam corridor take raw damage too (barrels burst). Same geometry,
+	# no talents — matches the flame cone / a bullet hit.
+	for d in _enemies_in_beam(global_position, dir, gun_range, beam_width, get_tree().get_nodes_in_group("destructibles")):
+		if is_instance_valid(d) and d.has_method("take_damage"):
+			d.take_damage(damage)
 	_spawn_beam(dir)
 	return true
 

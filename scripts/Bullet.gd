@@ -129,7 +129,7 @@ func _detonate() -> void:
 		get_tree().current_scene.add_child(blast)
 		blast.global_position = global_position
 		var gun = (talent_player.gun if (talent_player != null and is_instance_valid(talent_player)) else null)
-		blast.blast(explode_radius, damage, explode_force, gun, talent_player)
+		blast.blast(explode_radius, damage, explode_force, gun, talent_player, true)  # grenade blast also scorches barrels/destructibles
 	if not pool_cfg.is_empty():
 		var zone := HazardZone.new()
 		get_tree().current_scene.add_child(zone)

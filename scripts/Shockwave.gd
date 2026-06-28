@@ -17,7 +17,7 @@ var _age := 0.0
 ## Fire the burst immediately, then start the visual. The caller sets global_position and
 ## adds this node to the scene BEFORE calling blast(). gun/player may be null (the burst still
 ## pushes + damages; it just carries no talents). Mirrors Bullet's damage→killed→process_hit.
-func blast(radius: float, damage: float, force: float, gun, player) -> void:
+func blast(radius: float, damage: float, force: float, gun, player, hit_destructibles := false) -> void:
 	_radius = radius
 	z_index = 50
 	var payload: Dictionary = {}
@@ -48,6 +48,15 @@ func blast(radius: float, damage: float, force: float, gun, player) -> void:
 				"dir": dir,
 				"tree": tree,
 			})
+	# Destructibles in the blast take raw damage too (barrels burst). GATED: a barrel's OWN
+	# burst must not recursively detonate the field — that ripples via Destructible's fuse +
+	# per-frame budget — so only outside explosions (the grenade) pass hit_destructibles = true.
+	if hit_destructibles:
+		for d in tree.get_nodes_in_group("destructibles"):
+			if not is_instance_valid(d) or not d.has_method("take_damage"):
+				continue
+			if (d as Node2D).global_position.distance_squared_to(global_position) <= r2:
+				d.take_damage(damage)
 	queue_redraw()
 
 ## Visual-only burst (no damage / no knockback) — the expanding ring + flash on its own.
