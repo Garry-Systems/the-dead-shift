@@ -9,6 +9,11 @@ const FLASH_SHADER := preload("res://shaders/flash.gdshader")
 const KNOCKBACK_DECAY := 900.0    # px/s^2 the talent knockback impulse bleeds off
 const FROZEN_TINT := Color("3D0099")   # C2 indigo — frozen tell (palette-compliant)
 const PIN_TINT := Color("E0E5FF")      # C4 lavender — Nail Gun "nailed" tell (palette-compliant)
+const FLASH_CD := 0.15           # min seconds between hit-flashes. A continuous weapon (flame cone,
+                                 # beam) or a rapid gun (Nail Gun) calls flash_hit far faster than the
+                                 # 0.12s pop can fade, which pins the sprite SOLID WHITE and hides the
+                                 # burn/freeze/pin tint. Throttling to readable pulses fixes that
+                                 # (purely cosmetic — flash_hit never touches gameplay).
 
 @export var xp_gem_scene: PackedScene
 
@@ -34,6 +39,7 @@ var _pin_time := 0.0
 var _knockback := Vector2.ZERO # decaying impulse (Concussive talent)
 var _contact_cd := 0.0         # bite cooldown: counts down between contact hits so we bounce, not stick
 var _flash_mat: ShaderMaterial
+var _flash_cd := 0.0            # counts down between hit-flashes (see FLASH_CD)
 var _health_bar: EnemyHealthBar
 
 ## Bakes scaled stats at spawn. Called by the Spawner before/at add_child.
@@ -65,10 +71,12 @@ func _setup_flash() -> void:
 	_flash_mat.shader = FLASH_SHADER
 	spr.material = _flash_mat
 
-## Brief white pop on bullet impact (called by Bullet, not by burn ticks).
+## Brief white pop on bullet impact (called by Bullet, not by burn ticks). Throttled by
+## FLASH_CD so continuous/rapid fire can't re-slam the flash and pin the sprite white.
 func flash_hit() -> void:
-	if _flash_mat == null:
+	if _flash_mat == null or _flash_cd > 0.0:
 		return
+	_flash_cd = FLASH_CD
 	_flash_mat.set_shader_parameter("flash", 1.0)
 	var tw := create_tween()
 	tw.tween_method(_set_flash, 1.0, 0.0, 0.12)
@@ -147,6 +155,8 @@ func health_fraction() -> float:
 	return _health.current / _health.maxhp
 
 func _physics_process(delta: float) -> void:
+	if _flash_cd > 0.0:
+		_flash_cd -= delta
 	if _burn_time > 0.0:
 		_burn_time -= delta
 		take_damage(_burn_dps * delta)
