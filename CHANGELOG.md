@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.36 — More Weapons Hit Barrels (2026-06-28)
+
+- **The railgun, Tesla gun, and grenade launcher now damage barrels and destructibles too** — matching the flamethrower. The Tesla can even arc its lightning to barrels. Zapped/blasted/beamed barrels burst as usual.
+
 ## v0.1.35 — Flamethrower Burns Barrels (2026-06-28)
 
 - **The flamethrower now damages barrels, crates, and other destructibles** caught in its cone — torch a barrel and it bursts. Previously the flame only hurt enemies.
