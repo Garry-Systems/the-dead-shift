@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.31 — Triple-Tap to Skip (2026-06-27)
+
+- **Triple-tap to skip the crate reveal** — in a hurry? Tap the screen three times while a crate is spinning to jump straight to the result. You still get the exact same weapon, just without the wait.
+
 ## v0.1.30 — Smaller Crate Reveal & Gunmetal Weapons (2026-06-27)
 
 - **Crate opening is 20% smaller** — the reveal reel had grown a touch oversized; it's scaled back down 20% while keeping the exact same spin and snap.
