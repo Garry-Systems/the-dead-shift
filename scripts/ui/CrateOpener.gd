@@ -23,6 +23,7 @@ const CRAWL_DIST := 1176.0   # final crawl begins ~2.3 tiles out — the tease z
 const CRAWL_SLOWDOWN := 0.82  # ultra-gentle final creep (per-sec rate; unchanged by tile size)
 const TICK_PX := 505.6       # one tile-height per tick
 const TICK_CD := 0.03        # min seconds between ticks
+const TRIPLE_TAP_WINDOW := 0.6   # 3 taps within this many seconds skips the spin to the result
 
 var _crate_id := ""
 var _winner := {}
@@ -31,6 +32,8 @@ var _target_y := 0.0
 var _animating := false
 var _last_tick_y := 0.0
 var _tick_cd := 0.0
+var _tap_count := 0           # taps landed inside the current TRIPLE_TAP_WINDOW
+var _tap_window := 0.0        # seconds left to land the next tap of a triple
 
 var _mask: Control
 var _reel: Control
@@ -158,11 +161,45 @@ func _start_spin() -> void:
 	_reel.position = Vector2(0.0, _scroll_y)
 	_last_tick_y = _scroll_y
 	_tick_cd = 0.0
+	_tap_count = 0
+	_tap_window = 0.0
 	_animating = true
+
+## Triple-tap ANYWHERE during the spin to skip straight to the result. We count only
+## InputEventScreenTouch presses: the project has emulate_touch_from_mouse on, so an editor
+## mouse click also arrives as exactly one touch (and on-device the emulated mouse is a
+## separate type we ignore) — one count per real tap, no double-counting. MainMenu's
+## drag-scroll _input already bails out while this overlay is visible, so taps don't leak.
+func _input(event: InputEvent) -> void:
+	if not visible or not _animating:
+		return
+	if not (event is InputEventScreenTouch and event.pressed):
+		return
+	if _tap_window <= 0.0:
+		_tap_count = 0
+	_tap_count += 1
+	_tap_window = TRIPLE_TAP_WINDOW
+	get_viewport().set_input_as_handled()    # swallow the tap so nothing behind reacts
+	if _tap_count >= 3:
+		_tap_count = 0
+		_tap_window = 0.0
+		_skip_to_result()
+
+## Snap the reel onto the pre-rolled winner and run the normal settle (flash → commit →
+## reveal), so an impatient triple-tap lands the SAME result, just instantly.
+func _skip_to_result() -> void:
+	if not _animating:
+		return
+	_scroll_y = _target_y
+	_reel.position.y = _scroll_y
+	_animating = false
+	_on_settle()
 
 func _process(delta: float) -> void:
 	if not _animating:
 		return
+	if _tap_window > 0.0:
+		_tap_window -= delta
 	_tick_cd = maxf(0.0, _tick_cd - delta)
 	var dist := _target_y - _scroll_y
 	var ad := absf(dist)
