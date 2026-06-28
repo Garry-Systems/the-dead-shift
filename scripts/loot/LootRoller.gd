@@ -46,10 +46,13 @@ static func roll(rarity: int, base_id: String = "") -> Dictionary:
 static func _roll_talents(affix: Dictionary) -> Array:
 	var count := Rarity.talent_count(int(affix.get("rarity", 1)))
 	var out: Array = []
+	var used := {}                                       # ids already taken — no duplicate talents on one weapon
 	for slot in count:
-		var def := Talents.random_of_tier(slot + 1)
+		var tier: int = mini(slot + 1, Talents.MAX_TIER)   # cap so a 4th slot (Apocalypse) draws another top-tier talent
+		var def := Talents.random_of_tier_excluding(tier, used)
 		if def.is_empty():
 			continue
+		used[String(def["id"])] = true
 		var rolls: Array = []
 		for m in def["mods"]:
 			rolls.append(snappedf(randf(), 0.01))

@@ -6,9 +6,11 @@ class_name Rarity
 ## id -> tier. `weight` drives the factorial-decay roll; higher tiers are exponentially
 ## rarer with zero weight tables to maintain. `scrap` is the deconstruct coin range.
 ## `talents` = the FIXED number of talent slots a weapon of this rarity always rolls
-## (Larry 2026-06-27 — "set talents amount per rarity"; Orange always 3). Slot i pulls a
-## tier-(i+1) talent, so 3 = one talent of each tier. WHICH talents fill the slots is RNG;
-## only the COUNT is locked. This supersedes the per-affix min/max_talents (now unused).
+## (Larry — "set talents amount per rarity"; Orange/Red 3, Apocalypse locked at 4). Slot i
+## pulls a random talent of tier min(i+1, Talents.MAX_TIER) with NO duplicates, so the first
+## three slots are one talent of each tier and any extra slot (Apocalypse's 4th) adds another
+## top-tier talent. WHICH talents fill the slots is RNG; only the COUNT is locked. Supersedes
+## the per-affix min/max_talents (now unused).
 const TIERS := [
 	{ "id": 1, "name": "Rusted",    "weight": 1,   "scrap": [10, 20],      "color": Color("6e6e6e"), "talents": 0 },
 	{ "id": 2, "name": "Salvaged",  "weight": 2,   "scrap": [20, 40],      "color": Color("d6d6d6"), "talents": 0 },
@@ -17,7 +19,7 @@ const TIERS := [
 	{ "id": 5, "name": "Savage",    "weight": 5,   "scrap": [300, 600],    "color": Color("a64bff"), "talents": 2 },
 	{ "id": 6, "name": "Merciless", "weight": 6,   "scrap": [800, 1500],   "color": Color("ff7a18"), "talents": 3 },
 	{ "id": 7, "name": "Carnage",   "weight": 7,   "scrap": [2000, 4000],  "color": Color("ff2d2d"), "talents": 3 },
-	{ "id": 8, "name": "Apocalypse","weight": 8,   "scrap": [5000, 10000], "color": Color("00ffff"), "talents": 3 },
+	{ "id": 8, "name": "Apocalypse","weight": 8,   "scrap": [5000, 10000], "color": Color("00ffff"), "talents": 4 },
 ]
 
 const MAX_ID := 8

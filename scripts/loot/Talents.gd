@@ -224,6 +224,11 @@ static func get_talent(id: String) -> Dictionary:
 			return t
 	return {}
 
+## Highest talent tier that exists in the catalog. Talent slots beyond this cap here, so a
+## rarity asking for more talents than there are tiers (Apocalypse = 4) fills the extra slot
+## with another top-tier talent instead of silently dropping it.
+const MAX_TIER := 3
+
 static func of_tier(tier: int) -> Array:
 	var out: Array = []
 	for t in all():
@@ -234,6 +239,18 @@ static func of_tier(tier: int) -> Array:
 ## Random talent of a tier (for an affix's "random" slot). Empty dict if none.
 static func random_of_tier(tier: int) -> Dictionary:
 	var pool := of_tier(tier)
+	if pool.is_empty():
+		return {}
+	return pool[randi() % pool.size()]
+
+## Random talent of a tier whose id is NOT already a key in `exclude` — so one weapon never
+## rolls the same talent twice when two slots draw from the same tier. Empty dict if the tier
+## is exhausted.
+static func random_of_tier_excluding(tier: int, exclude: Dictionary) -> Dictionary:
+	var pool: Array = []
+	for t in of_tier(tier):
+		if not exclude.has(String(t["id"])):
+			pool.append(t)
 	if pool.is_empty():
 		return {}
 	return pool[randi() % pool.size()]
