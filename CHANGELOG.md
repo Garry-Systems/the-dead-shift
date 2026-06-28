@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.32 — Consistent Talent Counts (2026-06-27)
+
+- **Each rarity now grants a set number of talents** — Orange weapons always have **3** talents (never 2 or 1), and every rarity has a fixed count: Green/Blue **1**, Purple **2**, Orange/Red/Cyan **3** (Gray/White none). Which talents you get is still random — only the count is locked. Applies to newly pulled weapons.
+
 ## v0.1.31 — Triple-Tap to Skip (2026-06-27)
 
 - **Triple-tap to skip the crate reveal** — in a hurry? Tap the screen three times while a crate is spinning to jump straight to the result. You still get the exact same weapon, just without the wait.
