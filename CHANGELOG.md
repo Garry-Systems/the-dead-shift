@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.35 — Flamethrower Burns Barrels (2026-06-28)
+
+- **The flamethrower now damages barrels, crates, and other destructibles** caught in its cone — torch a barrel and it bursts. Previously the flame only hurt enemies.
+
 ## v0.1.34 — Flamethrower Flash Fix (2026-06-28)
 
 - **Enemies no longer wash out solid white under the flamethrower** (and the railgun beam / Nail Gun) — the hit-flash was re-firing faster than it could fade, pinning them white and hiding their burn tint. Now it pulses cleanly, so you can actually see enemies burn and take damage.
