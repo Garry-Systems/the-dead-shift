@@ -15,6 +15,10 @@ const FLAT_STATS := ["multishot", "pierce", "ricochet"]
 ## and the per-stat ranges. Add more affixes per rarity later — the roller picks randomly
 ## among all affixes whose rarity matches the rolled tier.
 ##
+## NOTE: the `min_talents`/`max_talents` fields below are LEGACY and no longer read — the
+## talent COUNT per weapon is now fixed per rarity in Rarity.TIERS[].talents (see
+## LootRoller._roll_talents). Left in place only so old data/tools don't choke on missing keys.
+##
 ## TUNED 2026-06-15 ("go nuts — RNG is king"): steep ladder, clearly-separated tiers, wide
 ## god-roll spreads, and multishot/pierce/ricochet pushed hard at the top so a high-rarity
 ## drop is transformative. % stats are "+X% better"; flat stats are "+N". fire_rate/reload

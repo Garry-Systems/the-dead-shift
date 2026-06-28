@@ -5,15 +5,19 @@ class_name Rarity
 
 ## id -> tier. `weight` drives the factorial-decay roll; higher tiers are exponentially
 ## rarer with zero weight tables to maintain. `scrap` is the deconstruct coin range.
+## `talents` = the FIXED number of talent slots a weapon of this rarity always rolls
+## (Larry 2026-06-27 — "set talents amount per rarity"; Orange always 3). Slot i pulls a
+## tier-(i+1) talent, so 3 = one talent of each tier. WHICH talents fill the slots is RNG;
+## only the COUNT is locked. This supersedes the per-affix min/max_talents (now unused).
 const TIERS := [
-	{ "id": 1, "name": "Rusted",    "weight": 1,   "scrap": [10, 20],      "color": Color("6e6e6e") },
-	{ "id": 2, "name": "Salvaged",  "weight": 2,   "scrap": [20, 40],      "color": Color("d6d6d6") },
-	{ "id": 3, "name": "Hardened",  "weight": 3,   "scrap": [60, 120],     "color": Color("2ecc40") },
-	{ "id": 4, "name": "Lethal",    "weight": 4,   "scrap": [120, 240],    "color": Color("2f7bff") },
-	{ "id": 5, "name": "Savage",    "weight": 5,   "scrap": [300, 600],    "color": Color("a64bff") },
-	{ "id": 6, "name": "Merciless", "weight": 6,   "scrap": [800, 1500],   "color": Color("ff7a18") },
-	{ "id": 7, "name": "Carnage",   "weight": 7,   "scrap": [2000, 4000],  "color": Color("ff2d2d") },
-	{ "id": 8, "name": "Apocalypse","weight": 8,   "scrap": [5000, 10000], "color": Color("00ffff") },
+	{ "id": 1, "name": "Rusted",    "weight": 1,   "scrap": [10, 20],      "color": Color("6e6e6e"), "talents": 0 },
+	{ "id": 2, "name": "Salvaged",  "weight": 2,   "scrap": [20, 40],      "color": Color("d6d6d6"), "talents": 0 },
+	{ "id": 3, "name": "Hardened",  "weight": 3,   "scrap": [60, 120],     "color": Color("2ecc40"), "talents": 1 },
+	{ "id": 4, "name": "Lethal",    "weight": 4,   "scrap": [120, 240],    "color": Color("2f7bff"), "talents": 1 },
+	{ "id": 5, "name": "Savage",    "weight": 5,   "scrap": [300, 600],    "color": Color("a64bff"), "talents": 2 },
+	{ "id": 6, "name": "Merciless", "weight": 6,   "scrap": [800, 1500],   "color": Color("ff7a18"), "talents": 3 },
+	{ "id": 7, "name": "Carnage",   "weight": 7,   "scrap": [2000, 4000],  "color": Color("ff2d2d"), "talents": 3 },
+	{ "id": 8, "name": "Apocalypse","weight": 8,   "scrap": [5000, 10000], "color": Color("00ffff"), "talents": 3 },
 ]
 
 const MAX_ID := 8
@@ -27,6 +31,10 @@ static func tier_name(id: int) -> String:
 
 static func color(id: int) -> Color:
 	return tier(id).color
+
+## The fixed number of talent slots a weapon of this rarity always rolls (see TIERS).
+static func talent_count(id: int) -> int:
+	return int(tier(id).get("talents", 0))
 
 ## Factorial-decay ladder. Start at `floor_id`, try to climb each step; the chance to
 ## climb from tier i is 1/(i+1). Cascaded from floor 1 this yields roughly:

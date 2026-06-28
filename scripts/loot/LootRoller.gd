@@ -38,11 +38,13 @@ static func roll(rarity: int, base_id: String = "") -> Dictionary:
 	inst["talents"] = _roll_talents(affix)
 	return inst
 
-## Roll the affix's talent slots: slot index i (0-based) pulls a random talent of tier
-## i+1, so higher-rarity affixes (more slots) reach the stronger tier-2/3 talents. Each
-## talent stores a 0..1 roll per mod and an unlock_level rolled from its level_required.
+## Roll a weapon's talent slots: slot index i (0-based) pulls a random talent of tier
+## i+1, so a higher count reaches the stronger tier-2/3 talents. The COUNT is now FIXED per
+## rarity (Rarity.talent_count — e.g. Orange always 3), so every weapon of a given rarity
+## gets the same number of talents; only WHICH talents is RNG. Each talent stores a 0..1
+## roll per mod and an unlock_level rolled from its level_required.
 static func _roll_talents(affix: Dictionary) -> Array:
-	var count := randi_range(int(affix.get("min_talents", 0)), int(affix.get("max_talents", 0)))
+	var count := Rarity.talent_count(int(affix.get("rarity", 1)))
 	var out: Array = []
 	for slot in count:
 		var def := Talents.random_of_tier(slot + 1)
