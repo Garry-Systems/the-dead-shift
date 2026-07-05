@@ -311,6 +311,7 @@ const STOCKER_HP := 1100.0             # below base — glass cannon, dies fast 
 const STOCKER_SPEED_MULT := 1.7        # persistent chase-speed multiplier (fast)
 const STOCKER_CRATE_SIZE := 22.0       # px rect half-extent of a dropped crate obstacle
 const STOCKER_CRATE_DROP_DIST := 70.0  # px behind the boss a dropped crate lands
+const STOCKER_CRATE_MAX := 6           # live stocker crates at once — can pressure but never seal a ring around the player (oldest evicted at cap)
 
 # The Fryer: medium pace, denies ground with fire pools + heat-lamp bands.
 const FRYER_HP := 2000.0               # medium
@@ -325,3 +326,7 @@ const COURIER_CHARGE_DURATION := 0.9   # seconds
 const COURIER_RING_COUNT := 10         # radial burst projectile count
 const COURIER_SLOW_DURATION := 3.0     # slow-aura debuff length
 const COURIER_SLOW_FACTOR := 0.4       # slow-aura move-speed cut
+
+# SHIFT CHANGE toast debounce: the Hud edge-detects "no boss -> boss" each frame, which in Boss
+# Rush can flicker on a same-frame boss-death + refill depending on Spawner/Hud process order.
+const SHIFT_TOAST_COOLDOWN := 8.0      # min seconds between SHIFT CHANGE toasts

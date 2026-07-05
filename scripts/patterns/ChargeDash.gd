@@ -10,6 +10,12 @@ extends AttackPattern
 ## true so BossBase's built-in chase stands down — see BossBase._physics_process). The boss
 ## keeps its normal bit4 cover collision mask throughout, so move_and_slide naturally slides/
 ## stops the dash at solid cover exactly like the built-in chase does — no separate wall logic.
+##
+## TIMING: the dash movement runs in _physics_process, NOT the base class's _process/_active —
+## move_and_slide() applies one fixed physics-tick of `velocity` per CALL, so stepping it from
+## the render frame would scale dash distance with the display's refresh rate (~2x on a 120Hz
+## phone). Matching how BossBase/Enemy/Player all move, every body step here is physics-timed;
+## _active stays untouched (the base class only uses it for the post-windup redraw loop).
 
 var _speed := GameConfig.CHARGE_SPEED
 var _duration := GameConfig.CHARGE_DURATION
@@ -35,7 +41,11 @@ func _on_telegraph_end() -> void:
 	if _boss_body != null and is_instance_valid(_boss_body):
 		_boss_body.charging = true
 
-func _active(delta: float) -> void:
+## The dash itself: physics-timed body movement + hit-once check + the dash window countdown
+## (see the TIMING note in the class docs). Inert until the telegraph ends (`_fired`).
+func _physics_process(delta: float) -> void:
+	if not _fired or _time_left <= 0.0:
+		return
 	if _boss_body == null or not is_instance_valid(_boss_body):
 		queue_free()
 		return

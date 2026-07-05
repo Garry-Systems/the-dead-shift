@@ -9,6 +9,7 @@ var _clock_label: Label     # night-shift clock (endless only), just under the w
 var _boss_bar: ProgressBar
 var _boss_name_label: Label   # boss display name, shown just above the boss HP bar
 var _boss_was_alive := false  # edge-detects "a boss wave starts" for the SHIFT CHANGE toast
+var _last_shift_toast := -999.0   # engine-clock seconds of the last SHIFT CHANGE toast (debounce)
 var _ammo_label: Label
 var _reload_bar: ProgressBar
 var _ability_label: Label   # Ryan's purge cooldown, shown above the ammo (only when he has it)
@@ -211,7 +212,14 @@ func _process(_delta: float) -> void:
 		_boss_name_label.text = Bosses.name_for((boss as BossBase).boss_id())
 		if not _boss_was_alive:
 			_boss_was_alive = true
-			_show_banner("SHIFT CHANGE")   # Spawner already fires the "boss_roar" SFX on spawn
+			# Debounced: the "no boss -> boss" edge can flicker in Boss Rush (a boss dying and
+			# the refill spawning can straddle a Hud _process depending on sibling order), and
+			# the toast shouldn't re-fire on every refill anyway. Engine clock, not run time —
+			# monotonic and pause-proof.
+			var now := Time.get_ticks_msec() / 1000.0
+			if now - _last_shift_toast >= GameConfig.SHIFT_TOAST_COOLDOWN:
+				_last_shift_toast = now
+				_show_banner("SHIFT CHANGE")   # Spawner already fires the "boss_roar" SFX on spawn
 	else:
 		_boss_bar.visible = false
 		_boss_name_label.visible = false
