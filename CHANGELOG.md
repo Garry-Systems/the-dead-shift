@@ -4,6 +4,14 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.44 — Turn the Sound On (2026-07-05)
+
+The game was silent. Not anymore:
+
+- **A full retro soundscape** — every gun category has its own shot (pistol crack, shotgun boom, sniper ring, heavy chug, energy zap), zombies thud and drop, barrels and pumps explode, gems chime, crates sting on a win, level-ups fanfare, dashes whoosh, Ryan's purge blasts, bosses roar in, and dawn gets its own sting.
+- **Music** — a dark menu loop and a driving run loop, both seamless.
+- **Mute toggles** — SFX and Music switches in the pause menu and main menu, remembered between sessions.
+
 ## v0.1.43 — Pump 3 Is On Fire (2026-07-05)
 
 - **The gas station is HERE** — every endless run now starts on the forecourt of the station where your shift began: the store at your back (solid cover — zombies path around it), a tall GAS price sign, and **three fuel pumps** that absolutely should not be shot. Shoot them anyway: bigger blasts than barrels, chain reactions included. The rest of the wasteland scatters around you as you roam, same as before.
