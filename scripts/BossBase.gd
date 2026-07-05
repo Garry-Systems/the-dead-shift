@@ -129,7 +129,9 @@ func _physics_process(delta: float) -> void:
 	velocity = dir * (move_speed * _speed_mult)
 	move_and_slide()
 	if _touching_player():
-		_target.take_damage(touch_damage * delta)
+		# is_contact=true so Armor reduces boss touch damage; attacker stays null ON PURPOSE —
+		# Thorns is bite-only (a per-frame reflect on this continuous touch would shred bosses).
+		_target.take_damage(touch_damage * delta, null, true)
 
 	# Cast the next pattern when the clock runs out.
 	_pat_clock -= delta

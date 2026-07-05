@@ -316,7 +316,7 @@ func relic_add_max_health(amount: float) -> void:
 func _on_level_up() -> void:
 	leveled_up.emit()
 
-## --- Upgrade hooks (called by Upgrades.apply) ---
+## --- Upgrade hooks (called by UpgradeApply.apply) ---
 func upgrade_move_speed(pct: float) -> void:
 	move_speed *= (1.0 + pct)
 

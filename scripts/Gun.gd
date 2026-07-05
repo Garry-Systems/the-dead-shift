@@ -302,7 +302,7 @@ func _build_pool_cfg() -> Dictionary:
 		"drift": 0.0, "hurts_player": false,
 	}
 
-# --- Upgrade hooks (called by Upgrades.apply) ---
+# --- Upgrade hooks (called by UpgradeApply.apply) ---
 func upgrade_damage(pct: float) -> void:
 	damage *= (1.0 + pct)
 
