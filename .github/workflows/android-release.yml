@@ -19,6 +19,10 @@ permissions:
 jobs:
   release:
     name: Build release AAB
+    # Skip (gray, not red) until the signing secrets exist — see docs/RELEASE-SIGNING.md
+    # for the one-time keystore setup. Without this gate, every tag push shows a failed
+    # run until the keystore is configured.
+    if: ${{ secrets.ANDROID_KEYSTORE_B64 != '' }}
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.6.3   # same image/version as android.yml's debug build
