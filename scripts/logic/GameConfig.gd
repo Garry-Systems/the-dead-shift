@@ -265,3 +265,7 @@ const SHIFT_START_HOUR := 22           # the clock reads 10:00 PM at run start
 const SHIFT_END_HOUR := 6              # "dawn" — clock keeps climbing past this; the run continues
 const SHIFT_SECONDS_PER_MINUTE := 1.0  # real seconds per in-game clock minute
 const DAWN_BONUS_COINS := 250          # end-of-shift bonus, granted once per run at dawn
+
+# --- Daily login streak (Pack 4) ---
+const DAILY_STREAK_TIER_UP := 3        # streak this high or more: daily crate weight shifts one price tier up
+const DAILY_STREAK_FLOOR := 7          # streak this high or more: daily crate result floored at munitions_cache-or-better

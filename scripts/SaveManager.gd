@@ -21,6 +21,7 @@ const DEFAULTS := {
 	"dev_bonus_granted": false,     # DEV (legacy): the old 10k one-time bonus flag (superseded)
 	"dev_bonus_v2_granted": false,  # DEV (temporary): the 30k start bonus already given?
 	"last_daily_claim": "",   # "YYYY-MM-DD" of the last claimed daily-login reward ("" = never)
+	"daily_streak": 0,        # consecutive daily claims (Rewards.next_streak); resets on a missed day
 	"games_played": 0,        # completed runs (game-over count) — drives the every-10-games reward
 	"game_rewards_given": 0,  # how many 10-game milestone rewards have already been handed out
 	"tutorial_done": false,   # first-run HUD hint sequence (move/shoot/dash) already completed?
@@ -123,8 +124,21 @@ func today_string() -> String:
 func is_daily_due() -> bool:
 	return String(_data.get("last_daily_claim", "")) != today_string()
 
+## The raw "YYYY-MM-DD" of the last claimed daily reward ("" = never claimed). Read this
+## BEFORE calling mark_daily_claimed() when computing the new streak (Rewards.next_streak) —
+## mark_daily_claimed() overwrites it to today.
+func last_daily_claim() -> String:
+	return String(_data.get("last_daily_claim", ""))
+
 func mark_daily_claimed() -> void:
 	_data["last_daily_claim"] = today_string()
+
+## Current consecutive daily-login streak (0 = never claimed / streak lost).
+func daily_streak() -> int:
+	return int(_data.get("daily_streak", 0))
+
+func set_daily_streak(n: int) -> void:
+	_data["daily_streak"] = maxi(n, 0)
 
 func games_played() -> int:
 	return int(_data.get("games_played", 0))

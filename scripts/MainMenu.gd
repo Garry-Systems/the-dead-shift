@@ -656,7 +656,14 @@ func _build_reward_popup() -> void:
 func _check_free_rewards() -> void:
 	_reward_queue.clear()
 	if SaveManager.is_daily_due():
-		_reward_queue.append({ "title": "DAILY REWARD", "reward": _grant_reward(Rewards.roll_daily()) })
+		# Streak (Pack 4): computed from the OLD last_daily_claim, before mark_daily_claimed()
+		# overwrites it to today — next_streak() needs yesterday's claim date to detect a
+		# consecutive-day login vs a gap.
+		var streak := Rewards.next_streak(SaveManager.last_daily_claim(), SaveManager.today_string(), SaveManager.daily_streak())
+		SaveManager.set_daily_streak(streak)
+		var reward := _grant_reward(Rewards.roll_daily(streak))
+		reward["streak"] = streak
+		_reward_queue.append({ "title": "DAILY REWARD", "reward": reward })
 		SaveManager.mark_daily_claimed()
 	while SaveManager.pending_game_rewards() > 0:
 		_reward_queue.append({ "title": "10-GAME REWARD", "reward": _grant_reward(Rewards.roll_milestone()) })

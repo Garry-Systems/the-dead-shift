@@ -8,6 +8,7 @@ extends Control
 signal claimed()
 
 var _title: Label
+var _streak: Label
 var _icon: TextureRect
 var _name: Label
 var _sub: Label
@@ -38,6 +39,15 @@ func _ready() -> void:
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	PixelTheme.style_title(_title, 40)
 	vbox.add_child(_title)
+
+	# Daily-streak line (Pack 4): small, dimmed C4 lavender (PixelTheme.ACCENT darkened) so it
+	# reads as a subtitle under the bright full-ACCENT title above. Hidden unless open() is
+	# given a reward with a "streak" entry (currently: the daily-login reward only).
+	_streak = Label.new()
+	_streak.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(_streak, 18, PixelTheme.ACCENT.darkened(0.45))
+	_streak.visible = false
+	vbox.add_child(_streak)
 
 	var free := Label.new()
 	free.text = "FREE REWARD!"
@@ -73,9 +83,15 @@ func _ready() -> void:
 	vbox.add_child(btn)
 
 ## Reveal one already-granted reward. `title` = the source ("DAILY REWARD" / "10-GAME REWARD").
-## reward = { kind:"crate", crate_id } or { kind:"gun", inst }.
+## reward = { kind:"crate", crate_id } or { kind:"gun", inst }, optionally with a "streak" int
+## (Pack 4, daily reward only) that shows a "STREAK: DAY N" line under the title.
 func open(title: String, reward: Dictionary) -> void:
 	_title.text = title
+	if reward.has("streak"):
+		_streak.text = "STREAK: DAY %d" % int(reward["streak"])
+		_streak.visible = true
+	else:
+		_streak.visible = false
 	match String(reward.get("kind", "")):
 		"crate":
 			var cid := String(reward.get("crate_id", ""))
