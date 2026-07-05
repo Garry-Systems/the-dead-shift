@@ -24,6 +24,8 @@ func setup(inst: Dictionary, is_equipped: bool) -> void:
 	text = ""
 	PixelTheme.style_tile(self, WeaponInstance.color(inst))
 	_rainbow = int(inst.get("rarity", 1)) == Rarity.RAINBOW_ID
+	# Only rainbow tiles pay a per-frame callback — up to 120 tiles exist at once (MAX_WEAPONS).
+	set_process(_rainbow)
 	pressed.connect(func(): tile_pressed.emit(_inst))
 
 	var box := VBoxContainer.new()

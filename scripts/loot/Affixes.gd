@@ -15,6 +15,8 @@ const FLAT_STATS := ["multishot", "pierce", "ricochet"]
 ## and the per-stat ranges. Add more affixes per rarity later — the roller picks randomly
 ## among all affixes whose rarity matches the rolled tier.
 ##
+## NOTE: legacy `merciless`/`carnage` display names follow their TIER labels (tiers 6/7
+## swapped name+color in Pack 9) so an old save's title prefix can't contradict its badge.
 ## NOTE: the `min_talents`/`max_talents` fields below are LEGACY and no longer read — the
 ## talent COUNT per weapon is now fixed per rarity in Rarity.TIERS[].talents (see
 ## LootRoller._roll_talents). Left in place only so old data/tools don't choke on missing keys.
@@ -30,8 +32,8 @@ static func all() -> Array:
 		{ "id": "hardened", "name": "Hardened", "rarity": 3, "min_stats": 2, "max_stats": 3, "min_talents": 1, "max_talents": 1, "legacy": true, "stats": { "damage": [18, 36], "fire_rate": [10, 20], "range": [14, 26], "mag": [12, 28] } },
 		{ "id": "lethal", "name": "Lethal", "rarity": 4, "min_stats": 3, "max_stats": 4, "min_talents": 1, "max_talents": 2, "legacy": true, "stats": { "damage": [30, 55], "fire_rate": [16, 28], "range": [20, 36], "mag": [18, 36], "reload": [12, 28], "multishot": [1, 1], "pierce": [1, 1] } },
 		{ "id": "savage", "name": "Savage", "rarity": 5, "min_stats": 4, "max_stats": 5, "min_talents": 2, "max_talents": 2, "legacy": true, "stats": { "damage": [45, 80], "fire_rate": [22, 36], "bullet_speed": [15, 40], "range": [28, 48], "mag": [25, 50], "reload": [18, 36], "multishot": [1, 2], "pierce": [1, 2] } },
-		{ "id": "merciless", "name": "Merciless", "rarity": 6, "min_stats": 4, "max_stats": 6, "min_talents": 2, "max_talents": 3, "legacy": true, "stats": { "damage": [60, 105], "fire_rate": [28, 44], "range": [36, 60], "bullet_speed": [25, 55], "mag": [35, 70], "reload": [25, 45], "multishot": [2, 3], "pierce": [1, 3], "ricochet": [1, 1] } },
-		{ "id": "carnage", "name": "Carnage", "rarity": 7, "min_stats": 5, "max_stats": 7, "min_talents": 3, "max_talents": 3, "legacy": true, "stats": { "damage": [80, 140], "fire_rate": [35, 55], "range": [45, 75], "bullet_speed": [40, 80], "mag": [50, 100], "reload": [35, 60], "multishot": [2, 4], "pierce": [2, 4], "ricochet": [1, 2] } },
+		{ "id": "merciless", "name": "Carnage", "rarity": 6, "min_stats": 4, "max_stats": 6, "min_talents": 2, "max_talents": 3, "legacy": true, "stats": { "damage": [60, 105], "fire_rate": [28, 44], "range": [36, 60], "bullet_speed": [25, 55], "mag": [35, 70], "reload": [25, 45], "multishot": [2, 3], "pierce": [1, 3], "ricochet": [1, 1] } },
+		{ "id": "carnage", "name": "Merciless", "rarity": 7, "min_stats": 5, "max_stats": 7, "min_talents": 3, "max_talents": 3, "legacy": true, "stats": { "damage": [80, 140], "fire_rate": [35, 55], "range": [45, 75], "bullet_speed": [40, 80], "mag": [50, 100], "reload": [35, 60], "multishot": [2, 4], "pierce": [2, 4], "ricochet": [1, 2] } },
 		{ "id": "r1_razor", "name": "Razor", "rarity": 1, "signature": "damage", "min_stats": 1, "max_stats": 1, "min_talents": 0, "max_talents": 0, "stats": { "damage": [6, 14] } },
 		{ "id": "r1_rapid", "name": "Rapid", "rarity": 1, "signature": "fire_rate", "min_stats": 1, "max_stats": 2, "min_talents": 0, "max_talents": 0, "stats": { "fire_rate": [6, 14], "reload": [3, 10] } },
 		{ "id": "r2_razor", "name": "Razor", "rarity": 2, "signature": "damage", "min_stats": 1, "max_stats": 2, "min_talents": 0, "max_talents": 1, "stats": { "damage": [12, 24], "range": [8, 18] } },
