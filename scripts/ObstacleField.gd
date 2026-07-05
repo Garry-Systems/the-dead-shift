@@ -52,6 +52,8 @@ func _drop_cluster() -> void:
 		_spawn_at(_player.global_position + Vector2(cos(ang), sin(ang)) * r)
 
 func _spawn_at(pos: Vector2) -> void:
+	if pos.distance_squared_to(Vector2.ZERO) < GameConfig.FORECOURT_KEEPOUT_RADIUS * GameConfig.FORECOURT_KEEPOUT_RADIUS:
+		return   # never scatter into the forecourt (Pack 5) — it's a fixed structure, not ambient clutter
 	var d := Destructible.new()
 	d.configure(Obstacles.pick(DifficultyManager.wave))
 	get_tree().current_scene.add_child(d)
@@ -64,5 +66,7 @@ func _cull_far() -> void:
 			continue
 		if d.has_method("is_fusing") and d.is_fusing():
 			continue   # don't cull a barrel mid chain-fuse
+		if "no_cull" in d and d.no_cull:
+			continue   # Forecourt fixtures (store cover / fuel pumps) are permanent, not ambient scatter
 		if (d as Node2D).global_position.distance_squared_to(_player.global_position) > cull2:
 			d.queue_free()

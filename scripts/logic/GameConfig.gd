@@ -244,6 +244,28 @@ const ELEC_CHAIN_COUNT := 4             # enemies the field arcs to per tick (vi
 # --- Enemy anti-wedge steering around cover ---
 const ENEMY_COVER_STEER := 0.8          # tangential nudge strength when a chasing enemy hits cover
 
+# --- Forecourt (Pack 5): the gas-station spawn structure ---
+const FUEL_PUMP_SIZE := 22.0                  # px rect half-extent (a bit chunkier than a barrel's 18)
+const FUEL_PUMP_HP := 90.0                    # ~1.5x BARREL_HP (60)
+const FUEL_PUMP_BURST_DAMAGE := 90.0          # ~1.5x BARREL_BURST_DAMAGE (60)
+const FUEL_PUMP_BURST_RADIUS := 210.0         # ~1.5x BARREL_BURST_RADIUS (140)
+const FUEL_PUMP_BURST_FORCE := 1350.0         # ~1.5x BARREL_BURST_FORCE (900)
+const FUEL_PUMP_HAZARD_SCALE := 1.5           # scales the lingering fire pool's dps + radius vs a plain barrel
+
+const FORECOURT_STORE_HALF_SIZE := Vector2(170.0, 150.0)  # store cover-body half-extent (px)
+const FORECOURT_STORE_POS := Vector2(-260.0, -150.0)      # store center, offset from Forecourt origin (world 0,0)
+const FORECOURT_STORE_BAND_HEIGHT := 36.0                 # "OPEN 24H" band strip height at the top of the wall
+const FORECOURT_STORE_DOOR_WIDTH := 64.0                  # visual-only door notch width, centered on the front wall
+const FORECOURT_PUMP_Y := -60.0                           # fuel pump row Y offset
+const FORECOURT_PUMP_START_X := 20.0                      # first pump X offset
+const FORECOURT_PUMP_SPACING := 110.0                     # gap between pump centers
+const FORECOURT_PUMP_COUNT := 3                           # pumps in the row
+const FORECOURT_SIGN_POS := Vector2(380.0, -230.0)        # GAS sign panel center offset
+const FORECOURT_SIGN_PANEL_SIZE := Vector2(150.0, 50.0)   # sign panel width/height
+const FORECOURT_SIGN_POLE_WIDTH := 10.0                   # sign pole thickness
+const FORECOURT_KEEPOUT_RADIUS := 700.0                   # ObstacleField scatter/cull keep-out around the forecourt
+const FORECOURT_PLAYER_SPAWN := Vector2(0.0, 220.0)       # apron spawn point, clear of the building + pump row
+
 # --- First-run onboarding hints (Pack 1) ---
 const HINT_MOVE_SECONDS := 1.0   # cumulative seconds of player movement before hint 1 ("move") clears
 const HINT_FIRE_SECONDS := 3.0   # cumulative seconds the gun is actively trying to fire before hint 2 ("shoot") clears (or first kill, whichever first)

@@ -17,6 +17,11 @@ var hazard_id := ""
 var loot := ""
 var gem_count := 0
 var color := Color(0.549, 0.522, 0.451)
+var burst_radius := GameConfig.BARREL_BURST_RADIUS   # Shockwave blast radius on a "fire" death (row-overridable)
+var burst_damage := GameConfig.BARREL_BURST_DAMAGE   # Shockwave blast damage on a "fire" death (row-overridable)
+var burst_force := GameConfig.BARREL_BURST_FORCE     # Shockwave knockback force on a "fire" death (row-overridable)
+var hazard_scale := 1.0                              # scales the lingering hazard zone's dps + radius (row-overridable)
+var no_cull := false   # true for a fixed world fixture (Forecourt) — ObstacleField must never cull this
 
 var _health: Health
 var _detonating := false
@@ -39,6 +44,10 @@ func configure(row: Dictionary) -> void:
 	loot = String(row["loot"])
 	gem_count = int(row["gem_count"])
 	color = row.get("color", color)
+	burst_radius = float(row.get("burst_radius", GameConfig.BARREL_BURST_RADIUS))
+	burst_damage = float(row.get("burst_damage", GameConfig.BARREL_BURST_DAMAGE))
+	burst_force = float(row.get("burst_force", GameConfig.BARREL_BURST_FORCE))
+	hazard_scale = float(row.get("hazard_scale", 1.0))
 
 func _ready() -> void:
 	if hp >= 0.0:
@@ -121,7 +130,7 @@ func _die() -> void:
 		var sw := Shockwave.new()
 		tree.current_scene.add_child(sw)
 		sw.global_position = global_position
-		sw.blast(GameConfig.BARREL_BURST_RADIUS, GameConfig.BARREL_BURST_DAMAGE, GameConfig.BARREL_BURST_FORCE, null, null)
+		sw.blast(burst_radius, burst_damage, burst_force, null, null)
 		var cr2 := GameConfig.BARREL_CHAIN_RADIUS * GameConfig.BARREL_CHAIN_RADIUS
 		for d in tree.get_nodes_in_group("destructibles"):
 			if d == self or not is_instance_valid(d):
@@ -132,6 +141,9 @@ func _die() -> void:
 	if hazard_id != "" and tree.get_nodes_in_group("hazard_zones").size() < GameConfig.MAX_HAZARD_ZONES:
 		var cfg := Hazards.stats_for(hazard_id)
 		if not cfg.is_empty():
+			if hazard_scale != 1.0:
+				cfg["dps"] = float(cfg.get("dps", 0.0)) * hazard_scale
+				cfg["radius"] = float(cfg.get("radius", 0.0)) * hazard_scale
 			var hz := HazardZone.new()
 			tree.current_scene.add_child(hz)
 			hz.global_position = global_position

@@ -33,6 +33,11 @@ static func all() -> Array:
 		{ "id":"crate",       "kind":"loot",   "shape":"rect",   "size":16.0, "solid":false, "hp":GameConfig.CRATE_HP,       "hazard_id":"",         "loot":"gems", "gem_count":GameConfig.CRATE_GEM_COUNT, "color":C3,                    "weight":40, "min_wave":1 },
 		{ "id":"car",         "kind":"cover",  "shape":"rect",   "size":48.0, "solid":true,  "hp":GameConfig.COVER_CAR_HP,   "hazard_id":"",         "loot":"",     "gem_count":0,                       "color":C3,                    "weight":18, "min_wave":1 },
 		{ "id":"rubble",      "kind":"cover",  "shape":"circle", "size":34.0, "solid":true,  "hp":GameConfig.RUBBLE_HP,      "hazard_id":"",         "loot":"",     "gem_count":0,                       "color":C3,                    "weight":15, "min_wave":1 },
+		# Fuel pump (Pack 5): a bigger, meaner barrel — ~1.5x hp/blast radius/fire pool, chains
+		# through the same fuse mechanic (hazard_id "fire"). Also fetched verbatim via by_id() to
+		# place the 3 fixed forecourt pumps.
+		{ "id":"fuel_pump",   "kind":"hazard", "shape":"rect",   "size":GameConfig.FUEL_PUMP_SIZE, "solid":false, "hp":GameConfig.FUEL_PUMP_HP,   "hazard_id":"fire",     "loot":"",     "gem_count":0,                       "color":C3,        "weight":10, "min_wave":4,
+			"burst_radius":GameConfig.FUEL_PUMP_BURST_RADIUS, "burst_damage":GameConfig.FUEL_PUMP_BURST_DAMAGE, "burst_force":GameConfig.FUEL_PUMP_BURST_FORCE, "hazard_scale":GameConfig.FUEL_PUMP_HAZARD_SCALE },
 	]
 
 ## A weighted-random row among types whose min_wave <= wave. Falls back to the first row.
@@ -52,3 +57,11 @@ static func pick(wave: int) -> Dictionary:
 		if roll < 0:
 			return e
 	return pool[pool.size() - 1]
+
+## The row matching `id`, or {} if not found. Used for a fixed placement (Forecourt's fuel
+## pumps) that wants the exact row rather than a weighted/wave-gated pick.
+static func by_id(id: String) -> Dictionary:
+	for e in all():
+		if String(e["id"]) == id:
+			return e
+	return {}

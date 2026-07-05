@@ -10,6 +10,7 @@ func _ready() -> void:
 
 	var player := get_tree().get_first_node_in_group("player") as Player
 	if player != null:
+		player.global_position = GameConfig.FORECOURT_PLAYER_SPAWN   # the forecourt apron, clear of the store + pump row
 		Characters.apply_base(player, RunConfig.character_id)
 		player.set_dash_ability(Characters.dash_ability(RunConfig.character_id))
 		_equip_loadout(player)
