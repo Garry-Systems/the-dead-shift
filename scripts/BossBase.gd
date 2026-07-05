@@ -183,7 +183,9 @@ func _reward() -> void:
 		if boss_rush:
 			_target.heal(_target.max_hp() * GameConfig.BOSS_RUSH_HEAL_FRAC)
 		else:
-			_target.full_heal()
+			# Endless: a strong top-up, no longer a full reset — late bosses stay a
+			# risk/reward spike instead of a free sustain valve.
+			_target.heal(_target.max_hp() * GameConfig.BOSS_KILL_HEAL_FRAC)
 	# Relic drop: always in Endless; only sometimes in Boss Rush so you aren't flooded.
 	if not boss_rush or randf() < GameConfig.BOSS_RUSH_RELIC_CHANCE:
 		var bar := get_tree().get_first_node_in_group("relic_bar")

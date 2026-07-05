@@ -31,4 +31,8 @@ static func boss_stats(wave: int) -> Dictionary:
 	var w := maxi(wave - 1, 0)
 	var hp: float = GameConfig.BOSS_BASE_HP * pow(GameConfig.ENEMY_HP_GROWTH, w)
 	var dmg: float = GameConfig.BOSS_TOUCH_DAMAGE * pow(GameConfig.ENEMY_DMG_GROWTH, w)
+	# Past the late wave, bosses ramp like trash does — otherwise trash HP outgrows
+	# bosses and every 5th late wave becomes the EASY part of the run.
+	if wave > GameConfig.ENEMY_LATE_WAVE:
+		hp *= pow(GameConfig.BOSS_LATE_HP_GROWTH, wave - GameConfig.ENEMY_LATE_WAVE)
 	return {"max_health": hp, "move_speed": GameConfig.BOSS_MOVE_SPEED, "touch_damage": dmg}

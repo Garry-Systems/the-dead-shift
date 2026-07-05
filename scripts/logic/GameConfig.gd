@@ -48,7 +48,7 @@ const SPAWN_RADIUS := 1200.0          # distance from player to spawn at (tuned 
 
 # --- Difficulty / Waves (Phase 4 step 1) ---
 const WAVE_DURATION := 30.0           # seconds per wave; wave = floor(run_time/this)+1
-const SPAWN_INTERVAL_FLOOR := 0.20    # fastest the spawner ever gets (seconds)
+const SPAWN_INTERVAL_FLOOR := 0.25    # fastest the spawner ever gets (seconds)
 const SPAWN_INTERVAL_DECAY := 0.92    # per-wave multiplier on SPAWN_INTERVAL (more enemies)
 const ENEMY_HP_GROWTH := 1.12         # per-wave multiplier on enemy max health
 const ENEMY_DMG_GROWTH := 1.05        # per-wave multiplier on enemy touch damage
@@ -59,7 +59,7 @@ const ENEMY_SPEED_CAP := 240.0        # px/sec; raised above the player's 220 so
 # ENEMY_LATE_WAVE and a steeper per-wave multiplier takes over, so HP keeps climbing and move
 # speed eventually out-paces the player (PLAYER_MOVE_SPEED 220) — you must dash to escape.
 const ENEMY_LATE_WAVE := 10            # wave after which the steeper ramp applies
-const ENEMY_LATE_HP_GROWTH := 1.15     # per-wave HP multiplier past ENEMY_LATE_WAVE
+const ENEMY_LATE_HP_GROWTH := 1.12     # per-wave HP multiplier past ENEMY_LATE_WAVE
 const ENEMY_LATE_SPEED_GROWTH := 1.15  # per-wave speed multiplier past ENEMY_LATE_WAVE
 
 # --- Boss (Phase 4 step 2) ---
@@ -68,6 +68,7 @@ const BOSS_BASE_HP := 1500.0          # boss max health on wave 1 (scales with E
 const BOSS_TOUCH_DAMAGE := 25.0       # boss contact damage/sec on wave 1 (scales w/ ENEMY_DMG_GROWTH)
 const BOSS_MOVE_SPEED := 45.0         # px/sec; deliberately slow, does not scale
 const BOSS_SPAWN_RATE_MULT := 0.5     # normal spawns run at this fraction of rate while a boss lives
+const BOSS_LATE_HP_GROWTH := 1.12     # extra per-wave boss HP multiplier past ENEMY_LATE_WAVE (mirrors trash)
 const BOSS_XP_REWARD := 30            # number of XP gems dropped on boss death
 
 # --- Boss ground slam ---
@@ -177,6 +178,7 @@ const BOSS_RUSH_BASE_COUNT := 3        # concurrent bosses kept on the map from 
 const BOSS_RUSH_LEVELS_PER_BOSS := 5   # +1 concurrent boss every this many player levels
 const BOSS_RUSH_REWARD_MULT := 0.35    # boss-rush XP-gem reward fraction (toned down — bosses die constantly)
 const BOSS_RUSH_HEAL_FRAC := 0.2       # boss-rush heal per kill (vs a FULL heal in endless)
+const BOSS_KILL_HEAL_FRAC := 0.33      # endless boss-kill heal fraction (was a FULL heal)
 const BOSS_RUSH_RELIC_CHANCE := 0.3    # boss-rush chance to drop a relic per boss kill
 
 # --- Environmental hazards: collision layers (the project's first) ---
