@@ -28,7 +28,8 @@ const INV_DRAG_THRESHOLD := 24.0       # px of movement before a touch becomes a
 var _store_panel: Control
 var _store_vbox: VBoxContainer
 var _store_result: Label
-var _last_unbox := ""                       # last crate outcome, shown in the store
+var _inv_result: Label                      # inventory-panel counterpart of _store_result
+var _last_unbox := ""                       # last crate outcome, shown in the store or inventory
 var _last_unbox_color: Color = PixelTheme.TEXT
 var _char_vbox: VBoxContainer    # character panel content (rebuilt by _populate_characters)
 var _crate_opener: CrateOpener   # reused full-screen reel, opened from a crate tile
@@ -266,6 +267,7 @@ func _build_inventory_panel() -> void:
 ## picking a weapon then proceeds to the mode picker, and the bottom button reads CANCEL.
 func _show_inventory(from_play: bool) -> void:
 	_inv_from_play = from_play
+	_last_unbox = ""
 	_populate_inventory()
 	_show_only(_inv_panel)
 
@@ -332,6 +334,14 @@ func _populate_inventory() -> void:
 			tile.setup(inst, String(inst.get("uid", "")) == equipped_uid)
 			tile.tile_pressed.connect(_on_tile_pressed)
 
+	_inv_result = Label.new()
+	_inv_result.text = _last_unbox
+	_inv_result.custom_minimum_size = Vector2(660, 0)
+	_inv_result.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_inv_result.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(_inv_result, 18, _last_unbox_color)
+	_inv_vbox.add_child(_inv_result)
+
 	# Bottom button: CANCEL (forced-from-PLAY) or BACK — both return to the main menu.
 	var inv_back := _make_button("CANCEL" if _inv_from_play else "BACK", _on_inv_back)
 	inv_back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -360,9 +370,10 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			_inv_touch_id = event.index
-			_inv_touch_start = event.position
-			_inv_dragging = false
+			if _inv_touch_id == -1:   # claim only when no touch is already tracked — a second
+				_inv_touch_id = event.index          # simultaneous finger must not steal the drag
+				_inv_touch_start = event.position
+				_inv_dragging = false
 		elif event.index == _inv_touch_id:
 			_inv_suppress_tap = _inv_dragging   # a drag-release must not count as a tap
 			_inv_touch_id = -1
@@ -395,7 +406,10 @@ func _on_crate_tile_pressed(crate_id: String) -> void:
 	if _inv_suppress_tap:
 		_inv_suppress_tap = false
 		return                                  # this "tap" was the end of a scroll drag
-	_crate_opener.open(crate_id)
+	if not _crate_opener.open(crate_id):
+		_last_unbox = "Inventory full — scrap a weapon first."
+		_last_unbox_color = PixelTheme.TEXT_DIM
+		_populate_inventory()
 
 ## The reel landed on a weapon → show the SAME full inspect popup as tapping a gun in the grid,
 ## and rain confetti over the reveal for a rare (orange+) win.

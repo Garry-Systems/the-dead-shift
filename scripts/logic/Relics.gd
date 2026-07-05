@@ -1,13 +1,15 @@
 class_name Relics
 ## Passive relic data + generic, fully-reversible apply/remove. Each relic adjusts one
-## numeric stat on the player or its gun. apply() returns the exact amount it added so
-## remove() can subtract precisely (avoids drift from order-dependent percentage math).
+## numeric stat on the player or its gun. apply() returns a value the caller stores and
+## passes back into remove() to reverse the effect precisely:
 ##
 ## modes:
-##   "add"     -> delta = amount
-##   "pct"     -> delta = current * amount   (percentage increase)
-##   "pct_neg" -> delta = -current * amount  (percentage decrease, e.g. fire_interval)
-##   "special" -> handled by a dedicated Player hook (vital_surge / max health)
+##   "add"     -> returns the flat delta added; remove() subtracts it back.
+##   "pct"     -> returns the multiplicative ratio applied (1.0 + amount); remove()
+##                divides it back out instead of subtracting a stale flat delta, so
+##                upgrade cards that multiply the same stat in between don't drift.
+##   "pct_neg" -> returns the ratio applied (1.0 - amount); remove() divides it back out.
+##   "special" -> returns the flat delta; handled by a dedicated Player hook (vital_surge / max health)
 
 static func all() -> Array:
 	return [
@@ -28,7 +30,7 @@ static func get_relic(id: String) -> Dictionary:
 			return r
 	return {}
 
-## Applies a relic and returns the exact amount added (the delta) for later reversal.
+## Applies a relic and returns the value remove() needs for exact reversal (see modes above).
 static func apply(player: Player, id: String) -> float:
 	var r := get_relic(id)
 	if r.is_empty():
@@ -42,18 +44,23 @@ static func apply(player: Player, id: String) -> float:
 	var obj: Object = player if String(r["target"]) == "player" else player.gun
 	var prop: String = String(r["prop"])
 	var cur: float = float(obj.get(prop))
-	var delta := 0.0
 	match String(r["mode"]):
 		"add":
-			delta = float(r["amount"])
+			var delta: float = float(r["amount"])
+			obj.set(prop, cur + delta)
+			return delta
 		"pct":
-			delta = cur * float(r["amount"])
+			var ratio: float = 1.0 + float(r["amount"])
+			obj.set(prop, cur * ratio)
+			return ratio
 		"pct_neg":
-			delta = -cur * float(r["amount"])
-	obj.set(prop, cur + delta)
-	return delta
+			var ratio: float = 1.0 - float(r["amount"])
+			obj.set(prop, cur * ratio)
+			return ratio
+	return 0.0
 
-## Reverses a previously-applied relic using the recorded delta.
+## Reverses a previously-applied relic using the value apply() returned (a flat delta for
+## "add"/"special", a multiplicative ratio for "pct"/"pct_neg").
 static func remove(player: Player, id: String, delta: float) -> void:
 	var r := get_relic(id)
 	if r.is_empty():
@@ -66,4 +73,8 @@ static func remove(player: Player, id: String, delta: float) -> void:
 	var obj: Object = player if String(r["target"]) == "player" else player.gun
 	var prop: String = String(r["prop"])
 	var cur: float = float(obj.get(prop))
-	obj.set(prop, cur - delta)
+	match String(r["mode"]):
+		"add":
+			obj.set(prop, cur - delta)
+		"pct", "pct_neg":
+			obj.set(prop, cur / delta)

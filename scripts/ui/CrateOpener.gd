@@ -91,17 +91,22 @@ func _ready() -> void:
 		_tick_player.stream = load("res://audio/tick.wav")
 	add_child(_tick_player)
 
-func open(crate_id: String) -> void:
+## Starts the reel for an owned crate. Returns false (and starts nothing) if the crate isn't
+## owned or the inventory has no room for the winner, so the caller (MainMenu) can report the
+## failure instead of the tap silently doing nothing. A re-tap while already spinning is
+## silently ignored (returns true — the open already succeeded, just not a new one).
+func open(crate_id: String) -> bool:
 	if visible:
-		return                      # already opening/spinning — ignore re-taps (no reel corruption)
+		return true                 # already opening/spinning — ignore re-taps (no reel corruption)
 	if SaveManager.crate_count(crate_id) <= 0 or Inventory.is_full():
-		return
+		return false
 	_crate_id = crate_id
 	_winner = LootRoller.roll_from_crate(Crates.get_crate(crate_id))
 	_flash_rect.color = Color(1, 1, 1, 0)
 	_build_reel()
 	visible = true
 	_start_spin()
+	return true
 
 func _build_reel() -> void:
 	for ch in _reel.get_children():

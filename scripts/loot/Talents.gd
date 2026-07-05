@@ -41,7 +41,7 @@ static func all() -> Array:
 		{
 			"id": "concussive", "name": "Concussive", "kind": "onhit_knockback", "tier": 1,
 			"color": Color("9d9d9d"), "level_required": {"min": 1, "max": 4},
-			"desc": "%s%% chance to knock the target back",
+			"desc": "%s%% chance to knock the target back (%s force)",
 			"mods": [ {"min": 15, "max": 30}, {"min": 120, "max": 260} ],
 		},
 		# --- Tier 2 (uncommon) ---
@@ -116,7 +116,7 @@ static func all() -> Array:
 		{
 			"id": "haymaker", "name": "Haymaker", "kind": "onhit_knockback", "tier": 2,
 			"color": Color("b0b0b0"), "level_required": {"min": 5, "max": 12},
-			"desc": "%s%% chance to knock the target back hard",
+			"desc": "%s%% chance to knock the target back hard (%s force)",
 			"mods": [ {"min": 25, "max": 45}, {"min": 280, "max": 460} ],
 		},
 		{

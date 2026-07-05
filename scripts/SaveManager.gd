@@ -76,9 +76,9 @@ func save_game() -> bool:
 	var dir := DirAccess.open("user://")
 	if dir == null:
 		return false
-	if dir.file_exists("savegame.json"):
-		dir.remove("savegame.json")
-	var err := dir.rename("savegame.tmp", "savegame.json")
+	# rename() replaces the destination directly (no delete-then-rename window), so a
+	# process kill mid-write can never leave the save file missing.
+	var err := dir.rename(TMP_PATH.get_file(), SAVE_PATH.get_file())
 	return err == OK
 
 func _handle_corrupt(bad_text: String) -> void:
