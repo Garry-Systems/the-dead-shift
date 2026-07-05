@@ -155,6 +155,11 @@ func _cap_player_pools() -> void:
 	if pools.size() >= GameConfig.MAX_PLAYER_POOLS:
 		var oldest = pools[0]
 		if is_instance_valid(oldest):
+			# queue_free is DEFERRED — the node would stay in the group for the rest of the
+			# frame, so a same-frame multishot detonation would recount this corpse and
+			# "evict" it again (a no-op) while still adding a fresh zone, drifting past the
+			# cap. Leave the group immediately so every same-frame recount is accurate.
+			oldest.remove_from_group("player_pools")
 			oldest.queue_free()
 
 ## Detonate (if a shell) then free. Used at every end-of-life exit.
