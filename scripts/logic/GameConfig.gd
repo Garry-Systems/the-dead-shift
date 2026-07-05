@@ -343,8 +343,8 @@ const COMBAT_TEXT_RISE_PX := 28.0            # px an entry rises over its life
 const COMBAT_TEXT_X_JITTER := 6.0            # max px of random horizontal drift
 const COMBAT_TEXT_CRIT_SIZE := 18            # font size, crit gold numbers
 const COMBAT_TEXT_CALLOUT_SIZE := 22         # font size, headline-proc words
-const COMBAT_TEXT_CRIT_ICD := 0.15           # per-enemy min gap between crit numbers (proximity-gated — see CombatText._push_crit)
-const COMBAT_TEXT_CRIT_DEDUPE_RADIUS := 30.0 # px; "same enemy" proxy for the ICD above
+const COMBAT_TEXT_CRIT_ICD := 0.15           # per-enemy min gap between crit numbers (keyed on the enemy's instance id — see CombatText._push_crit)
+const COMBAT_TEXT_CRIT_DEDUPE_RADIUS := 30.0 # px; id-less (source_id 0) fallback proxy for "same enemy"
 const COMBAT_TEXT_CALLOUT_DEDUPE := 0.5      # seconds: an identical live callout word refreshes instead of taking a new slot
 
 # TalentEngine per-frame transient-VFX budget (Risks #2): gameplay procs always apply; only

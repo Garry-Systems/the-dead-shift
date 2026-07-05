@@ -437,7 +437,7 @@ func _fire_lightning(dir: Vector2) -> bool:
 		if was_alive and not killed and e.has_method("flash_hit"):
 			e.flash_hit()
 		if was_alive and bool(roll.get("crit", false)):
-			CombatText.crit(hit_pos, float(roll["damage"]))
+			CombatText.crit(hit_pos, float(roll["damage"]), e.get_instance_id())
 		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, dmg, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
@@ -476,7 +476,7 @@ func _fire_beam(dir: Vector2) -> bool:
 			if incendiary and e.has_method("ignite"):
 				e.ignite(burn_dps, burn_duration)
 		if was_alive and bool(roll.get("crit", false)):
-			CombatText.crit(hit_pos, float(roll["damage"]))
+			CombatText.crit(hit_pos, float(roll["damage"]), e.get_instance_id())
 		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
@@ -520,7 +520,7 @@ func _fire_cone(dir: Vector2) -> bool:
 			if e.has_method("ignite"):
 				e.ignite(bdps, btime)
 		if was_alive and bool(roll.get("crit", false)):
-			CombatText.crit(hit_pos, float(roll["damage"]))
+			CombatText.crit(hit_pos, float(roll["damage"]), e.get_instance_id())
 		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),

@@ -50,7 +50,7 @@ func blast(radius: float, damage: float, force: float, gun, player, hit_destruct
 		e.take_damage(float(roll["damage"]))
 		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
 		if was_alive and bool(roll.get("crit", false)):
-			CombatText.crit(enemy_pos, float(roll["damage"]))
+			CombatText.crit(enemy_pos, float(roll["damage"]), e.get_instance_id())
 		if was_alive and not payload.is_empty():
 			TalentEngine.process_hit(e, enemy_pos, damage, killed, payload, {
 				"player": player,

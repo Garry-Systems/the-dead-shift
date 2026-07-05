@@ -102,8 +102,9 @@ func _on_body_entered(body) -> void:
 			body.apply_pin(pin_dur)
 
 	# The one per-hit number the game shows: a gold crit popup (Risks #4, hit site 1 of 5).
+	# get_instance_id() keys the per-enemy ICD (safe on a just-killed body — queue_free is deferred).
 	if was_alive and bool(roll.get("crit", false)):
-		CombatText.crit(hit_pos, float(roll["damage"]))
+		CombatText.crit(hit_pos, float(roll["damage"]), body.get_instance_id())
 
 	# Fire talent procs: on-hit statuses, lifesteal, chain, on-kill explode/frenzy.
 	if was_alive and not talent_payload.is_empty():

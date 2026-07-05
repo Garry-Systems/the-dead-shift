@@ -20,7 +20,7 @@ extends Node2D
 ##  (e) No per-hit damage numbers, no heal text — small procs are tints/motes/rings only.
 
 const OUTLINE_COLOR := Color(0.039, 0.0, 0.102)   # C1 void
-const GOLD := Color(1.0, 0.843, 0.0)              # crit numbers (matches Hazards.GOLD)
+const GOLD := Hazards.GOLD                        # crit numbers — single source of truth
 
 const PRIORITY_CRIT := 0
 const PRIORITY_CALLOUT := 1
@@ -40,7 +40,7 @@ func _ready() -> void:
 		_slots.append({
 			"pos": Vector2.ZERO, "age": 0.0, "text": "", "color": Color.WHITE,
 			"size": GameConfig.COMBAT_TEXT_CRIT_SIZE, "priority": PRIORITY_CRIT,
-			"kind": "", "x_off": 0.0, "alive": false,
+			"kind": "", "x_off": 0.0, "src": 0, "alive": false,
 		})
 	instance = self
 
@@ -48,14 +48,15 @@ func _exit_tree() -> void:
 	if instance == self:
 		instance = null
 
-## The one per-hit number the game shows: a gold crit-damage popup. Spatially deduped against
-## any still-live crit number within COMBAT_TEXT_CRIT_DEDUPE_RADIUS inside COMBAT_TEXT_CRIT_ICD
-## seconds — the API takes no enemy handle, so proximity to an existing gold number stands in
-## for "same enemy" (a beam/cone re-crit on one target within the ICD can't stack a column).
-static func crit(world_pos: Vector2, amount: float) -> void:
+## The one per-hit number the game shows: a gold crit-damage popup. Per-enemy 0.15s ICD keyed
+## on `source_id` (the hit enemy's get_instance_id()) — a beam/cone re-crit on one target within
+## the ICD can't stack a column, and two ADJACENT enemies critting together both get numbers.
+## source_id 0 = "no identity known": falls back to a proximity dedupe (within
+## COMBAT_TEXT_CRIT_DEDUPE_RADIUS of a live crit number inside the window).
+static func crit(world_pos: Vector2, amount: float, source_id: int = 0) -> void:
 	if instance == null:
 		return
-	instance._push_crit(world_pos, amount)
+	instance._push_crit(world_pos, amount, source_id)
 
 ## A headline-proc word (FRENZY, SHATTER, EXECUTED, ...). Refreshes an existing live entry with
 ## the same word (reset age, small re-pop) instead of taking a new slot.
@@ -64,16 +65,23 @@ static func callout(world_pos: Vector2, word: String, color: Color) -> void:
 		return
 	instance._push_callout(world_pos, word, color)
 
-func _push_crit(pos: Vector2, amount: float) -> void:
+## ICD is keyed on the enemy's instance id when the caller supplies one (all 5 hit sites do);
+## proximity is only the id-0 fallback. Instance-id reuse (an enemy freed and its id recycled
+## onto a NEW enemy within the 0.15s window) is astronomically unlikely — accepted.
+func _push_crit(pos: Vector2, amount: float, source_id: int) -> void:
 	for s in _slots:
 		if not bool(s["alive"]) or String(s["kind"]) != "crit":
 			continue
 		if float(s["age"]) >= GameConfig.COMBAT_TEXT_CRIT_ICD:
 			continue
+		if source_id != 0:
+			if int(s["src"]) == source_id:
+				return   # per-enemy ICD: same enemy re-crit inside the window — drop
+			continue
 		var d := GameConfig.COMBAT_TEXT_CRIT_DEDUPE_RADIUS
 		if (s["pos"] as Vector2).distance_squared_to(pos) <= d * d:
-			return   # per-enemy ICD: drop, don't stack a second gold column
-	_push(pos, str(roundi(amount)), GOLD, GameConfig.COMBAT_TEXT_CRIT_SIZE, PRIORITY_CRIT, "crit")
+			return   # id-less fallback: a live gold number close by stands in for "same enemy"
+	_push(pos, str(roundi(amount)), GOLD, GameConfig.COMBAT_TEXT_CRIT_SIZE, PRIORITY_CRIT, "crit", source_id)
 
 func _push_callout(pos: Vector2, word: String, color: Color) -> void:
 	for s in _slots:
@@ -85,8 +93,8 @@ func _push_callout(pos: Vector2, word: String, color: Color) -> void:
 	_push(pos, word, color, GameConfig.COMBAT_TEXT_CALLOUT_SIZE, PRIORITY_CALLOUT, "callout")
 
 ## Shared slot-claim: writes into a preallocated dict (never allocates). Frame-capped and
-## priority-evicting per rule (d).
-func _push(pos: Vector2, text: String, color: Color, size: int, priority: int, kind: String) -> void:
+## priority-evicting per rule (d). `src` = the hit enemy's instance id (crits; 0 for callouts).
+func _push(pos: Vector2, text: String, color: Color, size: int, priority: int, kind: String, src: int = 0) -> void:
 	var frame := Engine.get_process_frames()
 	if _pop_frame != frame:
 		_pop_frame = frame
@@ -104,6 +112,7 @@ func _push(pos: Vector2, text: String, color: Color, size: int, priority: int, k
 	slot["size"] = size
 	slot["priority"] = priority
 	slot["kind"] = kind
+	slot["src"] = src
 	slot["alive"] = true
 	slot["x_off"] = randf_range(-GameConfig.COMBAT_TEXT_X_JITTER, GameConfig.COMBAT_TEXT_X_JITTER)
 	queue_redraw()
