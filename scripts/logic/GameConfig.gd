@@ -29,8 +29,8 @@ const UPGRADE_RANGE_PCT := 0.15        # "Long Barrel" range card
 const UPGRADE_CHOKE_PCT := 0.30        # "Tighter Choke" spread reduction
 const UPGRADE_BURN_DPS := 8.0          # incendiary damage per second
 const UPGRADE_BURN_DURATION := 3.0     # incendiary burn duration (seconds)
-const FLAME_BURN_DPS := 10.0           # Flamethrower base burn (always ignites)
-const FLAME_BURN_TIME := 1.5           # Flamethrower base burn duration, refreshed each tick
+const FLAME_BURN_DPS := 30.0           # Flamethrower base burn — a real damage channel, not a tick
+const FLAME_BURN_TIME := 3.0           # Flamethrower burn duration, refreshed each tick — melts after the sweep
 
 # --- Weapon talents (loot procs) ---
 const TALENT_VULN_MAX := 1.0          # Marked: cap the bonus-damage-taken fraction (+100%)

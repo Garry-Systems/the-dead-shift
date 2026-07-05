@@ -49,7 +49,8 @@ static func all() -> Array:
 			"upgrades": ["damage", "fire_rate", "range", "bullet_speed", "pierce", "incendiary", "reload", "mag"],
 		},
 		{
-			"id": "sniper", "name": "Sniper", "desc": "Bolt-action — devastating, slow, extreme range", "category": "Sniper",
+			"id": "sniper", "name": "Sniper", "desc": "Bolt-action — devastating, slow, punches through the line", "category": "Sniper",
+			"fire_mode": "projectile", "base_pierce": 2,
 			"damage": 120.0, "fire_interval": 0.90, "bullet_speed": 1500.0,
 			"range": 1200.0, "projectiles": 1, "spread": 0.0,
 			"mag_size": 5, "reload_time": 2.2,
@@ -75,7 +76,7 @@ static func all() -> Array:
 		{
 			"id": "flamethrower", "name": "Flamethrower", "desc": "Fuel-hose cone — always burns", "category": "Special",
 			"fire_mode": "cone", "cone_angle": 1.05,
-			"damage": 6.0, "fire_interval": 0.05, "bullet_speed": 0.0,
+			"damage": 5.0, "fire_interval": 0.05, "bullet_speed": 0.0,
 			"range": 280.0, "projectiles": 1, "spread": 0.0,
 			"mag_size": 100, "reload_time": 2.5,
 			"upgrades": ["damage", "fire_rate", "range", "incendiary", "reload", "mag"],
@@ -112,7 +113,7 @@ static func all() -> Array:
 		{
 			"id": "slug_gun", "name": "Slug Gun", "desc": "Solid slug — a shotgun that reaches out and pierces", "category": "Shotgun",
 			"fire_mode": "projectile", "base_pierce": 2,
-			"damage": 60.0, "fire_interval": 0.70, "bullet_speed": 1000.0,
+			"damage": 78.0, "fire_interval": 0.70, "bullet_speed": 1000.0,
 			"range": 650.0, "projectiles": 1, "spread": 0.0,
 			"mag_size": 5, "reload_time": 2.0,
 			"upgrades": ["damage", "fire_rate", "range", "pierce", "bullet_speed", "ricochet", "reload", "mag"],
@@ -142,7 +143,7 @@ static func all() -> Array:
 		},
 		{
 			"id": "grenade_launcher", "name": "Grenade Launcher", "desc": "Lobbed shells detonate in a crowd-clearing blast", "category": "Heavy",
-			"fire_mode": "projectile", "explode_radius": 130.0, "explode_force": 600.0,
+			"fire_mode": "projectile", "explode_radius": 130.0, "explode_force": 600.0, "impact_frac": 0.5,
 			"damage": 50.0, "fire_interval": 0.80, "bullet_speed": 650.0,
 			"range": 600.0, "projectiles": 1, "spread": 0.0,
 			"mag_size": 6, "reload_time": 2.2,
@@ -152,13 +153,13 @@ static func all() -> Array:
 			"id": "lmg", "name": "LMG", "desc": "Belt-fed — more punch than the minigun, less spray", "category": "Heavy",
 			"damage": 16.0, "fire_interval": 0.07, "bullet_speed": 880.0,
 			"range": 600.0, "projectiles": 1, "spread": 0.09,
-			"mag_size": 100, "reload_time": 3.2,
+			"mag_size": 100, "reload_time": 4.5,
 			"upgrades": ["damage", "fire_rate", "choke", "bullet_speed", "pierce", "incendiary", "reload", "mag"],
 		},
 		{
 			"id": "acid_cannon", "name": "Acid Cannon", "desc": "Caustic shells leave a melting acid pool — area denial", "category": "Special",
 			"fire_mode": "projectile", "pool": "acid",
-			"pool_radius": 90.0, "pool_duration": 3.5, "pool_slow": 0.4, "pool_slow_dur": 1.0,
+			"pool_radius": 90.0, "pool_duration": 3.5, "pool_slow": 0.4, "pool_slow_dur": 1.0, "pool_dps": 25.0,
 			"damage": 35.0, "fire_interval": 0.55, "bullet_speed": 700.0,
 			"range": 520.0, "projectiles": 1, "spread": 0.0,
 			"mag_size": 10, "reload_time": 2.0,

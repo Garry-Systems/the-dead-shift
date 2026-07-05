@@ -26,6 +26,9 @@ var pool_radius := 90.0
 var pool_duration := 3.0
 var pool_slow := 0.0
 var pool_slow_dur := 0.0
+var pool_dps := 0.0                # pool damage/sec at BASE damage (0 = pool dps just equals live damage)
+var impact_frac := 0.0             # shells: fraction of damage dealt to the directly-hit enemy (0 = none)
+var _base_damage := 0.0            # def damage before loot/cards — anchors ratio-scaled derived stats
 var beam_width := 28.0             # beam mode: half-corridor width (px)
 
 # Talent payload carried onto every bullet (raised by weapon talent cards).
@@ -86,6 +89,7 @@ func _ready() -> void:
 func configure(def: Dictionary) -> void:
 	weapon_id = String(def["id"])
 	damage = float(def["damage"])
+	_base_damage = damage
 	fire_interval = float(def["fire_interval"])
 	bullet_speed = float(def["bullet_speed"])
 	gun_range = float(def["range"])
@@ -106,6 +110,8 @@ func configure(def: Dictionary) -> void:
 	pool_duration = float(def.get("pool_duration", 3.0))
 	pool_slow = float(def.get("pool_slow", 0.0))
 	pool_slow_dur = float(def.get("pool_slow_dur", 0.0))
+	pool_dps = float(def.get("pool_dps", 0.0))
+	impact_frac = float(def.get("impact_frac", 0.0))
 	beam_width = float(def.get("beam_width", 28.0))
 	pin_chance = float(def.get("pin_chance", 0.0))
 	pin_dur = float(def.get("pin_dur", 0.0))
@@ -274,6 +280,7 @@ func _spawn_bullet(dir: Vector2) -> void:
 		bullet.burn_duration = burn_duration
 	bullet.explode_radius = explode_radius
 	bullet.explode_force = explode_force
+	bullet.impact_frac = impact_frac
 	bullet.pin_chance = pin_chance
 	bullet.pin_dur = pin_dur
 	if pool_family != "":
@@ -282,11 +289,15 @@ func _spawn_bullet(dir: Vector2) -> void:
 	bullet.global_position = global_position
 
 ## Build the enemy-only HazardZone config for a pool-dropping shell (Acid Cannon).
-## dps = this gun's damage, so damage cards/affixes scale the pool.
+## Pool dps is its own def stat (pool_dps), scaled by the gun's live/base damage ratio
+## so damage cards & affixes still grow the pool — but shell hit and pool tune apart.
 func _build_pool_cfg() -> Dictionary:
 	var color = Hazards.GREEN if pool_family == "acid" else Hazards.ORANGE
+	var dps := damage
+	if pool_dps > 0.0 and _base_damage > 0.0:
+		dps = pool_dps * (damage / _base_damage)
 	return {
-		"color": color, "dps": damage, "radius": pool_radius, "duration": pool_duration,
+		"color": color, "dps": dps, "radius": pool_radius, "duration": pool_duration,
 		"slow": pool_slow, "slow_dur": pool_slow_dur, "stun": 0.0, "chain": 0,
 		"drift": 0.0, "hurts_player": false,
 	}

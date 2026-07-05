@@ -22,6 +22,7 @@ var pin_dur := 0.0             # Nail Gun: root duration (seconds)
 var explode_radius := 0.0      # >0: detonate a Shockwave on death (Grenade Launcher)
 var explode_force := 0.0       # knockback force for the explosion
 var pool_cfg := {}             # non-empty: spawn an enemy-only HazardZone on death (Acid Cannon)
+var impact_frac := 0.0         # >0: the directly-contacted enemy takes damage*frac before the blast
 var _detonated := false        # guard: the on-death effect fires at most once
 
 # Weapon-loot talents: resolved combat payload + the firing player (for lifesteal/frenzy).
@@ -50,8 +51,12 @@ func _physics_process(delta: float) -> void:
 
 func _on_body_entered(body) -> void:
 	if _is_shell():
-		# Delivery shells ignore direct damage/pierce — detonate on the first solid contact.
+		# Delivery shells ignore pierce — but a direct enemy hit lands impact damage
+		# (impact_frac of the shell's damage) BEFORE detonating, so the Grenade
+		# Launcher isn't dead weight against a single boss. Cover/props: blast only.
 		if body.is_in_group("cover") or body.is_in_group("destructibles") or body.is_in_group("enemies"):
+			if impact_frac > 0.0 and body.is_in_group("enemies") and body.has_method("take_damage"):
+				body.take_damage(damage * impact_frac)
 			_detonate()
 			queue_free()
 		return
