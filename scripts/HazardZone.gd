@@ -36,11 +36,26 @@ func configure_hazard(cfg: Dictionary) -> void:
 	_hurts_player = bool(cfg.get("hurts_player", true))
 	add_to_group("hazard_zones")
 	if not _hurts_player:
-		add_to_group("player_pools")   # player-placed pool (Acid Cannon); capped separately, see Bullet._detonate
+		add_to_group("player_pools")   # player-placed pool (Acid Cannon, later Bile Spill); capped via cap_player_pools()
 	setup(null, null, {})                  # AttackPattern grabs the player from the group
 	_windup = GameConfig.HAZARD_WINDUP     # short arm, bypassing the boss PATTERN_WINDUP clamp
 	var ang := randf_range(0.0, TAU)
 	_drift_dir = Vector2(cos(ang), sin(ang))
+
+## Enforces MAX_PLAYER_POOLS on the "player_pools" group (Acid Cannon shells and, from Phase 2,
+## Bile Spill): if already at cap, frees the OLDEST member (group order == spawn order) before a
+## new one spawns. Static + shared (lifted from Bullet._cap_player_pools, Talent Overhaul Phase 1
+## / Risks #3) so every player-pool spawner rides the SAME cap — a dense Bile Spill kill-trail
+## can't flood past the Acid Cannon's own limit, or vice versa.
+static func cap_player_pools(tree) -> void:
+	var pools: Array = tree.get_nodes_in_group("player_pools")
+	if pools.size() >= GameConfig.MAX_PLAYER_POOLS:
+		var oldest = pools[0]
+		if is_instance_valid(oldest):
+			# queue_free is DEFERRED — see Bullet's original comment: leaving the group
+			# immediately keeps a same-frame multishot recount accurate.
+			oldest.remove_from_group("player_pools")
+			oldest.queue_free()
 
 func _on_telegraph_end() -> void:
 	_armed = true

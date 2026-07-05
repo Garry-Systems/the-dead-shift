@@ -2,11 +2,15 @@ class_name Hazards
 ## Lookup-only registry of hazard-zone tuning (like Bosses.gd). A Destructible reads
 ## stats_for(hazard_id) on death and hands it to a HazardZone. Numbers live in GameConfig.
 
-# The 3 sanctioned gameplay-color exceptions to the strict 4-color palette
+# The sanctioned gameplay-color exceptions to the strict 4-color palette
 # (alongside FlameCone orange / Lightning cyan). Do NOT replace with palette lookups.
-const ORANGE := Color(1.0, 0.55, 0.1)   # fire     — palette exception
-const GREEN  := Color(0.4, 1.0, 0.2)    # toxic    — palette exception
-const CYAN   := Color(0.2, 1.0, 1.0)    # electric — palette exception (matches Lightning.COLOR)
+const ORANGE := Color(1.0, 0.55, 0.1)   # fire       — palette exception
+const GREEN  := Color(0.4, 1.0, 0.2)    # toxic      — palette exception
+const CYAN   := Color(0.2, 1.0, 1.0)    # electric   — palette exception (matches Lightning.COLOR)
+const GOLD   := Color(1.0, 0.843, 0.0)  # marks/crit — palette exception (matches Rarity's Armageddon "molten gold")
+# Blood/execute — newly sanctioned 2026-07-05 (Talent Overhaul design), player-sourced only;
+# the enemy-projectile bright red (Color("ff3b3b")-family) stays a separate, distinct exception.
+const BLOOD_RED := Color(0.769, 0.118, 0.227)  # #C41E3A
 
 ## Tuning dict for a hazard family, or {} for an unknown id.
 static func stats_for(hazard_id: String) -> Dictionary:

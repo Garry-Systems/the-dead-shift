@@ -330,3 +330,39 @@ const COURIER_SLOW_FACTOR := 0.4       # slow-aura move-speed cut
 # SHIFT CHANGE toast debounce: the Hud edge-detects "no boss -> boss" each frame, which in Boss
 # Rush can flicker on a same-frame boss-death + refill depending on Spawner/Hud process order.
 const SHIFT_TOAST_COOLDOWN := 8.0      # min seconds between SHIFT CHANGE toasts
+
+# --- Talent VFX overhaul, Phase 1 (make every existing proc visible) ---
+# CombatText: one pooled Node2D (see scripts/ui/CombatText.gd) — gold crit numbers + headline
+# callout words. Caps are LOAD-BEARING (Risks #1): a Label-per-proc tanks horde frames.
+const COMBAT_TEXT_SLOTS := 16                # preallocated entry slots (never grows)
+const COMBAT_TEXT_MAX_POPS_PER_FRAME := 4    # excess pushes this frame are silently dropped
+const COMBAT_TEXT_POP_TIME := 0.1            # seconds of the pop-in scale (1.15 -> 1.0)
+const COMBAT_TEXT_LIFE := 0.6                # total seconds an entry lives (rise + fade)
+const COMBAT_TEXT_FADE_TIME := 0.25          # seconds of fade-out at the end of LIFE
+const COMBAT_TEXT_RISE_PX := 28.0            # px an entry rises over its life
+const COMBAT_TEXT_X_JITTER := 6.0            # max px of random horizontal drift
+const COMBAT_TEXT_CRIT_SIZE := 18            # font size, crit gold numbers
+const COMBAT_TEXT_CALLOUT_SIZE := 22         # font size, headline-proc words
+const COMBAT_TEXT_CRIT_ICD := 0.15           # per-enemy min gap between crit numbers (proximity-gated — see CombatText._push_crit)
+const COMBAT_TEXT_CRIT_DEDUPE_RADIUS := 30.0 # px; "same enemy" proxy for the ICD above
+const COMBAT_TEXT_CALLOUT_DEDUPE := 0.5      # seconds: an identical live callout word refreshes instead of taking a new slot
+
+# TalentEngine per-frame transient-VFX budget (Risks #2): gameplay procs always apply; only
+# their rings/lightning/motes shed load once a frame's worth of horde-wide procs exceeds this.
+const TALENT_VFX_MAX_PER_FRAME := 6
+
+# Fixed-radius proc rings (the "true radius" procs — explode/reload-nova/freeze-shatter — read
+# their radius from the talent's own rolled `radius` mod instead).
+const TALENT_VULN_RING_RADIUS := 26.0        # gold pulse on a Marked-family apply
+const TALENT_EXECUTE_RING_RADIUS := 28.0     # blood-red flash on an execute-family kill
+const TALENT_SHATTER_CORE_FRAC := 0.4        # inner white-core ring size, as a fraction of the shatter radius
+
+# Overpen (Rebar/Railbreaker): the bullet sprite's per-pierce power-up read.
+const TALENT_OVERPEN_SCALE_STEP := 1.06      # sprite scale multiplier per pierce
+const TALENT_OVERPEN_BRIGHTEN := 0.15        # Color.lightened() fraction per pierce
+
+# LeechMote (lifesteal talents): capped concurrent pooled motes, mirrors MAX_PLAYER_POOLS/
+# MAX_HAZARD_ZONES' evict-oldest idiom.
+const MAX_LEECH_MOTES := 4
+const LEECH_MOTE_LIFE := 0.25                # seconds to lerp enemy -> player
+const LEECH_MOTE_RADIUS := 4.0               # px

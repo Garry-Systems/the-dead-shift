@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Texture2D" path="res://art/ground.png" id="10_ground"]
@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://scripts/VirtualJoystick.gd" id="16_joy"]
 [ext_resource type="Script" path="res://scripts/ObstacleField.gd" id="17_obstacle"]
 [ext_resource type="Script" path="res://scripts/Forecourt.gd" id="18_forecourt"]
+[ext_resource type="Script" path="res://scripts/ui/CombatText.gd" id="19_combattext"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("11_main")
@@ -48,6 +49,9 @@ script = ExtResource("2_spawn")
 
 [node name="ObstacleField" type="Node2D" parent="."]
 script = ExtResource("17_obstacle")
+
+[node name="CombatText" type="Node2D" parent="."]
+script = ExtResource("19_combattext")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("4_hud")

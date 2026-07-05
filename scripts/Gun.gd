@@ -62,8 +62,12 @@ var _surge_shots := 0              # Overflow: extra pellets on the next shots
 var _surge_time := 0.0
 var _reload_nova := {}             # Backblast: {dmg, radius} resolved from talent_payload; {} = none
 var _overpen := {}                 # Railbreaker: {pierce, growth} from talent_payload; {} = none
+var _frenzy_was_active := false    # transition-only FRENZY callout gate (frenzy is a shared, max-wins channel)
+var _surge_was_active := false     # transition-only SURGE callout gate
 
 const MUZZLE_TIME := 0.05         # seconds the muzzle flash stays visible per shot
+const FRENZY_ORANGE := Hazards.ORANGE                # fire family
+const SURGE_LAVENDER := Color(0.878, 0.898, 1.0)     # C4 lavender (matches Shockwave.RING_COLOR / Beam.COLOR)
 
 var _cooldown := 0.0
 var _muzzle: Sprite2D
@@ -170,6 +174,8 @@ func _process(delta: float) -> void:
 			_surge_pierce = 0
 			_surge_shots = 0
 
+	_update_buff_callouts()
+
 	# aim_direction is set by the Player each frame (the last-faced direction).
 	# The gun no longer picks targets — it fires where the player is looking.
 
@@ -179,7 +185,11 @@ func _process(delta: float) -> void:
 			_ammo = mag_size
 			_reloading = false
 			if not _reload_nova.is_empty():
-				TalentEngine.detonate(global_position, float(_reload_nova.get("dmg", 0.0)), float(_reload_nova.get("radius", 0.0)), get_tree())
+				var nova_radius := float(_reload_nova.get("radius", 0.0))
+				TalentEngine.detonate(global_position, float(_reload_nova.get("dmg", 0.0)), nova_radius, get_tree())
+				# Orange ring at the TRUE radius — reload-nova was previously invisible; the
+				# NOVA callout itself is reserved for the t3 Powder Keg (Phase 3), so silent here.
+				TalentEngine.spawn_ring(global_position, nova_radius, Hazards.ORANGE, get_tree())
 		return
 
 	_cooldown -= delta
@@ -250,15 +260,41 @@ func _fire_projectile(dir: Vector2) -> bool:
 		_spawn_bullet(Vector2.from_angle(base_angle + offset))
 	return true
 
-## Pops the muzzle flash at the gun's muzzle, oriented along the shot.
+## Pops the muzzle flash at the gun's muzzle, oriented along the shot. Tinted while a
+## frenzy/surge buff runs (gun-side, zero nodes — the muzzle sprite is the only visible part
+## of the gun, so it carries the "buff is live" read); white otherwise.
 func _show_muzzle(angle: float) -> void:
 	if _muzzle == null:
 		return
 	_muzzle.position = Vector2.from_angle(angle) * 22.0
 	_muzzle.rotation = angle
-	_muzzle.modulate = Color(1, 1, 1, 1)
+	_muzzle.modulate = _muzzle_tint()
 	_muzzle.visible = true
 	_muzzle_time = MUZZLE_TIME
+
+## Surge (lavender) wins over frenzy (orange) if both are somehow active — it's the rarer,
+## flashier of the two buffs. White when neither is active.
+func _muzzle_tint() -> Color:
+	if _surge_time > 0.0:
+		return SURGE_LAVENDER
+	if _frenzy_time > 0.0:
+		return FRENZY_ORANGE
+	return Color(1, 1, 1, 1)
+
+## Fires a one-shot family callout on the inactive->active transition for frenzy/surge only —
+## never on refresh. Frenzy is a single shared, max-wins channel across Bloodrush/Adrenaline/
+## Rampage/Graveyard Shift, so a kill mid-buff refreshing the timer must stay silent (Judge
+## notes: "document, don't fix" the max-wins stacking).
+func _update_buff_callouts() -> void:
+	var frenzy_active := _frenzy_time > 0.0
+	if frenzy_active and not _frenzy_was_active:
+		CombatText.callout(global_position, "FRENZY", FRENZY_ORANGE)
+	_frenzy_was_active = frenzy_active
+
+	var surge_active := _surge_time > 0.0
+	if surge_active and not _surge_was_active:
+		CombatText.callout(global_position, "SURGE", SURGE_LAVENDER)
+	_surge_was_active = surge_active
 
 ## Fades the muzzle flash out over MUZZLE_TIME; runs every frame regardless of fire state.
 func _fade_muzzle(delta: float) -> void:
@@ -400,9 +436,12 @@ func _fire_lightning(dir: Vector2) -> bool:
 		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
 		if was_alive and not killed and e.has_method("flash_hit"):
 			e.flash_hit()
+		if was_alive and bool(roll.get("crit", false)):
+			CombatText.crit(hit_pos, float(roll["damage"]))
 		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, dmg, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
+				"crit": bool(roll.get("crit", false)),
 			})
 		dmg *= jump_falloff
 	_spawn_lightning(points)
@@ -436,9 +475,12 @@ func _fire_beam(dir: Vector2) -> bool:
 				e.flash_hit()
 			if incendiary and e.has_method("ignite"):
 				e.ignite(burn_dps, burn_duration)
+		if was_alive and bool(roll.get("crit", false)):
+			CombatText.crit(hit_pos, float(roll["damage"]))
 		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
+				"crit": bool(roll.get("crit", false)),
 			})
 	# Destructibles in the beam corridor take raw damage too (barrels burst). Same geometry,
 	# no talents — matches the flame cone / a bullet hit.
@@ -477,9 +519,12 @@ func _fire_cone(dir: Vector2) -> bool:
 				e.flash_hit()
 			if e.has_method("ignite"):
 				e.ignite(bdps, btime)
+		if was_alive and bool(roll.get("crit", false)):
+			CombatText.crit(hit_pos, float(roll["damage"]))
 		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
+				"crit": bool(roll.get("crit", false)),
 			})
 	# The flame also scorches destructibles (barrels, drums, crates, cover) caught in the cone
 	# — raw damage like a bullet hit (no talents; a torched barrel still bursts via its own

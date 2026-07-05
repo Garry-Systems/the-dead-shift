@@ -101,6 +101,10 @@ func _on_body_entered(body) -> void:
 		if pin_chance > 0.0 and body.has_method("apply_pin") and randf() < pin_chance:
 			body.apply_pin(pin_dur)
 
+	# The one per-hit number the game shows: a gold crit popup (Risks #4, hit site 1 of 5).
+	if was_alive and bool(roll.get("crit", false)):
+		CombatText.crit(hit_pos, float(roll["damage"]))
+
 	# Fire talent procs: on-hit statuses, lifesteal, chain, on-kill explode/frenzy.
 	if was_alive and not talent_payload.is_empty():
 		TalentEngine.process_hit(body, hit_pos, damage, killed, talent_payload, {
@@ -108,6 +112,7 @@ func _on_body_entered(body) -> void:
 			"gun": (talent_player.gun if (talent_player != null and is_instance_valid(talent_player)) else null),
 			"dir": direction,
 			"tree": get_tree(),
+			"crit": bool(roll.get("crit", false)),
 		})
 
 	# Ricochet redirects toward a fresh target; pierce keeps flying straight.
@@ -121,8 +126,18 @@ func _on_body_entered(body) -> void:
 		pierce_count -= 1
 		if overpen_growth > 0.0:
 			damage *= (1.0 + overpen_growth / 100.0)
+			_apply_overpen_vfx()   # Rebar/Railbreaker: the round visibly powers up as it drills the line
 		return
 	queue_free()
+
+## Overpen (Rebar/Railbreaker) tell: the bullet sprite grows and brightens a little each time it
+## pierces. No nodes — just this sprite's own scale/modulate.
+func _apply_overpen_vfx() -> void:
+	var spr := get_node_or_null("Sprite2D") as Sprite2D
+	if spr == null:
+		return
+	spr.scale *= GameConfig.TALENT_OVERPEN_SCALE_STEP
+	spr.modulate = spr.modulate.lightened(GameConfig.TALENT_OVERPEN_BRIGHTEN)
 
 ## True when this bullet delivers an on-death effect instead of a direct hit.
 func _is_shell() -> bool:
@@ -140,27 +155,11 @@ func _detonate() -> void:
 		var gun = (talent_player.gun if (talent_player != null and is_instance_valid(talent_player)) else null)
 		blast.blast(explode_radius, damage, explode_force, gun, talent_player, true)  # grenade blast also scorches barrels/destructibles
 	if not pool_cfg.is_empty():
-		_cap_player_pools()
+		HazardZone.cap_player_pools(get_tree())   # shared cap: also rides Phase 2's Bile Spill
 		var zone := HazardZone.new()
 		get_tree().current_scene.add_child(zone)
 		zone.global_position = global_position
 		zone.configure_hazard(pool_cfg)
-
-## Enforces MAX_PLAYER_POOLS: if the "player_pools" group (Acid Cannon pools, hurts_player:false)
-## is already at cap, frees the OLDEST member (group order == spawn order) before a new one
-## spawns, so player-placed pools can't accumulate without bound the way enemy/world hazards
-## are already capped in Destructible._die() (MAX_HAZARD_ZONES).
-func _cap_player_pools() -> void:
-	var pools := get_tree().get_nodes_in_group("player_pools")
-	if pools.size() >= GameConfig.MAX_PLAYER_POOLS:
-		var oldest = pools[0]
-		if is_instance_valid(oldest):
-			# queue_free is DEFERRED — the node would stay in the group for the rest of the
-			# frame, so a same-frame multishot detonation would recount this corpse and
-			# "evict" it again (a no-op) while still adding a fresh zone, drifting past the
-			# cap. Leave the group immediately so every same-frame recount is accurate.
-			oldest.remove_from_group("player_pools")
-			oldest.queue_free()
 
 ## Detonate (if a shell) then free. Used at every end-of-life exit.
 func _expire() -> void:

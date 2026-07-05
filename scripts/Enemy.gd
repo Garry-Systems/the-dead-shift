@@ -9,6 +9,20 @@ const FLASH_SHADER := preload("res://shaders/flash.gdshader")
 const KNOCKBACK_DECAY := 900.0    # px/s^2 the talent knockback impulse bleeds off
 const FROZEN_TINT := Color("3D0099")   # C2 indigo — frozen tell (palette-compliant)
 const PIN_TINT := Color("E0E5FF")      # C4 lavender — Nail Gun "nailed" tell (palette-compliant)
+
+# Tint-ladder blends (Talent Overhaul Phase 1): weaker statuses tint by BLENDING toward the
+# family color rather than a solid wash, so the ladder stays readable when several mild statuses
+# overlap (the FLASH_CD lesson — pulses/blends, never solid washes). Frozen/pinned stay SOLID
+# (above) because they're the strongest, rarest tells; everything below them blends.
+const BURN_TINT := Hazards.ORANGE
+const BURN_BLEND := 0.6
+const POISON_TINT := Hazards.GREEN
+const POISON_BLEND := 0.5
+const MARK_TINT := Hazards.GOLD
+const MARK_BLEND := 0.35
+const SLOW_TINT := FROZEN_TINT          # same indigo family as freeze, just a weaker blend
+const SLOW_BLEND := 0.4
+
 const FLASH_CD := 0.15           # min seconds between hit-flashes. A continuous weapon (flame cone,
                                  # beam) or a rapid gun (Nail Gun) calls flash_hit far faster than the
                                  # 0.12s pop can fade, which pins the sprite SOLID WHITE and hides the
@@ -88,20 +102,31 @@ func _set_flash(v: float) -> void:
 	if _flash_mat != null:
 		_flash_mat.set_shader_parameter("flash", v)
 
-## Applies (or refreshes) an incendiary burn — damage over time, set by a bullet.
+## Applies (or refreshes) an incendiary burn — damage over time, set by a bullet. Refreshes the
+## tint only on the off->on transition (a re-ignite while already burning doesn't change the
+## ladder's read, just the numbers underneath it).
 func ignite(dps: float, duration: float) -> void:
+	var was_active := _burn_time > 0.0
 	_burn_dps = maxf(_burn_dps, dps)
 	_burn_time = maxf(_burn_time, duration)
+	if not was_active:
+		_refresh_tint()
 
 ## Talent (Frostbite): cut move speed by `factor` (0..1) for `duration`s. Strongest wins.
 func apply_slow(factor: float, duration: float) -> void:
+	var was_active := _slow_time > 0.0
 	_slow_factor = minf(_slow_factor, clampf(1.0 - factor, 0.05, 1.0))
 	_slow_time = maxf(_slow_time, duration)
+	if not was_active:
+		_refresh_tint()
 
 ## Talent (Venom): stacking poison DoT — adds to any existing tick.
 func apply_dot(dps: float, duration: float) -> void:
+	var was_active := _dot_time > 0.0
 	_dot_dps += dps
 	_dot_time = maxf(_dot_time, duration)
+	if not was_active:
+		_refresh_tint()
 
 ## Talent (Concussive): shove the enemy with an impulse that decays over time.
 func apply_knockback(impulse: Vector2) -> void:
@@ -109,8 +134,11 @@ func apply_knockback(impulse: Vector2) -> void:
 
 ## Talent (Marked): take extra damage for a duration. Strongest application wins; capped in take_damage.
 func apply_vulnerable(frac: float, duration: float) -> void:
+	var was_active := _vuln_time > 0.0
 	_vuln_bonus = maxf(_vuln_bonus, frac)
 	_vuln_time = maxf(_vuln_time, duration)
+	if not was_active:
+		_refresh_tint()
 
 ## Talent (Cold Snap): fully stop the enemy for a duration. A hit while frozen shatters it.
 func apply_freeze(duration: float) -> void:
@@ -137,19 +165,34 @@ func apply_pin(duration: float) -> void:
 func is_pinned() -> bool:
 	return _pinned
 
-## Pure: persistent base tint by status precedence (freeze > pin > none).
-## Static so a probe can verify the precedence headlessly.
-static func _resolve_tint(frozen: bool, pinned: bool) -> Color:
+## Pure: persistent base tint by status precedence — frozen > pinned > feared (Phase 2 slot,
+## commented below) > burning > poisoned > marked > slowed > neutral. Static so a probe can
+## verify the precedence headlessly. Frozen/pinned are solid tells; everything below blends
+## toward its family color so overlapping mild statuses stay readable (see the BLEND consts).
+static func _resolve_tint(frozen: bool, pinned: bool, burning: bool, poisoned: bool, marked: bool, slowed: bool) -> Color:
 	if frozen:
 		return FROZEN_TINT
 	if pinned:
 		return PIN_TINT
+	# Phase 2 (Night Terror, NEW:onhit_fear): feared slots here, a near-C1 void-dark tint,
+	# outranking burn/poison/mark/slow but below the movement-root tells above.
+	# if feared:
+	#     return FEAR_TINT
+	if burning:
+		return Color(1, 1, 1, 1).lerp(BURN_TINT, BURN_BLEND)
+	if poisoned:
+		return Color(1, 1, 1, 1).lerp(POISON_TINT, POISON_BLEND)
+	if marked:
+		return Color(1, 1, 1, 1).lerp(MARK_TINT, MARK_BLEND)
+	if slowed:
+		return Color(1, 1, 1, 1).lerp(SLOW_TINT, SLOW_BLEND)
 	return Color(1, 1, 1, 1)
 
 ## Push the resolved tint to the flash material (no-op before the sprite material exists).
 func _refresh_tint() -> void:
 	if _flash_mat != null:
-		_flash_mat.set_shader_parameter("base_tint", _resolve_tint(_frozen, _pinned))
+		_flash_mat.set_shader_parameter("base_tint",
+			_resolve_tint(_frozen, _pinned, _burn_time > 0.0, _dot_time > 0.0, _vuln_time > 0.0, _slow_time > 0.0))
 
 ## Remaining-health fraction (for the above-head bar).
 func health_fraction() -> float:
@@ -167,6 +210,7 @@ func _physics_process(delta: float) -> void:
 			return
 		if _burn_time <= 0.0:
 			_burn_dps = 0.0
+			_refresh_tint()
 
 	if _dot_time > 0.0:
 		_dot_time -= delta
@@ -175,16 +219,19 @@ func _physics_process(delta: float) -> void:
 			return
 		if _dot_time <= 0.0:
 			_dot_dps = 0.0
+			_refresh_tint()
 
 	if _slow_time > 0.0:
 		_slow_time -= delta
 		if _slow_time <= 0.0:
 			_slow_factor = 1.0
+			_refresh_tint()
 
 	if _vuln_time > 0.0:
 		_vuln_time -= delta
 		if _vuln_time <= 0.0:
 			_vuln_bonus = 0.0
+			_refresh_tint()
 
 	if _freeze_time > 0.0:
 		_freeze_time -= delta

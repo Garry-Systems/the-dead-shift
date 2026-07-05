@@ -9,7 +9,12 @@ extends Node2D
 ## knockback) used for Ryan Ace's projectile-purge pulse.
 
 const RING_TIME := 0.35                       # seconds the visual ring expands + fades
-const RING_COLOR := Color(0.878, 0.898, 1.0)  # C4 lavender (the player's color)
+const RING_COLOR := Color(0.878, 0.898, 1.0)  # C4 lavender (the player's color) — default ring color
+
+## Ring color, mutable per-instance. Defaults to RING_COLOR so every existing caller (Alstar's
+## dash, Ryan's purge, barrel bursts, grenade shells) is unchanged; talent-proc callers (execute/
+## vulnerable/explode/nova/shatter rings) set this to their own family color before flash()/blast().
+var color := RING_COLOR
 
 var _radius := 0.0   # blast radius, also the visual ring's final size
 var _age := 0.0
@@ -41,14 +46,18 @@ func blast(radius: float, damage: float, force: float, gun, player, hit_destruct
 			e.apply_knockback(dir * force)
 		# Damage, then carry the gun's on-hit talents onto the hit, exactly like a bullet impact.
 		var was_alive: bool = e.has_method("health_fraction") and e.health_fraction() > 0.0
-		e.take_damage(damage)
+		var roll := TalentEngine.roll_damage(damage, payload)
+		e.take_damage(float(roll["damage"]))
 		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
+		if was_alive and bool(roll.get("crit", false)):
+			CombatText.crit(enemy_pos, float(roll["damage"]))
 		if was_alive and not payload.is_empty():
 			TalentEngine.process_hit(e, enemy_pos, damage, killed, payload, {
 				"player": player,
 				"gun": gun,
 				"dir": dir,
 				"tree": tree,
+				"crit": bool(roll.get("crit", false)),
 			})
 	# Destructibles in the blast take raw damage too (barrels burst). GATED: a barrel's OWN
 	# burst must not recursively detonate the field — that ripples via Destructible's fuse +
@@ -81,8 +90,8 @@ func _draw() -> void:
 	# Expanding shock front: a thick ring that grows past the blast edge and fades.
 	var ring_r := _radius * lerpf(0.15, 1.08, t)
 	draw_arc(Vector2.ZERO, ring_r, 0.0, TAU, 64,
-		Color(RING_COLOR.r, RING_COLOR.g, RING_COLOR.b, fade), 2.0 + 8.0 * fade, true)
+		Color(color.r, color.g, color.b, fade), 2.0 + 8.0 * fade, true)
 	# Inner flash disc, fades faster than the ring.
 	var disc_a := fade * fade * 0.35
 	draw_circle(Vector2.ZERO, _radius * (0.4 + 0.5 * t),
-		Color(RING_COLOR.r, RING_COLOR.g, RING_COLOR.b, disc_a))
+		Color(color.r, color.g, color.b, disc_a))

@@ -312,6 +312,16 @@ func heal(amount: float) -> void:
 	if _health != null:
 		_health.heal(amount)
 
+## Talent VFX (Bloodthirst/Leech/Mosquito lifesteal): a 1-frame rim pulse in `color` on the
+## sprite — the LeechMote's landing tell. Independent of the hurt-flash shader channel (no
+## gameplay meaning, so it never fights or gets throttled by the damage-taken flash cooldown).
+func lifesteal_blip(color: Color) -> void:
+	if _sprite == null:
+		return
+	_sprite.modulate = color
+	var tw := create_tween()
+	tw.tween_property(_sprite, "modulate", Color(1, 1, 1, 1), 0.1)
+
 ## Relic hook: raise (or lower, when removed) max health. Reversible via a negative amount.
 func relic_add_max_health(amount: float) -> void:
 	_health.add_max(amount)
