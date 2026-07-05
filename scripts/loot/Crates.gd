@@ -37,21 +37,26 @@ static func all() -> Array:
 		},
 		{
 			"id": "precision_pack", "name": "Buckshot & Bolts", "price": 500,
-			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["sniper", "shotgun", "auto_shotgun", "slug_gun", "railgun", "anti_materiel"],
-			"desc": "Snipers & shotguns. Any rarity up to Apocalypse.",
+			"rarity_floor": 2, "rarity_ceil": 8, "bases": ["sniper", "shotgun", "auto_shotgun", "slug_gun", "railgun", "anti_materiel"],
+			"desc": "Snipers & shotguns. Salvaged or better, up to Apocalypse.",
 		},
 		{
 			"id": "auto_case", "name": "Full Auto Case", "price": 500,
-			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["smg", "ak47", "nailgun", "pdw", "machine_pistol", "lmg"],
-			"desc": "SMGs & AK-47s. Any rarity up to Apocalypse.",
+			"rarity_floor": 2, "rarity_ceil": 8, "bases": ["smg", "ak47", "nailgun", "pdw", "machine_pistol", "lmg"],
+			"desc": "SMGs & AK-47s. Salvaged or better, up to Apocalypse.",
 		},
 		{
 			"id": "standard_arms", "name": "Standard Arms", "price": 500,
-			"rarity_floor": 1, "rarity_ceil": 8, "bases": ["pistol", "rifle", "minigun", "magnum", "battle_rifle", "grenade_launcher"],
-			"desc": "Pistols, rifles & miniguns. Any rarity up to Apocalypse.",
+			"rarity_floor": 2, "rarity_ceil": 8, "bases": ["pistol", "rifle", "minigun", "magnum", "battle_rifle", "grenade_launcher"],
+			"desc": "Pistols, rifles & miniguns. Salvaged or better, up to Apocalypse.",
 		},
 		{
-			"id": "fiftyfifty", "name": "50/50 Crate", "price": 400,
+			"id": "specials_case", "name": "Specials Case", "price": 650,
+			"rarity_floor": 2, "rarity_ceil": 8, "bases": ["tesla", "flamethrower", "acid_cannon"],
+			"desc": "Weird science: Tesla, flame & acid. Salvaged or better, up to Apocalypse.",
+		},
+		{
+			"id": "fiftyfifty", "name": "50/50 Crate", "price": 700,
 			"rarity_floor": 1, "rarity_ceil": 5, "special": "5050",
 			"desc": "All or nothing: half Savage, half Rusted.",
 		},
