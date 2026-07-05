@@ -10,10 +10,10 @@ config_version=5
 
 [application]
 
-config/name="Mobile Game"
+config/name="The Dead Shift"
 run/main_scene="res://scenes/LoadingScreen.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
-config/icon="res://icon.svg"
+config/icon="res://icon.png"
 
 [display]
 

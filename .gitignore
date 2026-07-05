@@ -4,3 +4,8 @@
 
 # Build output (APKs etc. are published as GitHub Releases, not committed)
 /build/
+
+# Release signing key material -- NEVER commit. Lives in GitHub secrets only
+# (see docs/RELEASE-SIGNING.md).
+*.jks
+*.keystore

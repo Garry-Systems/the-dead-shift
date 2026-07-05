@@ -1,0 +1,55 @@
+name: Android Release Build
+
+# Builds a release-SIGNED Android App Bundle (.aab) when a version tag (v*) is pushed,
+# and attaches it to that tag's GitHub Release. This is separate from android.yml (which
+# builds an unsigned/debug-signed .apk on every push to master for phone-testing) -- this
+# workflow is for actual Play Console submissions.
+#
+# Signing key material lives ONLY in repo secrets (ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASS)
+# -- see docs/RELEASE-SIGNING.md for how the upload keystore was generated, how the secrets
+# were set, and how to rotate them if the key is ever lost or compromised.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # needed to attach the .aab to the tag's Release
+
+jobs:
+  release:
+    name: Build release AAB
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6.3   # same image/version as android.yml's debug build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Decode upload keystore
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          mkdir -p /root/release-keystore
+          echo "$ANDROID_KEYSTORE_B64" | base64 -d > /root/release-keystore/upload.keystore
+          ls -la /root/release-keystore/
+
+      - name: Export Android release AAB
+        env:
+          HOME: /root   # use the image's pre-configured Godot/editor settings (SDK, templates)
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: /root/release-keystore/upload.keystore
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: upload
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          mkdir -p build
+          godot --headless --verbose --export-release "Android Release" build/the-dead-shift.aab
+          echo "--- build output ---"
+          ls -la build/
+
+      - name: Attach AAB to the tag's Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: The Dead Shift ${{ github.ref_name }}
+          body: "Release-signed Android App Bundle for ${{ github.ref_name }}. Upload build/the-dead-shift.aab to the Play Console (App bundle explorer / Production or Testing track)."
+          files: build/the-dead-shift.aab
