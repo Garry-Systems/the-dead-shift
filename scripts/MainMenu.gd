@@ -414,6 +414,7 @@ func _on_crate_tile_pressed(crate_id: String) -> void:
 ## The reel landed on a weapon → show the SAME full inspect popup as tapping a gun in the grid,
 ## and rain confetti over the reveal for a rare (orange+) win.
 func _on_crate_weapon_revealed(inst: Dictionary) -> void:
+	_last_unbox = ""   # success supersedes any earlier "Inventory full" failure message
 	_detail_popup.open(inst, String(inst.get("uid", "")) == Inventory.equipped_uid())
 	if int(inst.get("rarity", 1)) >= CONFETTI_MIN_RARITY:
 		_celebrate(WeaponInstance.color(inst))
@@ -429,6 +430,7 @@ func _celebrate(rarity_color: Color) -> void:
 ## Scrap confirmed in the popup → deconstruct for coins and refresh the grid.
 func _on_scrap(inst: Dictionary) -> void:
 	Inventory.deconstruct(String(inst.get("uid", "")))
+	_last_unbox = ""   # a slot just freed — drop a stale "Inventory full" prompt before re-render
 	_populate_inventory()
 
 # --- store: spend coins to unlock characters + buy crates ---
