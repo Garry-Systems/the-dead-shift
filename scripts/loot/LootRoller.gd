@@ -29,8 +29,14 @@ static func roll(rarity: int, base_id: String = "") -> Dictionary:
 	}
 
 	# Choose how many of the affix's stats roll, then roll each as a 0..1 quality.
+	# The affix's SIGNATURE stat is always among them — a purple that says "Brutal"
+	# always brings its multishot; the rest of the draw stays random (god-rolls live).
 	var keys: Array = affix.get("stats", {}).keys()
 	keys.shuffle()
+	var sig := String(affix.get("signature", ""))
+	if sig != "" and keys.has(sig):
+		keys.erase(sig)
+		keys.push_front(sig)
 	var n: int = clampi(randi_range(int(affix["min_stats"]), int(affix["max_stats"])), 0, keys.size())
 	for i in n:
 		inst["stats"][keys[i]] = snappedf(randf(), 0.001)
