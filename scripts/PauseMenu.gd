@@ -150,10 +150,28 @@ func _on_resume() -> void:
 	_pause_btn.visible = true
 	get_tree().paused = false
 
+## Abandoning a run (restart or quit) still pays — at QUIT_PAYOUT_FRAC of the death
+## payout — and still counts as a played game, so mobile interruptions aren't punished.
+## Mirrors GameOver._on_player_died; RunStats.paid_out guards double payment.
+func _abandon_run_payout() -> void:
+	if RunStats.paid_out:
+		return
+	RunStats.paid_out = true
+	var wave := DifficultyManager.wave
+	var bosses := RunStats.bosses_killed
+	var earned := int((CoinReward.payout(wave, bosses, RunStats.kills) + RunStats.bonus_coins) * GameConfig.QUIT_PAYOUT_FRAC)
+	SaveManager.add_coins(earned)
+	SaveManager.record_run(wave, bosses)
+	SaveManager.add_game_played()
+	SaveManager.save_game()
+	Inventory.add_run_xp(RunStats.kills + wave * 10 + bosses * 50)
+
 func _on_restart() -> void:
+	_abandon_run_payout()
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")
 
 func _on_back() -> void:
+	_abandon_run_payout()
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")

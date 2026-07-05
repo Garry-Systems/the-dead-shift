@@ -126,6 +126,7 @@ const COIN_BASE := 10          # flat coins for finishing any run
 const COIN_PER_WAVE := 5       # coins per wave reached
 const COIN_PER_BOSS := 25      # coins per boss defeated
 const COIN_PER_KILL := 1       # coins per trash enemy killed
+const QUIT_PAYOUT_FRAC := 0.75  # quit/restart from pause pays this fraction of the death payout
 
 # --- Boss framework v1 ---
 const BOSS_FIRST_CAST_DELAY := 1.0     # seconds before a boss's first pattern after spawn/phase-enter
