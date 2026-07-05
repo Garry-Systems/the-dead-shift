@@ -212,6 +212,11 @@ func has_purge_ability() -> bool:
 func ability_cooldown_remaining() -> float:
 	return maxf(_ability_cd, 0.0)
 
+## True while a dash is currently in progress. No dash-start signal exists, so the
+## first-run hint controller polls this to detect the player's first dash.
+func is_dashing() -> bool:
+	return _dash.is_dashing()
+
 ## Called by enemies while they touch the player.
 func take_damage(amount: float) -> void:
 	_health.take_damage(amount)

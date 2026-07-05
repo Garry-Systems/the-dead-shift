@@ -243,3 +243,7 @@ const ELEC_CHAIN_COUNT := 4             # enemies the field arcs to per tick (vi
 
 # --- Enemy anti-wedge steering around cover ---
 const ENEMY_COVER_STEER := 0.8          # tangential nudge strength when a chasing enemy hits cover
+
+# --- First-run onboarding hints (Pack 1) ---
+const HINT_MOVE_SECONDS := 1.0   # cumulative seconds of player movement before hint 1 ("move") clears
+const HINT_FIRE_SECONDS := 3.0   # cumulative seconds the gun is actively trying to fire before hint 2 ("shoot") clears (or first kill, whichever first)

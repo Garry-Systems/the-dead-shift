@@ -42,6 +42,15 @@ func setup(crate: Dictionary, count: int) -> void:
 	PixelTheme.style_label(name_lbl, 17, PixelTheme.TEXT)
 	box.add_child(name_lbl)
 
+	# Pack 1: a dim "TAP TO OPEN" nudge — the reel now opens straight from the buy/claim
+	# paths too, so this tells a browsing player the same tap works on an owned tile.
+	var tap_lbl := Label.new()
+	tap_lbl.text = "TAP TO OPEN"
+	tap_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tap_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	PixelTheme.style_label(tap_lbl, 11, Color(PixelTheme.TEXT.r, PixelTheme.TEXT.g, PixelTheme.TEXT.b, 0.5))
+	box.add_child(tap_lbl)
+
 	if count > 1:
 		_add_count_badge(count)
 

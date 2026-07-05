@@ -139,19 +139,29 @@ func add_run_xp(amount: int) -> void:
 	SaveManager.save_game()
 	inventory_changed.emit()
 
-## First-launch seed so the inventory isn't empty: one starter weapon per base, plus a
-## small coin float to try a crate. Deliberately does NOT auto-equip — the menu forces
-## the player to pick a weapon on their first PLAY. Idempotent (no-op once any weapon exists).
+## Curated first-launch seed (Pack 1): exactly 3 gray (rarity 1) starters — pistol, SMG,
+## shotgun — via the existing roll/instance path, auto-equipping the pistol so PLAY works
+## immediately. Plus a small coin float to try a crate. Idempotent (no-op once any weapon
+## exists), which also means this ONLY ever runs on a truly fresh save — an existing save
+## (any weapon count > 0) is left untouched even though MainMenu calls this every launch.
+const _STARTER_BASE_IDS := ["pistol", "smg", "shotgun"]
+
 func grant_starter() -> void:
 	if count() > 0:
 		return
 	var list := weapons()
-	for def in Weapons.all():
-		list.append(LootRoller.roll(1, String(def["id"])))
+	var pistol_uid := ""
+	for base_id in _STARTER_BASE_IDS:
+		var inst := LootRoller.roll(1, base_id)
+		if base_id == "pistol":
+			pistol_uid = String(inst["uid"])
+		list.append(inst)
 	SaveManager.set_weapons(list)
+	SaveManager.set_equipped_weapon(pistol_uid)
 	if coins() < 150:
 		SaveManager.add_coins(150 - coins())
 	SaveManager.save_game()
+	equipped_changed.emit(pistol_uid)
 	inventory_changed.emit()
 
 ## DEV (temporary): append one weapon of every rarity tier (1..MAX, random base each) so all

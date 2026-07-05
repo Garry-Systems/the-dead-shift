@@ -39,6 +39,8 @@ const CONFETTI_MIN_RARITY := 6
 
 var _reward_popup: RewardPopup   # reveals daily-login + every-10-games free rewards on entry
 var _reward_queue: Array = []    # pending {title, reward} dicts shown one at a time
+var _current_reward: Dictionary = {}   # the reward dict currently shown in _reward_popup (kind/crate_id/inst)
+var _reward_flow_active := false       # true while a reward-claimed crate is spinning the reel (Pack 1)
 
 func _ready() -> void:
 	Inventory.grant_starter()  # first-launch seed so the inventory is never empty
@@ -256,11 +258,11 @@ func _build_inventory_panel() -> void:
 	_inv_panel.add_child(_detail_popup)
 	_detail_popup.equip_requested.connect(_on_equip)
 	_detail_popup.scrap_confirmed.connect(_on_scrap)
-	_detail_popup.closed.connect(_populate_inventory)   # refresh the grid after viewing (e.g. a crate win)
+	_detail_popup.closed.connect(_on_detail_popup_closed)   # refresh the grid after viewing (e.g. a crate win)
 
 	_crate_opener = CrateOpener.new()
 	_inv_panel.add_child(_crate_opener)
-	_crate_opener.closed.connect(_populate_inventory)
+	_crate_opener.closed.connect(_on_crate_opener_closed)
 	_crate_opener.weapon_revealed.connect(_on_crate_weapon_revealed)
 
 ## Opens the inventory. from_play=true means PLAY sent us here with no weapon equipped:
@@ -411,6 +413,19 @@ func _on_crate_tile_pressed(crate_id: String) -> void:
 		_last_unbox_color = PixelTheme.TEXT_DIM
 		_populate_inventory()
 
+## Switches to the inventory panel (the CrateOpener and the WeaponDetailPopup that follows a
+## win are both children of _inv_panel, so they only actually render while it's the visible
+## panel) and starts the reel for `crate_id`. Shared by the store buy-path and the free-reward
+## claim-path so both reuse the exact same reel/reveal flow as tapping a crate tile. Returns
+## false (still navigates to the inventory so the failure message has somewhere to show) if
+## the crate can't open right now — mirrors CrateOpener.open()'s own guard (not owned / the
+## weapon cap is full); a reel already spinning is a no-op inside CrateOpener.open() itself.
+func _open_crate_reel(crate_id: String) -> bool:
+	_last_unbox = ""
+	_populate_inventory()
+	_show_only(_inv_panel)
+	return _crate_opener.open(crate_id)
+
 ## The reel landed on a weapon → show the SAME full inspect popup as tapping a gun in the grid,
 ## and rain confetti over the reveal for a rare (orange+) win.
 func _on_crate_weapon_revealed(inst: Dictionary) -> void:
@@ -418,6 +433,35 @@ func _on_crate_weapon_revealed(inst: Dictionary) -> void:
 	_detail_popup.open(inst, String(inst.get("uid", "")) == Inventory.equipped_uid())
 	if int(inst.get("rarity", 1)) >= CONFETTI_MIN_RARITY:
 		_celebrate(WeaponInstance.color(inst))
+
+## CrateOpener closed WITHOUT a reveal (the only path: Inventory.commit_crate failed on
+## settle, e.g. the cap filled the instant the reel landed). Refresh the grid and, if this
+## reel was part of a reward claim, resume the reward queue.
+func _on_crate_opener_closed() -> void:
+	_populate_inventory()
+	_maybe_resume_reward_queue()
+
+## The weapon-detail popup closed (browsing a tile OR the post-reel reveal). Refresh the grid
+## and, if this was the reveal for a reward-claimed crate, resume the reward queue.
+func _on_detail_popup_closed() -> void:
+	_populate_inventory()
+	_maybe_resume_reward_queue()
+
+## No-op unless a reward-claimed crate reel is actually in progress (a plain tile tap or a
+## store buy never sets the flag) — resumes the reward queue.
+func _maybe_resume_reward_queue() -> void:
+	if not _reward_flow_active:
+		return
+	_reward_flow_active = false
+	_advance_reward_queue()
+
+## Normalizes back to the hub (undoing a crate reward's detour to the inventory panel) before
+## showing the next queued reward, or before landing once the queue is empty — every reward
+## popup appears over the hub, same as pre-Pack-1.
+func _advance_reward_queue() -> void:
+	if not _hub.visible:
+		_show_only(_hub)
+	_show_next_reward()
 
 ## Confetti pop over the inventory panel, tinted toward the won weapon's rarity color.
 func _celebrate(rarity_color: Color) -> void:
@@ -562,14 +606,21 @@ func _on_buy_character(id: String, price: int) -> void:
 	SaveManager.save_game()
 	_populate_store()
 
+## Pack 1: a successful buy opens the reel immediately (same flow a crate-tile tap uses)
+## instead of just adding the crate to the inventory silently — the "added to inventory"
+## message is no longer needed on that path. A full inventory still fails the OPEN (the
+## crate stays owned) and reuses the standard failure message; not enough coins never
+## leaves the store.
 func _on_buy_crate(crate_id: String) -> void:
-	if Inventory.buy_crate(crate_id):
-		_last_unbox = "%s added to inventory." % String(Crates.get_crate(crate_id).get("name", "Crate"))
-		_last_unbox_color = PixelTheme.SELECT
-	else:
+	if not Inventory.buy_crate(crate_id):
 		_last_unbox = "Not enough coins."
 		_last_unbox_color = PixelTheme.TEXT_DIM
-	_populate_store()
+		_populate_store()
+		return
+	if not _open_crate_reel(crate_id):
+		_last_unbox = "Inventory full — scrap a weapon first."
+		_last_unbox_color = PixelTheme.TEXT_DIM
+		_populate_inventory()
 
 func _on_dev_grant_all() -> void:
 	var n := Inventory.grant_all_rarities()
@@ -594,7 +645,7 @@ func _on_inv_back() -> void:
 func _build_reward_popup() -> void:
 	_reward_popup = RewardPopup.new()
 	add_child(_reward_popup)   # added last → draws above every panel
-	_reward_popup.claimed.connect(_show_next_reward)
+	_reward_popup.claimed.connect(_on_reward_claimed)
 
 ## Grant everything owed since last menu entry, queue the reveals, then show the first.
 func _check_free_rewards() -> void:
@@ -624,8 +675,31 @@ func _grant_reward(reward: Dictionary) -> Dictionary:
 ## Reveals the next queued reward, or refreshes the hub once the queue is empty.
 func _show_next_reward() -> void:
 	if _reward_queue.is_empty():
+		_current_reward = {}
 		if _hub_coins != null:
 			_hub_coins.text = "COINS: %d" % SaveManager.coins()
 		return
 	var entry: Dictionary = _reward_queue.pop_front()
-	_reward_popup.open(String(entry["title"]), entry["reward"])
+	_current_reward = entry["reward"]
+	_reward_popup.open(String(entry["title"]), _current_reward)
+
+## CLAIM pressed on the reward popup. Pack 1: a crate reward now opens the SAME reel every
+## other crate-open path uses (instead of just sitting in the inventory unopened) before the
+## queue continues; a gun reward (the 10-game 50/50) keeps the old behavior unchanged.
+func _on_reward_claimed() -> void:
+	var reward := _current_reward
+	_current_reward = {}
+	if String(reward.get("kind", "")) != "crate":
+		_advance_reward_queue()
+		return
+	var crate_id := String(reward.get("crate_id", ""))
+	_reward_flow_active = true
+	if not _open_crate_reel(crate_id):
+		# Already granted (owned unopened) — inventory's just full right now. Show the
+		# standard failure message and move straight on; no reel played.
+		_last_unbox = "Inventory full — scrap a weapon first."
+		_last_unbox_color = PixelTheme.TEXT_DIM
+		_populate_inventory()
+		_maybe_resume_reward_queue()
+	# else: the reel is spinning; _on_crate_weapon_revealed / _on_detail_popup_closed /
+	# _on_crate_opener_closed carry the flow forward via _maybe_resume_reward_queue().

@@ -23,6 +23,7 @@ const DEFAULTS := {
 	"last_daily_claim": "",   # "YYYY-MM-DD" of the last claimed daily-login reward ("" = never)
 	"games_played": 0,        # completed runs (game-over count) — drives the every-10-games reward
 	"game_rewards_given": 0,  # how many 10-game milestone rewards have already been handed out
+	"tutorial_done": false,   # first-run HUD hint sequence (move/shoot/dash) already completed?
 }
 
 var _data: Dictionary = {}
@@ -202,3 +203,16 @@ func equipped_weapon() -> String:
 
 func set_equipped_weapon(uid: String) -> void:
 	_data["equipped_weapon"] = uid
+
+# --- First-run onboarding hints ---
+
+## True once the player has cleared all three first-run HUD hints (move/shoot/dash).
+func tutorial_done() -> bool:
+	return bool(_data.get("tutorial_done", false))
+
+## Marks the hint sequence complete. Memory only — deliberately does NOT save_game();
+## the existing end-of-run payout save (GameOver / PauseMenu quit) persists it, so a run
+## that ends mid-tutorial (e.g. the player dies) leaves the flag false and hints replay
+## next run, by design.
+func set_tutorial_done() -> void:
+	_data["tutorial_done"] = true

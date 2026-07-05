@@ -12,6 +12,7 @@ var _ability_label: Label   # Ryan's purge cooldown, shown above the ammo (only 
 var _hp_bar: ProgressBar
 var _hp_label: Label
 var _player: Player
+var _hints: FirstRunHints   # first-run onboarding hint strip (no-op once SaveManager.tutorial_done())
 
 func _ready() -> void:
 	_player = get_tree().get_first_node_in_group("player") as Player
@@ -97,6 +98,10 @@ func _ready() -> void:
 	add_child(_ability_label)
 
 	_apply_pixel_style()
+
+	_hints = FirstRunHints.new()
+	add_child(_hints)
+	_hints.setup(_player)
 
 ## Applies the shared PixelTheme look to every HUD label and bar.
 func _apply_pixel_style() -> void:
