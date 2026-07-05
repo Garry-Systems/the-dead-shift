@@ -28,6 +28,10 @@ const MUSIC_BUS := "Music"
 const MIN_INTERVAL_MS := {
 	"hit_enemy": 80,
 	"die_enemy": 50,
+	# The flamethrower's cone lands a successful _fire() 20x/s, which unthrottled
+	# machine-guns the shot sound; ~8/s reads as a continuous spray instead. The Tesla
+	# shares this id but fires at ~2/s naturally, so a 120ms floor never touches it.
+	"shot_special": 120,
 }
 
 var _streams: Dictionary = {}              # id (String) -> AudioStream
@@ -102,8 +106,11 @@ func play(id: String, pitch_jitter: float = 0.08) -> void:
 ## Starts looping music by id on the dedicated music player. A no-op if that id is
 ## already the current track (so re-entering the same scene doesn't restart it). Sets
 ## loop_mode/loop_end on the AudioStreamWAV directly — reliable headlessly and without
-## an editor re-import, unlike relying on the WAV's .import loop settings. Every track
-## gen_retro_audio.py writes is 16-bit mono, so 2 bytes/frame is safe to assume here.
+## an editor re-import, unlike relying on the WAV's .import loop settings. loop_end is
+## in FRAMES, derived from length x mix_rate — format-agnostic, because the project's
+## .wav imports are QOA-compressed (compress/mode=2) and `data` holds the compressed
+## payload (~5x smaller than PCM), so any bytes-based frame math would land the loop
+## point a fifth of the way into the track.
 func music(id: String) -> void:
 	if not _streams.has(id) or _current_music == id:
 		return
@@ -112,7 +119,7 @@ func music(id: String) -> void:
 	if stream is AudioStreamWAV:
 		var wav := stream as AudioStreamWAV
 		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		wav.loop_end = int(wav.data.size() / 2)
+		wav.loop_end = int(wav.get_length() * wav.mix_rate)
 	_music_player.stream = stream
 	_music_player.play()
 
