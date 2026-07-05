@@ -12,6 +12,11 @@ on:
   push:
     tags:
       - 'v*'
+  # Manual trigger (Actions tab / gh workflow run) — for testing the pipeline and for
+  # re-running a release without re-pushing its tag. Tag-derived version stamping needs
+  # a real vX.Y.Z ref; manual runs from master skip the stamp (HAS_KEYSTORE gating aside,
+  # the stamp step also checks the ref shape).
+  workflow_dispatch:
 
 permissions:
   contents: write   # needed to attach the .aab to the tag's Release
@@ -48,7 +53,7 @@ jobs:
       # code from the tag (vMAJOR.MINOR.PATCH -> MAJOR*10000 + MINOR*100 + PATCH) and stamp
       # both presets, mirroring android.yml's debug stamp step (same ^-anchored seds).
       - name: Stamp Android version from the tag
-        if: env.HAS_KEYSTORE == 'true'
+        if: env.HAS_KEYSTORE == 'true' && startsWith(github.ref, 'refs/tags/v')
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           MAJOR=$(echo "$TAG" | cut -d. -f1)
@@ -67,6 +72,21 @@ jobs:
           mkdir -p /root/release-keystore
           echo "$ANDROID_KEYSTORE_B64" | base64 -d > /root/release-keystore/upload.keystore
           ls -la /root/release-keystore/
+
+      # AAB export goes through Gradle, which needs the Android *build template* installed
+      # in the project (the debug APK path doesn't). The godot-ci image ships the matching
+      # android_source.zip with its export templates — install it headlessly. (This was the
+      # "Android build template not installed" failure in run #1.)
+      - name: Install Android build template
+        if: env.HAS_KEYSTORE == 'true'
+        run: |
+          TPL_DIR="/root/.local/share/godot/export_templates"
+          VER_DIR=$(ls "$TPL_DIR" | head -1)
+          mkdir -p android/build
+          unzip -q "$TPL_DIR/$VER_DIR/android_source.zip" -d android/build
+          echo "$VER_DIR" > android/.build_version
+          touch android/build/.gdignore
+          echo "Installed build template $VER_DIR"
 
       - name: Export Android release AAB
         if: env.HAS_KEYSTORE == 'true'
