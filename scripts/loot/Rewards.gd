@@ -80,7 +80,13 @@ static func _daily_weight(price: int, tier_shift: int = 0) -> int:
 ## GameConfig.DAILY_STREAK_FLOOR+: upgrade a pick cheaper than munitions_cache up to it.
 ## Never downgrades — a pick already at munitions_cache's price or above is left alone.
 static func _apply_streak_floor(picked: String) -> String:
-	var floor_price := int(Crates.get_crate("munitions_cache").get("price", 0))
+	var floor_crate := Crates.get_crate("munitions_cache")
+	if floor_crate.is_empty():
+		# Loud, not silent: a renamed/removed floor crate would otherwise make floor_price 0
+		# and quietly disable the streak-7 guarantee forever.
+		push_warning("Rewards: streak-floor crate 'munitions_cache' missing from Crates — floor disabled")
+		return picked
+	var floor_price := int(floor_crate.get("price", 0))
 	if int(Crates.get_crate(picked).get("price", 0)) >= floor_price:
 		return picked
 	return "munitions_cache"
