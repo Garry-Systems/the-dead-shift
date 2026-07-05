@@ -4,6 +4,25 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.37 — Balance Pass v1 (2026-07-04)
+
+The first full balance pass — difficulty curve, guns, loot feel, and the coin economy all tuned in one sweep.
+
+- **The late-game wall is a slope now** — enemy HP ramps gentler past wave 10 and the spawn rate caps a bit lower, so a good purple-weapon run can push toward minute 10 instead of hitting a cliff at 6–8. Loot tier still rules your run length.
+- **Late bosses are scary again** — bosses now keep ramping like the horde does past wave 10 (previously the horde outgrew them), and killing one heals a strong chunk (about a third) instead of a full reset. High risk, real reward.
+- **Spitters, exploders and boss attacks scale** — their damage now grows with the waves like zombie bites always did. Wave-2 hits are unchanged; wave-15 hits actually hurt.
+- **Six guns tuned:**
+  - **Sniper** rounds now **punch through 3 targets** — it finally belongs in its category.
+  - **Grenade Launcher** shells deal **direct-hit damage** on the zombie they strike, on top of the blast — no longer dead weight against a lone boss.
+  - **Flamethrower** burn is a real damage channel now (3× stronger, burns 3s) — sweep the cone and watch the horde keep melting.
+  - **Slug Gun** hits harder (60 → 78) to pay for its slow pace.
+  - **LMG** keeps its monster 100-round belt but reloads slower (3.2s → 4.5s).
+  - **Acid Cannon** pools melt a touch slower — it was quietly the best boss-killer AND the best crowd gun at once.
+- **A purple always feels purple** — every weapon prefix now guarantees its signature stat (a "Brutal" always brings its multishot, a "Hollow" its pierce). God rolls still exist; dud rolls don't. New pulls only.
+- **Store shake-up** — the 50/50 Crate is now 700 coins (it was quietly the best deal in the store), the three 500-coin category crates never pay out a gray anymore, and there's a new **Specials Case** (650) for Tesla / Flamethrower / Acid Cannon.
+- **Quitting a run pays** — leaving from the pause menu now banks 75% of your coins and counts toward the every-10-games reward. Dying still pays full.
+- **Big kills drop big XP** — gem value scales with the enemy's HP (up to 15×), so killing the brute is finally worth more than farming runners.
+
 ## v0.1.36 — More Weapons Hit Barrels (2026-06-28)
 
 - **The railgun, Tesla gun, and grenade launcher now damage barrels and destructibles too** — matching the flamethrower. The Tesla can even arc its lightning to barrels. Zapped/blasted/beamed barrels burst as usual.
