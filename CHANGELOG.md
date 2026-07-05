@@ -4,6 +4,29 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.39 — Welcome to the Night Shift (2026-07-05)
+
+The first five minutes got a full rework — new players now actually learn the game instead of bouncing off it:
+
+- **The game teaches itself** — your first run walks you through the three things nobody knew: DRAG ANYWHERE TO MOVE, STAND STILL TO SHOOT, DOUBLE-TAP TO DASH. Three quick hints, first run only, never again.
+- **A real starter kit** — new players begin with a pistol (equipped), an SMG and a shotgun instead of a wall of 21 identical gray guns. The other 18 are yours to discover in crates — which makes every crate pull mean something.
+- **Crates open when you buy them** — the reel + reveal now plays immediately after a store purchase or a daily-reward claim, instead of silently dropping the crate into your inventory. Crates waiting in your inventory now say TAP TO OPEN.
+
+## v0.1.38 — The Big Fix-Up (2026-07-05)
+
+A full-codebase audit (every script, adversarially verified) turned up 17 real bugs — including several that have been silently broken since their features shipped. All fixed:
+
+- **On-kill talents work now** — Bloodrush, Gut Bomb, Cluster Bomb, Daisy Cutter and Overflow procs never actually fired (a kill-detection bug meant the game never saw the kill). If your build had an on-kill talent, it just got a real upgrade.
+- **Execute talents no longer double-dip** — Executioner/Mercy/Reaper were re-killing already-dead zombies for double kill credit, double XP and double coins. One kill = one payout now.
+- **Your save can't be wiped anymore** — saving briefly deleted the old file before writing the new one; a badly-timed app kill in that window lost everything. Saves are now atomic.
+- **Dead zombies act dead** — enemies killed by burn/poison used to keep walking, biting, shooting and spawning brood for the rest of the frame. They stop, immediately.
+- **Relics uninstall cleanly** — removing a percentage relic could permanently corrupt the stat it touched if you'd taken an upgrade card in between.
+- **Weapon inspect crash fixed** — viewing a gun with Concussive or Haymaker crashed the popup.
+- **Burn doesn't ghost** — an expired strong burn no longer boosts a later weak one.
+- **Smoother late-game hordes** — flamethrower/railgun/Tesla and ricochet shots were doing thousands of unnecessary line-of-sight checks per second; big frame-rate win on busy screens.
+- **Acid pools capped at 8** — the oldest pool now fades when you drop a 9th (perf guard; your newest shot always lands).
+- **Quality-of-life:** opening a crate with a full inventory now says so (and the message clears once you scrap something); a stray second finger can't freeze menu scrolling anymore; Ryan's purge flash can't stick over the pause screen.
+
 ## v0.1.37 — Balance Pass v1 (2026-07-04)
 
 The first full balance pass — difficulty curve, guns, loot feel, and the coin economy all tuned in one sweep.
