@@ -4,6 +4,16 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.45 — Meet the Staff (2026-07-05)
+
+The boss roster more than doubles — 3 → 7, and the new hires all work the night shift:
+
+- **THE MANAGER** — slow, massive, and never alone: summons staff, jams your gun, and slams the floor.
+- **THE NIGHT STOCKER** — fast, charges you down with a telegraphed dash, and drops solid stock crates behind it to wall off your escape routes (capped — it can pressure you, never seal you in).
+- **THE FRYER** — floods the floor with grease-fire pools and sweeping heat lances.
+- **THE COURIER** — crosses the whole arena in one charge, sprays radial bursts, and slows you down just by being near.
+- **Every boss is named on its HP bar**, a **SHIFT CHANGE** banner announces each boss wave, and the original three are still on the payroll. All seven rotate in endless and Boss Rush.
+
 ## v0.1.44 — Turn the Sound On (2026-07-05)
 
 The game was silent. Not anymore:
