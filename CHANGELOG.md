@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.40 — Twelve Ways to Level (2026-07-05)
+
+- **The level-up pool tripled** — every level-up now draws from 12+ cards instead of the same 4 stat boosts. New picks: **Armor** (take less from bites and boss contact), **Dodge** (chance to ignore hits entirely), **Dash Cooldown**, **XP Gain**, **Coin Gain** (fatter run payouts), **Crit** (chance to double damage), **Thorns** (biters take it back), **Second Wind** (cheat death once per run), **Pickup Radius**, and **Move Speed**. Build variety starts at level 2 now — no two runs level the same.
+
 ## v0.1.39 — Welcome to the Night Shift (2026-07-05)
 
 The first five minutes got a full rework — new players now actually learn the game instead of bouncing off it:
