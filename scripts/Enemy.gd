@@ -271,5 +271,8 @@ func _drop_gem() -> void:
 	if xp_gem_scene == null:
 		return
 	var gem = xp_gem_scene.instantiate()
+	# Elite/late kills pay proportionally: gem value scales with this enemy's baked
+	# max HP over the wave-1 base (capped), so killing the big thing beats runner-farming.
+	gem.value = clampi(roundi(max_health / GameConfig.ENEMY_MAX_HEALTH), 1, GameConfig.XP_GEM_VALUE_MAX)
 	get_tree().current_scene.add_child(gem)
 	gem.global_position = global_position

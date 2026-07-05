@@ -93,6 +93,7 @@ const RELIC_MAX_HEALTH := 40.0        # vital_surge: +max HP (and heals the same
 const XP_BASE := 5                    # XP needed to reach level 1
 const XP_PER_LEVEL := 3               # extra XP required for each later level
 const XP_GEM_VALUE := 1               # XP granted per gem
+const XP_GEM_VALUE_MAX := 15          # cap on hp-scaled gem value (elite/late kills pay more)
 const PICKUP_RADIUS := 80.0           # px; gems within this drift to the player
 const GEM_DRIFT_SPEED := 300.0        # px/sec a gem moves toward the player
 const GEM_COLLECT_DISTANCE := 16.0    # px; closer than this = collected
