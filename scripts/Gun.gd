@@ -343,6 +343,16 @@ func upgrade_reload_speed(pct: float) -> void:
 func upgrade_mag_size(pct: float) -> void:
 	mag_size = int(ceil(mag_size * (1.0 + pct)))   # ceil so small mags still gain >= 1
 
+## "Kill Shot" level-up card: folds a gun-level crit bonus directly into talent_payload so
+## TalentEngine.roll_damage consumes it through the SAME roll as talent crit (Killshot) —
+## crit_chance and crit_mult both add, stacking exactly like multiple crit talents already do
+## in TalentEngine.resolve_payload. Safe to mutate talent_payload directly here: apply_loot()
+## (which rebuilds talent_payload from scratch) only runs once, at run start, before any
+## level-up card can possibly fire.
+func upgrade_crit(chance_pct: float, mult_bonus: float) -> void:
+	talent_payload["crit_chance"] = float(talent_payload.get("crit_chance", 0.0)) + chance_pct
+	talent_payload["crit_mult"] = float(talent_payload.get("crit_mult", 1.0)) + mult_bonus
+
 func _fire_lightning(dir: Vector2) -> bool:
 	var raw_enemies := get_tree().get_nodes_in_group("enemies")
 	# Cheap geometry before the LoS raycast: bound candidates to the max distance any conductor

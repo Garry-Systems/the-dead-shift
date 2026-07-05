@@ -39,6 +39,14 @@ signal died
 ## Mutable per-run stats (upgrade cards modify these).
 var move_speed := GameConfig.PLAYER_MOVE_SPEED
 var health_regen := GameConfig.PLAYER_HEALTH_REGEN
+var xp_mult := 1.0             # "Fast Learner" card: multiplies every add_xp() amount (stacks)
+
+## Pack 2 defensive upgrade-card state.
+var _armor_mult := 1.0         # "Iron Skin" card: multiplies contact/bite damage taken (stacks down, e.g. 0.85 x 0.85)
+var _dodge_chance := 0.0       # "Quick Step" card: chance (0..DODGE_CAP) to ignore any hit outright
+var _thorns_mult := 0.0        # thorns card: reflected damage = incoming bite amount x this (0 = no thorns)
+var has_second_wind := false   # true once the Second Wind card has been taken this run
+var second_wind_used := false  # true once Second Wind has already saved this run (never again)
 
 ## The player's weapon node (gun upgrade cards modify it). Set in _ready.
 var gun: Gun
@@ -217,11 +225,32 @@ func ability_cooldown_remaining() -> float:
 func is_dashing() -> bool:
 	return _dash.is_dashing()
 
-## Called by enemies while they touch the player.
-func take_damage(amount: float) -> void:
+## Called by enemies while they touch the player. `attacker` (default null) is the biter,
+## passed ONLY from Enemy's contact-bite site (Thorns needs someone to reflect damage onto);
+## every other caller (bosses, hazards, patterns) leaves it null and is unaffected. `is_contact`
+## marks a melee bite/touch hit (vs. a ranged/AoE hit) — Armor and Thorns key off it.
+func take_damage(amount: float, attacker = null, is_contact: bool = false) -> void:
+	# Thorns fires off the raw incoming bite damage, independent of dodge/armor below (a spike
+	# that jabs back whether or not the bite itself lands). Guard the attacker being alive so a
+	# same-frame freed/despawned biter can't be reflected onto.
+	if is_contact and _thorns_mult > 0.0 and attacker != null and is_instance_valid(attacker) and attacker.has_method("take_damage"):
+		attacker.take_damage(amount * _thorns_mult)
+
+	# Dodge rolls BEFORE any damage is applied: a dodged hit deals no damage and no hurt flash.
+	if _dodge_chance > 0.0 and randf() < _dodge_chance:
+		return
+
+	if is_contact:
+		amount *= _armor_mult
+
 	_health.take_damage(amount)
 	_hurt_flash()
 	if _health.is_dead():
+		if has_second_wind and not second_wind_used:
+			second_wind_used = true
+			_health.heal(_health.maxhp * GameConfig.SECOND_WIND_HP_FRAC)   # current is 0 here (just clamped dead), so this sets it exactly
+			get_tree().current_scene.add_child(ScreenFlash.new())
+			return
 		_die()
 
 ## Throttled red pulse — contact damage calls this every frame, so we rate-limit
@@ -245,8 +274,9 @@ func _die() -> void:
 	get_tree().paused = true
 	died.emit()
 
-## Grants XP and resolves any resulting level-ups.
+## Grants XP (scaled by xp_mult, "Fast Learner" card) and resolves any resulting level-ups.
 func add_xp(amount: int) -> void:
+	amount = int(round(amount * xp_mult))
 	xp += amount
 	while xp >= _xp_to_next:
 		xp -= _xp_to_next
@@ -298,6 +328,32 @@ func upgrade_regen(amount: float) -> void:
 
 func upgrade_pickup_radius(pct: float) -> void:
 	pickup_radius *= (1.0 + pct)
+
+## "Iron Skin": cuts contact/bite damage taken. Multiplicative — stacks compound (0.85 x 0.85 ...).
+func upgrade_armor(pct: float) -> void:
+	_armor_mult *= (1.0 - pct)
+
+## "Quick Step": raises the flat chance to ignore any hit outright. Capped at GameConfig.DODGE_CAP.
+func upgrade_dodge(pct: float) -> void:
+	_dodge_chance = minf(_dodge_chance + pct, GameConfig.DODGE_CAP)
+
+## Dash-cooldown card: shrinks the dash's cooldown (multiplicative, stacks).
+func upgrade_dash_cooldown(pct: float) -> void:
+	_dash.upgrade_cooldown(pct)
+
+## "Fast Learner": raises the XP multiplier applied in add_xp(). Multiplicative, stacks.
+func upgrade_xp_gain(pct: float) -> void:
+	xp_mult *= (1.0 + pct)
+
+## Thorns: enemies that bite the player take `mult` x the bite's own raw damage back. Additive
+## across stacks (two cards = 2x + 2x = 4x reflected).
+func upgrade_thorns(mult: float) -> void:
+	_thorns_mult += mult
+
+## Second Wind: arms the once-per-run "cheat death" save (see take_damage). Re-picking this
+## card is excluded from the pool once used — see Upgrades.player_cards().
+func upgrade_second_wind() -> void:
+	has_second_wind = true
 
 ## --- Boss debuff hooks (called by the DebuffApplier pattern) ---
 

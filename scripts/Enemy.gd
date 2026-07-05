@@ -221,7 +221,7 @@ func _physics_process(delta: float) -> void:
 	if _contact_cd > 0.0:
 		_contact_cd -= delta
 	if _contact_cd <= 0.0 and _touching_player():
-		_target.take_damage(touch_damage)
+		_target.take_damage(touch_damage, self, true)   # attacker=self (Thorns), is_contact=true (Armor)
 		var away := _target.global_position.direction_to(global_position)
 		if away == Vector2.ZERO:
 			away = Vector2.RIGHT

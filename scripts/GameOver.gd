@@ -69,7 +69,7 @@ func _on_player_died() -> void:
 	RunStats.paid_out = true
 	var wave := DifficultyManager.wave
 	var bosses := RunStats.bosses_killed
-	var earned := CoinReward.payout(wave, bosses, RunStats.kills) + RunStats.bonus_coins
+	var earned := CoinReward.final_payout(wave, bosses, RunStats.kills, RunStats.bonus_coins, RunStats.coin_mult)
 
 	SaveManager.add_coins(earned)
 	SaveManager.record_run(wave, bosses)

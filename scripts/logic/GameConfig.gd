@@ -247,3 +247,15 @@ const ENEMY_COVER_STEER := 0.8          # tangential nudge strength when a chasi
 # --- First-run onboarding hints (Pack 1) ---
 const HINT_MOVE_SECONDS := 1.0   # cumulative seconds of player movement before hint 1 ("move") clears
 const HINT_FIRE_SECONDS := 3.0   # cumulative seconds the gun is actively trying to fire before hint 2 ("shoot") clears (or first kill, whichever first)
+
+# --- Level-up cards, Pack 2 (armor/dodge/crit/thorns/second wind/economy) ---
+const UPGRADE_ARMOR_PCT := 0.15        # "Iron Skin" card: -% contact/bite damage taken (multiplicative, stacks)
+const UPGRADE_DODGE_PCT := 0.08        # "Quick Step" card: +% chance to ignore any hit outright
+const DODGE_CAP := 0.40                # hard ceiling on total dodge chance across all stacks
+const UPGRADE_DASH_CD_PCT := 0.15      # dash-cooldown card: -% dash cooldown (multiplicative)
+const UPGRADE_XP_PCT := 0.20           # "Fast Learner" card: +% XP gained per gem (multiplicative, stacks)
+const UPGRADE_COIN_PCT := 0.20         # coin-gain card: +% end-of-run coin payout (death AND quit paths)
+const UPGRADE_CRIT_CHANCE_PCT := 5.0   # "Kill Shot" card: + this many crit-chance points (0-100 scale, same units as TalentEngine's payload["crit_chance"])
+const UPGRADE_CRIT_MULT_BONUS := 1.0   # "Kill Shot" card: + this much crit-multiplier bonus (1.0 = "double" damage on proc)
+const UPGRADE_THORNS_MULT := 2.0       # thorns card: reflected damage = this x the biter's own raw bite damage
+const SECOND_WIND_HP_FRAC := 0.50      # Second Wind: revive fraction of max HP on what would otherwise be a lethal hit

@@ -111,7 +111,7 @@ func _show_next() -> void:
 
 func _on_card_pressed(index: int) -> void:
 	var card: Dictionary = _current_cards[index]
-	Upgrades.apply(_player, card["id"])
+	UpgradeApply.apply(_player, card["id"])
 	if not _queue.is_empty():
 		_show_next()
 	else:

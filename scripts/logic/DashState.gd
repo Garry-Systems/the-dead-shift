@@ -32,3 +32,8 @@ func tick(delta: float) -> void:
 		_dash_time -= delta
 	if _cooldown_time > 0.0:
 		_cooldown_time -= delta
+
+## Upgrade card hook: shrinks the dash cooldown by `pct` (multiplicative, stacks). Does not
+## touch a cooldown already counting down — takes effect on the next dash.
+func upgrade_cooldown(pct: float) -> void:
+	_cooldown *= (1.0 - pct)

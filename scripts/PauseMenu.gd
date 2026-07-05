@@ -159,7 +159,9 @@ func _abandon_run_payout() -> void:
 	RunStats.paid_out = true
 	var wave := DifficultyManager.wave
 	var bosses := RunStats.bosses_killed
-	var earned := int((CoinReward.payout(wave, bosses, RunStats.kills) + RunStats.bonus_coins) * GameConfig.QUIT_PAYOUT_FRAC)
+	# int() truncates here (unchanged from before this card existed) — final_payout() itself
+	# already rounds once for the coin_mult; this only re-truncates the QUIT_PAYOUT_FRAC step.
+	var earned := int(CoinReward.final_payout(wave, bosses, RunStats.kills, RunStats.bonus_coins, RunStats.coin_mult) * GameConfig.QUIT_PAYOUT_FRAC)
 	SaveManager.add_coins(earned)
 	SaveManager.record_run(wave, bosses)
 	SaveManager.add_game_played()
