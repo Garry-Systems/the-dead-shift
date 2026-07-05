@@ -4,6 +4,18 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.48 — See Your Power (2026-07-05)
+
+Every talent proc in the game is now VISIBLE — nothing happens silently anymore:
+
+- **Gold crit numbers** pop off every critical hit (and only crits — no damage-number spam).
+- **Chain lightning is real lightning** — Live Wire and Arc Welder draw their actual arcs between targets.
+- **Executes announce themselves** — a blood-red flash and "EXECUTED" when Executioner/Mercy/Reaper delete a target.
+- **Freeze shatters ring** with an indigo burst and "SHATTER"; **marked enemies glow gold**; **poisoned enemies tint green**; **lifesteal streams blood motes** back to you; **kill-explosions ring orange at their true radius**; **reload novas finally show their blast**; **piercing rounds visibly power up** as they drill through the line; **fire-rate surges call out** when they kick in.
+- **Grenade blasts and Alstar's dash can now CRIT** when your gun carries a crit talent — gold numbers on explosions included.
+- Two hidden bugs fixed along the way: stacking two reload-nova or two pierce talents on one weapon no longer drops one of them.
+- All of it is mobile-safe: pooled text, capped effects, zero frame cost when nothing procs.
+
 ## v0.1.47 — ARMAGEDDON (2026-07-05)
 
 The rarity ladder gets a new ceiling — and a new look:
