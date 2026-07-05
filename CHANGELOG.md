@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.43 — Pump 3 Is On Fire (2026-07-05)
+
+- **The gas station is HERE** — every endless run now starts on the forecourt of the station where your shift began: the store at your back (solid cover — zombies path around it), a tall GAS price sign, and **three fuel pumps** that absolutely should not be shot. Shoot them anyway: bigger blasts than barrels, chain reactions included. The rest of the wasteland scatters around you as you roam, same as before.
+
 ## v0.1.42 — Show Up, Cash In (2026-07-05)
 
 - **Daily login streak** — the daily reward now remembers you. Claim on consecutive days and the crate quality climbs: **day 3+** shifts the roll a whole tier up, **day 7+** guarantees Munitions Cache or better, every day. Miss a day and the streak resets — the popup shows STREAK: DAY N so you know exactly what's on the line.
