@@ -69,7 +69,11 @@ func _process(delta: float) -> void:
 			# Mirrors the Gun._process early-return conditions: aiming, not holding fire (i.e.
 			# standing still, per SHOOT_ONLY_WHILE_STILL), not mid-reload — the closest
 			# observable proxy for "actually firing" without a dedicated Gun signal.
-			if gun != null and not gun.is_reloading() and not gun.hold_fire and gun.aim_direction != Vector2.ZERO:
+			# Lightning (Tesla) is excluded from the TIME fallback: _fire_lightning silently
+			# no-ops (no shot, no ammo/cooldown spent) when no conductor is in range, so
+			# "eligible" isn't "firing" there — Tesla users clear this hint via first kill.
+			if gun != null and gun.fire_mode != "lightning" \
+					and not gun.is_reloading() and not gun.hold_fire and gun.aim_direction != Vector2.ZERO:
 				_fire_time += delta
 			if RunStats.kills > _kills_at_stage_start or _fire_time >= GameConfig.HINT_FIRE_SECONDS:
 				_advance_to_dash()
