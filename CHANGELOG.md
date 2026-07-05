@@ -4,6 +4,16 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.41 — Clock In (2026-07-05)
+
+The night shift is finally on screen:
+
+- **The shift clock** — endless runs now tick from 10:00 PM toward dawn (1 second = 1 in-game minute). Make it to **6:00 AM** and the DAWN banner pays a survival bonus — then the shift keeps going for as long as you can hold it.
+- **SHIFT'S OVER** — the death screen is now an end-of-shift pay stub: base pay, waves, bosses, kills and tips itemized to your total, with your clock-out time stamped on it.
+- **★ NEW BEST ★** — beating your record finally looks like it: confetti and a banner instead of the same old screen.
+- **Weapon XP on the stub** — see exactly what your equipped gun earned this run and when its next talent unlocks.
+- **STORE button on the death screen** — coins in hand, store one tap away.
+
 ## v0.1.40 — Twelve Ways to Level (2026-07-05)
 
 - **The level-up pool tripled** — every level-up now draws from 12+ cards instead of the same 4 stat boosts. New picks: **Armor** (take less from bites and boss contact), **Dodge** (chance to ignore hits entirely), **Dash Cooldown**, **XP Gain**, **Coin Gain** (fatter run payouts), **Crit** (chance to double damage), **Thorns** (biters take it back), **Second Wind** (cheat death once per run), **Pickup Radius**, and **Move Speed**. Build variety starts at level 2 now — no two runs level the same.
