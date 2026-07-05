@@ -35,6 +35,8 @@ func configure_hazard(cfg: Dictionary) -> void:
 	_drift = float(cfg.get("drift", 0.0))
 	_hurts_player = bool(cfg.get("hurts_player", true))
 	add_to_group("hazard_zones")
+	if not _hurts_player:
+		add_to_group("player_pools")   # player-placed pool (Acid Cannon); capped separately, see Bullet._detonate
 	setup(null, null, {})                  # AttackPattern grabs the player from the group
 	_windup = GameConfig.HAZARD_WINDUP     # short arm, bypassing the boss PATTERN_WINDUP clamp
 	var ang := randf_range(0.0, TAU)

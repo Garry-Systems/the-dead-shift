@@ -192,6 +192,7 @@ const COVER_MASK := 1 << 3              # bitmask for layer 4, for raycast line-
 const OBSTACLE_TARGET_COUNT := 12       # destructibles to keep near the player (ambient density)
 const OBSTACLE_HARD_CAP := 24           # max destructibles alive at once
 const MAX_HAZARD_ZONES := 10            # max lingering hazard pools at once
+const MAX_PLAYER_POOLS := 8             # max player-placed pools (Acid Cannon, hurts_player:false) at once; oldest is evicted
 const OBSTACLE_SPAWN_INTERVAL := 0.4    # seconds between ambient top-up spawns
 const OBSTACLE_SPAWN_MIN_R := 1000.0    # ambient spawn ring inner radius (just off-screen)
 const OBSTACLE_SPAWN_MAX_R := 1300.0    # ambient spawn ring outer radius

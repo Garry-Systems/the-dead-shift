@@ -344,7 +344,16 @@ func upgrade_mag_size(pct: float) -> void:
 	mag_size = int(ceil(mag_size * (1.0 + pct)))   # ceil so small mags still gain >= 1
 
 func _fire_lightning(dir: Vector2) -> bool:
-	var enemies := LineOfSight.filter_visible(global_position, get_tree().get_nodes_in_group("enemies"), get_world_2d().direct_space_state)
+	var raw_enemies := get_tree().get_nodes_in_group("enemies")
+	# Cheap geometry before the LoS raycast: bound candidates to the max distance any conductor
+	# could ever matter — first-target acquisition range (gun_range) plus the chain's full reach
+	# (jump_count hops of at most jump_radius each). Anything farther than that can never be
+	# picked as `first` (gun_range-gated in _nearest_enemy) or reached by the chain, so this is
+	# a strict superset of the old unbounded filter_visible(all enemies) — same final conductor
+	# set, far fewer raycasts once the enemy count climbs late-game.
+	var reach := gun_range + float(jump_count) * jump_radius
+	var near_enemies := _enemies_in_range(global_position, reach, raw_enemies)
+	var enemies := LineOfSight.filter_visible(global_position, near_enemies, get_world_2d().direct_space_state)
 	# Barrels/props conduct too — the bolt can target and arc through destructibles (raw damage,
 	# no talents), so a torched barrel bursts via its own _die. Appended without LoS, like the cone.
 	var conductors: Array = enemies.duplicate()
@@ -390,8 +399,11 @@ func _spawn_lightning(points: Array) -> void:
 
 func _fire_beam(dir: Vector2) -> bool:
 	_show_muzzle(dir.angle())
-	var enemies := LineOfSight.filter_visible(global_position, get_tree().get_nodes_in_group("enemies"), get_world_2d().direct_space_state)
-	var hits := _enemies_in_beam(global_position, dir, gun_range, beam_width, enemies)
+	# Cheap corridor geometry first, then LoS-filter only the survivors — same final hit
+	# set as filtering the whole group up front, far fewer raycasts late-game.
+	var raw_enemies := get_tree().get_nodes_in_group("enemies")
+	var candidates := _enemies_in_beam(global_position, dir, gun_range, beam_width, raw_enemies)
+	var hits := LineOfSight.filter_visible(global_position, candidates, get_world_2d().direct_space_state)
 	var player := get_parent() as Player
 	for e in hits:
 		if not is_instance_valid(e):
@@ -426,8 +438,11 @@ func _spawn_beam(dir: Vector2) -> void:
 
 func _fire_cone(dir: Vector2) -> bool:
 	_show_muzzle(dir.angle())
-	var enemies := LineOfSight.filter_visible(global_position, get_tree().get_nodes_in_group("enemies"), get_world_2d().direct_space_state)
-	var hits := _enemies_in_cone(global_position, dir, gun_range, cone_angle * 0.5, enemies)
+	# Cheap cone geometry first, then LoS-filter only the survivors — same final hit set as
+	# filtering the whole group up front, far fewer raycasts late-game.
+	var raw_enemies := get_tree().get_nodes_in_group("enemies")
+	var candidates := _enemies_in_cone(global_position, dir, gun_range, cone_angle * 0.5, raw_enemies)
+	var hits := LineOfSight.filter_visible(global_position, candidates, get_world_2d().direct_space_state)
 	var player := get_parent() as Player
 	var bdps := maxf(GameConfig.FLAME_BURN_DPS, burn_dps)      # base burn, strengthened by incendiary upgrades
 	var btime := maxf(GameConfig.FLAME_BURN_TIME, burn_duration)
@@ -510,6 +525,18 @@ static func _beam_contains(origin: Vector2, dir: Vector2, max_range: float, half
 	if along < 0.0 or along > max_range:
 		return false
 	return absf(to.dot(d.orthogonal())) <= half_width
+
+## Every enemy within `max_range` of `origin` (distance only, no angle/corridor test). Static +
+## pure — the cheap pre-filter that bounds how many enemies _fire_lightning raycasts for LoS.
+static func _enemies_in_range(origin: Vector2, max_range: float, enemies: Array) -> Array:
+	var hits: Array = []
+	var r2 := max_range * max_range
+	for e in enemies:
+		if e == null or not is_instance_valid(e):
+			continue
+		if origin.distance_squared_to((e as Node2D).global_position) <= r2:
+			hits.append(e)
+	return hits
 
 ## Every enemy inside the beam corridor. Static + pure (delegates to _beam_contains) so a
 ## probe can verify selection headlessly.

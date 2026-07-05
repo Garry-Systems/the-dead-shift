@@ -83,13 +83,16 @@ func _process(delta: float) -> void:
 		if _hit_flash <= 0.0:
 			queue_redraw()
 	if _fuse >= 0.0:
-		_fuse -= delta
-		if _fuse <= 0.0:
-			if not _claim_detonation_slot():
-				_fuse = 0.001    # per-frame budget full — retry next frame (ripple)
-				return
-			_fuse = -1.0
-			_die()
+		if _detonating:
+			_fuse = -1.0    # already dying via another path — drop the fuse, spend no chain slot
+		else:
+			_fuse -= delta
+			if _fuse <= 0.0:
+				if not _claim_detonation_slot():
+					_fuse = 0.001    # per-frame budget full — retry next frame (ripple)
+					return
+				_fuse = -1.0
+				_die()
 
 ## Per-frame chain budget: at most CHAIN_MAX_PER_TICK fused barrels detonate per frame.
 static func _claim_detonation_slot() -> bool:

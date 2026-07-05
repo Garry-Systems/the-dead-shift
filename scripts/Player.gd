@@ -55,8 +55,11 @@ var _facing := 2          # index into DIR_TEX; 2 = south (faces the camera at s
 var _fire_lock_time := 0.0   # boss "jam" debuff: gun can't fire while > 0
 var _dash_ability := ""      # special dash effect for the chosen character ("" = plain dash); set by Main
 var _ability_cd := 0.0       # Ryan's purge cooldown remaining (seconds); the dash movement is unaffected
-var _ext_slow_factor := 1.0  # boss "slow" debuff: move-speed multiplier (1.0 = none)
-var _ext_slow_time := 0.0
+## Boss "slow" debuff: one {factor, remaining} entry per source (see apply_slow) instead of a
+## single merged factor/time pair — avoids mixing one source's strength with another source's
+## duration. Live entries are ticked/pruned in _physics_process; effective move-speed multiplier
+## is the MIN factor among them (see _current_slow_factor), 1.0 when the list is empty.
+var _slow_stacks: Array = []
 
 func _ready() -> void:
 	add_to_group("player")
@@ -84,10 +87,7 @@ func _physics_process(delta: float) -> void:
 		_ability_cd -= delta
 	if _fire_lock_time > 0.0:
 		_fire_lock_time -= delta
-	if _ext_slow_time > 0.0:
-		_ext_slow_time -= delta
-		if _ext_slow_time <= 0.0:
-			_ext_slow_factor = 1.0
+	_tick_slow_stacks(delta)
 
 	var dir := joystick_direction
 	if dir == Vector2.ZERO:
@@ -101,7 +101,7 @@ func _physics_process(delta: float) -> void:
 	# of 8 poses; the gun fires at the precise angle (smooth 360 aim).
 	_face(_last_move_dir)
 
-	var speed := GameConfig.DASH_SPEED if _dash.is_dashing() else (move_speed * _ext_slow_factor)
+	var speed := GameConfig.DASH_SPEED if _dash.is_dashing() else (move_speed * _current_slow_factor())
 	var move_dir := _last_move_dir if _dash.is_dashing() else dir
 
 	velocity = move_dir * speed
@@ -300,7 +300,28 @@ func upgrade_pickup_radius(pct: float) -> void:
 func apply_fire_lock(duration: float) -> void:
 	_fire_lock_time = maxf(_fire_lock_time, duration)
 
-## "Slow": cut move speed by `factor` (0..1) for `duration`s. Strongest/longest wins.
+## "Slow": cut move speed by `factor` (0..1) for `duration`s. Each application is tracked as its
+## own source instead of merging into one shared factor/time pair, so a weaker-but-longer source
+## can't inherit a stronger source's multiplier (or vice versa) — see _current_slow_factor.
 func apply_slow(factor: float, duration: float) -> void:
-	_ext_slow_factor = minf(_ext_slow_factor, clampf(1.0 - factor, 0.1, 1.0))
-	_ext_slow_time = maxf(_ext_slow_time, duration)
+	_slow_stacks.append({ "factor": clampf(1.0 - factor, 0.1, 1.0), "remaining": duration })
+
+## Decrements every live slow-stack entry's remaining time and drops expired ones (remaining <= 0).
+func _tick_slow_stacks(delta: float) -> void:
+	var i := _slow_stacks.size() - 1
+	while i >= 0:
+		var entry: Dictionary = _slow_stacks[i]
+		var remaining: float = float(entry["remaining"]) - delta
+		if remaining <= 0.0:
+			_slow_stacks.remove_at(i)
+		else:
+			entry["remaining"] = remaining
+		i -= 1
+
+## Effective move-speed multiplier: the strongest (MIN factor) among all live slow sources,
+## or 1.0 (unslowed) once the list is empty.
+func _current_slow_factor() -> float:
+	var f := 1.0
+	for entry in _slow_stacks:
+		f = minf(f, float(entry["factor"]))
+	return f
