@@ -367,12 +367,13 @@ func _fire_lightning(dir: Vector2) -> bool:
 				e.take_damage(dmg)            # destructible link: raw damage, no talents/crit
 			dmg *= jump_falloff
 			continue
+		var was_alive: bool = e.has_method("health_fraction") and e.health_fraction() > 0.0
 		var roll := TalentEngine.roll_damage(dmg, talent_payload)
 		e.take_damage(float(roll["damage"]))
-		var killed: bool = e.has_method("health_fraction") and e.health_fraction() <= 0.0
-		if not killed and e.has_method("flash_hit"):
+		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
+		if was_alive and not killed and e.has_method("flash_hit"):
 			e.flash_hit()
-		if not talent_payload.is_empty():
+		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, dmg, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
 			})
@@ -396,15 +397,16 @@ func _fire_beam(dir: Vector2) -> bool:
 		if not is_instance_valid(e):
 			continue
 		var hit_pos: Vector2 = e.global_position
+		var was_alive: bool = e.has_method("health_fraction") and e.health_fraction() > 0.0
 		var roll := TalentEngine.roll_damage(damage, talent_payload)
 		e.take_damage(float(roll["damage"]))
-		var killed: bool = e.has_method("health_fraction") and e.health_fraction() <= 0.0
-		if not killed:
+		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
+		if was_alive and not killed:
 			if e.has_method("flash_hit"):
 				e.flash_hit()
 			if incendiary and e.has_method("ignite"):
 				e.ignite(burn_dps, burn_duration)
-		if not talent_payload.is_empty():
+		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
 			})
@@ -433,15 +435,16 @@ func _fire_cone(dir: Vector2) -> bool:
 		if not is_instance_valid(e):
 			continue
 		var hit_pos: Vector2 = e.global_position
+		var was_alive: bool = e.has_method("health_fraction") and e.health_fraction() > 0.0
 		var roll := TalentEngine.roll_damage(damage, talent_payload)
 		e.take_damage(float(roll["damage"]))
-		var killed: bool = e.has_method("health_fraction") and e.health_fraction() <= 0.0
-		if not killed:
+		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
+		if was_alive and not killed:
 			if e.has_method("flash_hit"):
 				e.flash_hit()
 			if e.has_method("ignite"):
 				e.ignite(bdps, btime)
-		if not talent_payload.is_empty():
+		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
 			})

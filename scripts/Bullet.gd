@@ -85,12 +85,15 @@ func _on_body_entered(body) -> void:
 	_hit.append(body)
 	var hit_pos := global_position
 
-	# Crit (Killshot) decides the damage dealt this impact.
+	# Crit (Killshot) decides the damage dealt this impact. killed = the alive->dead
+	# TRANSITION this hit caused; a second same-frame hit on an already-dead body
+	# (pellet fan, overlapping AoE) is a non-event: no statuses, no procs.
+	var was_alive: bool = body.has_method("health_fraction") and body.health_fraction() > 0.0
 	var roll := TalentEngine.roll_damage(damage, talent_payload)
 	body.take_damage(float(roll["damage"]))
-	var killed: bool = body.has_method("health_fraction") and body.health_fraction() <= 0.0
+	var killed: bool = was_alive and body.health_fraction() <= 0.0
 
-	if not killed:
+	if was_alive and not killed:
 		if body.has_method("flash_hit"):
 			body.flash_hit()
 		if incendiary and body.has_method("ignite"):
@@ -99,7 +102,7 @@ func _on_body_entered(body) -> void:
 			body.apply_pin(pin_dur)
 
 	# Fire talent procs: on-hit statuses, lifesteal, chain, on-kill explode/frenzy.
-	if not talent_payload.is_empty():
+	if was_alive and not talent_payload.is_empty():
 		TalentEngine.process_hit(body, hit_pos, damage, killed, talent_payload, {
 			"player": talent_player,
 			"gun": (talent_player.gun if (talent_player != null and is_instance_valid(talent_player)) else null),

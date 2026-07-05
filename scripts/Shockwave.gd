@@ -39,9 +39,10 @@ func blast(radius: float, damage: float, force: float, gun, player, hit_destruct
 		if e.has_method("apply_knockback"):
 			e.apply_knockback(dir * force)
 		# Damage, then carry the gun's on-hit talents onto the hit, exactly like a bullet impact.
+		var was_alive: bool = e.has_method("health_fraction") and e.health_fraction() > 0.0
 		e.take_damage(damage)
-		var killed: bool = e.has_method("health_fraction") and e.health_fraction() <= 0.0
-		if not payload.is_empty():
+		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
+		if was_alive and not payload.is_empty():
 			TalentEngine.process_hit(e, enemy_pos, damage, killed, payload, {
 				"player": player,
 				"gun": gun,
