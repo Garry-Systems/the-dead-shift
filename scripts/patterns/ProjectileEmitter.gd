@@ -26,7 +26,7 @@ func setup(b: Node2D, p: Node2D, cfg: Dictionary) -> void:
 	_pattern = String(cfg.get("pattern", "ring"))
 	_arc = float(cfg.get("arc", PI))
 	_speed = float(cfg.get("speed", GameConfig.BOSS_PROJECTILE_SPEED))
-	_damage = float(cfg.get("damage", GameConfig.BOSS_PROJECTILE_DAMAGE))
+	_damage = float(cfg.get("damage", GameConfig.BOSS_PROJECTILE_DAMAGE)) * _special_mult_of(b)
 	_spin = float(cfg.get("spin", 0.4))
 	_active_time = float(cfg.get("active", 1.0))
 

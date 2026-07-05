@@ -53,4 +53,5 @@ static func stats_for(entry: Dictionary, wave: int) -> Dictionary:
 		"max_health": float(base["max_health"]) * float(entry["hp_mult"]),
 		"move_speed": minf(float(base["move_speed"]) * float(entry["spd_mult"]), GameConfig.ENEMY_HARD_SPEED_CAP),
 		"touch_damage": float(base["touch_damage"]) * float(entry["dmg_mult"]),
+		"special_mult": float(base["special_mult"]),
 	}

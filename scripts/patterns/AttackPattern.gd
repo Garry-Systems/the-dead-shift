@@ -23,6 +23,13 @@ func setup(b: Node2D, p: Node2D, cfg: Dictionary) -> void:
 		player = get_tree().get_first_node_in_group("player")
 	_aim_point = player.global_position if (player != null and is_instance_valid(player)) else global_position
 
+## Wave-growth multiplier baked into the owning boss at spawn. 1.0 when there is no
+## boss (player-spawned HazardZones call setup(null, ...) and must stay flat).
+func _special_mult_of(b: Node2D) -> float:
+	if b != null and is_instance_valid(b) and "special_mult" in b:
+		return float(b.special_mult)
+	return 1.0
+
 func _process(delta: float) -> void:
 	if _windup > 0.0:
 		_windup -= delta

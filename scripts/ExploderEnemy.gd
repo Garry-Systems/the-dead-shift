@@ -30,7 +30,7 @@ func _detonate() -> void:
 	_detonated = true
 	if _target != null and is_instance_valid(_target):
 		if global_position.distance_to(_target.global_position) <= GameConfig.EXPLODER_BLAST_RADIUS:
-			_target.take_damage(GameConfig.EXPLODER_BLAST_DAMAGE)
+			_target.take_damage(GameConfig.EXPLODER_BLAST_DAMAGE * _special_mult)
 	_spawn_blast_fx()
 	queue_free()
 

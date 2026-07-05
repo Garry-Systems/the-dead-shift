@@ -41,4 +41,4 @@ func _act(delta: float) -> void:
 	var proj = PROJECTILE_SCENE.instantiate()
 	proj.global_position = global_position
 	get_tree().current_scene.add_child(proj)
-	proj.setup(dir, GameConfig.RANGED_PROJECTILE_SPEED, GameConfig.RANGED_PROJECTILE_DAMAGE)
+	proj.setup(dir, GameConfig.RANGED_PROJECTILE_SPEED, GameConfig.RANGED_PROJECTILE_DAMAGE * _special_mult)

@@ -11,13 +11,14 @@ static func enemy_stats(wave: int) -> Dictionary:
 	var early := mini(w, GameConfig.ENEMY_LATE_WAVE - 1)
 	var hp: float = GameConfig.ENEMY_MAX_HEALTH * pow(GameConfig.ENEMY_HP_GROWTH, early)
 	var spd: float = GameConfig.ENEMY_MOVE_SPEED * pow(GameConfig.ENEMY_SPEED_GROWTH, early)
-	var dmg: float = GameConfig.ENEMY_TOUCH_DAMAGE * pow(GameConfig.ENEMY_DMG_GROWTH, w)
+	var growth := pow(GameConfig.ENEMY_DMG_GROWTH, w)
+	var dmg: float = GameConfig.ENEMY_TOUCH_DAMAGE * growth
 	if wave > GameConfig.ENEMY_LATE_WAVE:
 		var lw := wave - GameConfig.ENEMY_LATE_WAVE
 		hp *= pow(GameConfig.ENEMY_LATE_HP_GROWTH, lw)
 		spd *= pow(GameConfig.ENEMY_LATE_SPEED_GROWTH, lw)
 	spd = minf(spd, GameConfig.ENEMY_SPEED_CAP)
-	return {"max_health": hp, "move_speed": spd, "touch_damage": dmg}
+	return {"max_health": hp, "move_speed": spd, "touch_damage": dmg, "special_mult": growth}
 
 ## Seconds between spawns on the given wave (decays toward SPAWN_INTERVAL_FLOOR).
 static func spawn_interval(wave: int) -> float:
@@ -30,9 +31,10 @@ static func spawn_interval(wave: int) -> float:
 static func boss_stats(wave: int) -> Dictionary:
 	var w := maxi(wave - 1, 0)
 	var hp: float = GameConfig.BOSS_BASE_HP * pow(GameConfig.ENEMY_HP_GROWTH, w)
-	var dmg: float = GameConfig.BOSS_TOUCH_DAMAGE * pow(GameConfig.ENEMY_DMG_GROWTH, w)
+	var growth := pow(GameConfig.ENEMY_DMG_GROWTH, w)
+	var dmg: float = GameConfig.BOSS_TOUCH_DAMAGE * growth
 	# Past the late wave, bosses ramp like trash does — otherwise trash HP outgrows
 	# bosses and every 5th late wave becomes the EASY part of the run.
 	if wave > GameConfig.ENEMY_LATE_WAVE:
 		hp *= pow(GameConfig.BOSS_LATE_HP_GROWTH, wave - GameConfig.ENEMY_LATE_WAVE)
-	return {"max_health": hp, "move_speed": GameConfig.BOSS_MOVE_SPEED, "touch_damage": dmg}
+	return {"max_health": hp, "move_speed": GameConfig.BOSS_MOVE_SPEED, "touch_damage": dmg, "special_mult": growth}

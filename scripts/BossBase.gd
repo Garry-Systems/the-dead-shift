@@ -14,6 +14,7 @@ const FLASH_SHADER := preload("res://shaders/flash.gdshader")
 var max_health := GameConfig.BOSS_BASE_HP
 var move_speed := GameConfig.BOSS_MOVE_SPEED
 var touch_damage := GameConfig.BOSS_TOUCH_DAMAGE
+var special_mult := 1.0        # wave-growth factor patterns apply to their flat damage numbers
 
 var _health: Health
 var _target: Player
@@ -33,6 +34,7 @@ func configure(stats: Dictionary) -> void:
 	max_health = float(stats["max_health"]) * _hp_mult()
 	move_speed = float(stats["move_speed"])
 	touch_damage = float(stats["touch_damage"])
+	special_mult = float(stats.get("special_mult", 1.0))
 	_health = Health.new(max_health)
 
 ## Per-boss HP multiplier on the wave-scaled base (1.0 = the brute). Override per boss.

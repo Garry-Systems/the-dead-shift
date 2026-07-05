@@ -21,6 +21,7 @@ const FLASH_CD := 0.15           # min seconds between hit-flashes. A continuous
 var max_health := GameConfig.ENEMY_MAX_HEALTH
 var move_speed := GameConfig.ENEMY_MOVE_SPEED
 var touch_damage := GameConfig.ENEMY_TOUCH_DAMAGE
+var _special_mult := 1.0       # wave-growth factor for flat special damage (projectiles, blasts)
 
 var _health: Health
 var _target: Player
@@ -48,6 +49,7 @@ func configure(stats: Dictionary) -> void:
 	max_health = float(stats["max_health"])
 	move_speed = float(stats["move_speed"])
 	touch_damage = float(stats["touch_damage"])
+	_special_mult = float(stats.get("special_mult", 1.0))
 	_health = Health.new(max_health)
 
 func _ready() -> void:

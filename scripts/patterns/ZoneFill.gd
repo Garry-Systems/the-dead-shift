@@ -14,7 +14,7 @@ var _armed := false
 func setup(b: Node2D, p: Node2D, cfg: Dictionary) -> void:
 	super.setup(b, p, cfg)
 	_radius = float(cfg.get("radius", GameConfig.ZONE_DEFAULT_RADIUS))
-	_dps = float(cfg.get("dps", GameConfig.ZONE_DEFAULT_DPS))
+	_dps = float(cfg.get("dps", GameConfig.ZONE_DEFAULT_DPS)) * _special_mult_of(b)
 	_duration = float(cfg.get("duration", GameConfig.ZONE_DEFAULT_DURATION))
 	var at := String(cfg.get("at", "boss"))
 	if at == "player":

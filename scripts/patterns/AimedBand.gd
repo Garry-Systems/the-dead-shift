@@ -16,7 +16,7 @@ func setup(b: Node2D, p: Node2D, cfg: Dictionary) -> void:
 	super.setup(b, p, cfg)
 	_length = float(cfg.get("length", GameConfig.AIMED_BAND_LENGTH))
 	_thickness = float(cfg.get("thickness", GameConfig.AIMED_BAND_THICKNESS))
-	_damage = float(cfg.get("damage", GameConfig.AIMED_BAND_DAMAGE))
+	_damage = float(cfg.get("damage", GameConfig.AIMED_BAND_DAMAGE)) * _special_mult_of(b)
 	_active_time = float(cfg.get("active_time", GameConfig.AIMED_BAND_ACTIVE))
 
 func _on_telegraph_end() -> void:

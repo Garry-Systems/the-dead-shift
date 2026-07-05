@@ -16,7 +16,7 @@ func setup(b: Node2D, p: Node2D, cfg: Dictionary) -> void:
 	super.setup(b, p, cfg)
 	_max_radius = float(cfg.get("radius", GameConfig.SLAM_RADIUS))
 	_expand_time = float(cfg.get("expand_time", GameConfig.SLAM_EXPAND_TIME))
-	_damage = float(cfg.get("damage", GameConfig.SLAM_DAMAGE))
+	_damage = float(cfg.get("damage", GameConfig.SLAM_DAMAGE)) * _special_mult_of(b)
 
 func _active(delta: float) -> void:
 	var grow_rate := _max_radius / _expand_time
