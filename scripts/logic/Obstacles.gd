@@ -36,7 +36,7 @@ static func all() -> Array:
 		# Fuel pump (Pack 5): a bigger, meaner barrel — ~1.5x hp/blast radius/fire pool, chains
 		# through the same fuse mechanic (hazard_id "fire"). Also fetched verbatim via by_id() to
 		# place the 3 fixed forecourt pumps.
-		{ "id":"fuel_pump",   "kind":"hazard", "shape":"rect",   "size":GameConfig.FUEL_PUMP_SIZE, "solid":false, "hp":GameConfig.FUEL_PUMP_HP,   "hazard_id":"fire",     "loot":"",     "gem_count":0,                       "color":C3,        "weight":10, "min_wave":4,
+		{ "id":"fuel_pump",   "kind":"hazard", "shape":"rect",   "size":GameConfig.FUEL_PUMP_SIZE, "solid":false, "hp":GameConfig.FUEL_PUMP_HP,   "hazard_id":"fire",     "loot":"",     "gem_count":0,                       "color":FIRE_TINT, "weight":10, "min_wave":4,
 			"burst_radius":GameConfig.FUEL_PUMP_BURST_RADIUS, "burst_damage":GameConfig.FUEL_PUMP_BURST_DAMAGE, "burst_force":GameConfig.FUEL_PUMP_BURST_FORCE, "hazard_scale":GameConfig.FUEL_PUMP_HAZARD_SCALE },
 	]
 

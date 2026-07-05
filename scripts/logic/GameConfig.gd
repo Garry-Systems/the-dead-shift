@@ -254,8 +254,8 @@ const FUEL_PUMP_HAZARD_SCALE := 1.5           # scales the lingering fire pool's
 
 const FORECOURT_STORE_HALF_SIZE := Vector2(170.0, 150.0)  # store cover-body half-extent (px)
 const FORECOURT_STORE_POS := Vector2(-260.0, -150.0)      # store center, offset from Forecourt origin (world 0,0)
-const FORECOURT_STORE_BAND_HEIGHT := 36.0                 # "OPEN 24H" band strip height at the top of the wall
-const FORECOURT_STORE_DOOR_WIDTH := 64.0                  # visual-only door notch width, centered on the front wall
+const FORECOURT_STORE_BAND_HEIGHT := 36.0                 # "OPEN 24H" band strip height on the front (south) wall
+const FORECOURT_STORE_DOOR_WIDTH := 64.0                  # visual-only door notch width on the front wall
 const FORECOURT_PUMP_Y := -60.0                           # fuel pump row Y offset
 const FORECOURT_PUMP_START_X := 20.0                      # first pump X offset
 const FORECOURT_PUMP_SPACING := 110.0                     # gap between pump centers
@@ -264,6 +264,7 @@ const FORECOURT_SIGN_POS := Vector2(380.0, -230.0)        # GAS sign panel cente
 const FORECOURT_SIGN_PANEL_SIZE := Vector2(150.0, 50.0)   # sign panel width/height
 const FORECOURT_SIGN_POLE_WIDTH := 10.0                   # sign pole thickness
 const FORECOURT_KEEPOUT_RADIUS := 700.0                   # ObstacleField scatter/cull keep-out around the forecourt
+const FORECOURT_SPAWN_KEEPOUT := 560.0                    # enemy/boss spawn keep-out from origin — covers the store+pumps footprint (farthest fixture corner ~525px from origin)
 const FORECOURT_PLAYER_SPAWN := Vector2(0.0, 220.0)       # apron spawn point, clear of the building + pump row
 
 # --- First-run onboarding hints (Pack 1) ---

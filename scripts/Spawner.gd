@@ -76,24 +76,38 @@ func _player_level() -> int:
 func _boss_alive() -> bool:
 	return get_tree().get_first_node_in_group("boss") != null
 
+## A ring position SPAWN_RADIUS from the player, kept out of the forecourt: near the origin a
+## blind random angle could drop a spawn INSIDE the store building. Dumb + deterministic — no
+## physics queries: re-roll the angle up to 8 times while the candidate is within
+## FORECOURT_SPAWN_KEEPOUT of world origin; if all 8 fail (player standing far into the
+## keep-out), push the last candidate radially out to the keep-out distance.
+func _pick_spawn_pos() -> Vector2:
+	var keep2 := GameConfig.FORECOURT_SPAWN_KEEPOUT * GameConfig.FORECOURT_SPAWN_KEEPOUT
+	var pos := _player.global_position + Vector2.RIGHT * GameConfig.SPAWN_RADIUS
+	for i in 8:
+		var angle := randf_range(0.0, TAU)
+		pos = _player.global_position + Vector2(cos(angle), sin(angle)) * GameConfig.SPAWN_RADIUS
+		if pos.distance_squared_to(Vector2.ZERO) >= keep2:
+			return pos
+	var dir := pos.normalized()
+	if dir == Vector2.ZERO:
+		dir = Vector2.RIGHT
+	return dir * GameConfig.FORECOURT_SPAWN_KEEPOUT
+
 func _spawn_enemy() -> void:
-	var angle := randf_range(0.0, TAU)
-	var offset := Vector2(cos(angle), sin(angle)) * GameConfig.SPAWN_RADIUS
 	# Pick a trash enemy type from the registry (wave-gated + weighted) and bake its scaled stats.
 	var entry := Enemies.pick(DifficultyManager.wave)
 	var enemy = (entry["scene"] as PackedScene).instantiate()
 	enemy.configure(Enemies.stats_for(entry, DifficultyManager.wave))
 	get_tree().current_scene.add_child(enemy)
-	enemy.global_position = _player.global_position + offset
+	enemy.global_position = _pick_spawn_pos()
 
 func _spawn_boss(stats: Dictionary) -> void:
 	var entry := Bosses.pick(_last_boss_id)
 	if entry.is_empty():
 		return
-	var angle := randf_range(0.0, TAU)
-	var offset := Vector2(cos(angle), sin(angle)) * GameConfig.SPAWN_RADIUS
 	var boss = (entry["scene"] as PackedScene).instantiate()
 	boss.configure(stats)
 	get_tree().current_scene.add_child(boss)
-	boss.global_position = _player.global_position + offset
+	boss.global_position = _pick_spawn_pos()
 	_last_boss_id = String(entry["id"])

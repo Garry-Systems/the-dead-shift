@@ -28,14 +28,26 @@ func _process(delta: float) -> void:
 		_cull_t = 0.0
 		_cull_far()
 
+## The ambient-managed destructibles only: permanent fixtures (Forecourt store/pumps, tagged
+## no_cull) are excluded, so they never eat density-target or hard-cap slots.
+func _managed_destructibles() -> Array:
+	var out: Array = []
+	for d in get_tree().get_nodes_in_group("destructibles"):
+		if not is_instance_valid(d):
+			continue
+		if "no_cull" in d and d.no_cull:
+			continue
+		out.append(d)
+	return out
+
 func _ambient_topup() -> void:
-	var all_d := get_tree().get_nodes_in_group("destructibles")
+	var all_d := _managed_destructibles()
 	if all_d.size() >= GameConfig.OBSTACLE_HARD_CAP:
 		return
 	var keep2 := GameConfig.OBSTACLE_KEEP_RADIUS * GameConfig.OBSTACLE_KEEP_RADIUS
 	var near := 0
 	for d in all_d:
-		if is_instance_valid(d) and (d as Node2D).global_position.distance_squared_to(_player.global_position) <= keep2:
+		if (d as Node2D).global_position.distance_squared_to(_player.global_position) <= keep2:
 			near += 1
 	if near >= GameConfig.OBSTACLE_TARGET_COUNT:
 		return
@@ -45,7 +57,7 @@ func _ambient_topup() -> void:
 
 func _drop_cluster() -> void:
 	for i in GameConfig.OBSTACLE_CLUSTER_SIZE:
-		if get_tree().get_nodes_in_group("destructibles").size() >= GameConfig.OBSTACLE_HARD_CAP:
+		if _managed_destructibles().size() >= GameConfig.OBSTACLE_HARD_CAP:
 			return
 		var ang := randf_range(0.0, TAU)
 		var r := randf_range(GameConfig.OBSTACLE_CLUSTER_MIN_R, GameConfig.OBSTACLE_CLUSTER_RADIUS)

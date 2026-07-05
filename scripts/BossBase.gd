@@ -59,6 +59,9 @@ func _build_phases() -> Array:
 func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("boss")
+	set_collision_mask_value(GameConfig.COVER_LAYER_BIT, true)   # collide with solid cover (|= safe: keeps the default bit 1)
+	# NOTE: bosses rely on move_and_slide alone to slide along cover toward the player —
+	# no anti-wedge tangential steering like Enemy._desired_velocity (phone test = feel check).
 	_target = get_tree().get_first_node_in_group("player") as Player
 	if _health == null:
 		_health = Health.new(max_health)

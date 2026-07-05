@@ -19,7 +19,8 @@ func _ready() -> void:
 	queue_redraw()
 
 ## One big indestructible cover body — mirrors a Destructible "cover" row (bit4, hp -1, group
-## "cover") but with a custom rect size + a distinct drawn look (walls / band / door).
+## "cover") but with a custom rect size + a distinct drawn look (walls / band / door), plus a
+## real "OPEN 24H" Label on the front band (same approach as the GAS sign's text).
 func _build_store() -> void:
 	var sb := StoreBuilding.new()
 	sb.half_size = GameConfig.FORECOURT_STORE_HALF_SIZE
@@ -30,6 +31,16 @@ func _build_store() -> void:
 	sb.no_cull = true
 	add_child(sb)
 	sb.position = GameConfig.FORECOURT_STORE_POS
+	var band := Label.new()
+	band.text = "OPEN 24H"
+	band.add_theme_font_override("font", PixelTheme.body_font())
+	band.add_theme_font_size_override("font_size", 20)
+	band.add_theme_color_override("font_color", PixelTheme.DARK)   # C1 text on the C4 band
+	band.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	band.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	band.size = Vector2(sb.half_size.x * 2.0, GameConfig.FORECOURT_STORE_BAND_HEIGHT)
+	band.position = Vector2(-sb.half_size.x, sb.half_size.y - GameConfig.FORECOURT_STORE_BAND_HEIGHT)
+	sb.add_child(band)
 
 ## 3 fuel pumps in a row, using the shared "fuel_pump" Obstacles row verbatim (same hp/blast/
 ## fire-pool tuning + chain-fuse behavior as an ambient-scattered pump).
@@ -92,10 +103,12 @@ class StoreBuilding extends Destructible:
 		var door_w := GameConfig.FORECOURT_STORE_DOOR_WIDTH
 		var wall_rect := Rect2(Vector2(-w, -h), Vector2(w * 2.0, h * 2.0))
 		draw_rect(wall_rect, color)                                                  # C2 walls
-		draw_rect(Rect2(Vector2(-w, -h), Vector2(w * 2.0, band_h)), PixelTheme.ACCENT)  # C4 "OPEN 24H" band
-		# Door gap (visual only — the body stays one solid collider): a C1 notch centered on
-		# the front (south) wall, facing the apron where the player spawns.
-		draw_rect(Rect2(Vector2(-door_w * 0.5, h - band_h), Vector2(door_w, band_h)), PixelTheme.DARK)
+		# C4 "OPEN 24H" band on the SOUTH/front wall — player-facing (the apron + spawn are
+		# south of the store). The text itself is a Label child added by Forecourt._build_store.
+		draw_rect(Rect2(Vector2(-w, h - band_h), Vector2(w * 2.0, band_h)), PixelTheme.ACCENT)
+		# Door gap (visual only — the body stays one solid collider): a C1 notch through the
+		# front band, offset east of center so it doesn't sit under the band's label text.
+		draw_rect(Rect2(Vector2(w * 0.6 - door_w * 0.5, h - band_h), Vector2(door_w, band_h)), PixelTheme.DARK)
 		draw_rect(wall_rect, PixelTheme.DARK, false, 3.0)   # outline
 
 ## A fuel pump. Extends Destructible unmodified except for the look — the base rect/fill/
