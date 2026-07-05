@@ -19,11 +19,10 @@ permissions:
 jobs:
   release:
     name: Build release AAB
-    # Skip (gray, not red) until the signing secrets exist — see docs/RELEASE-SIGNING.md
-    # for the one-time keystore setup. Without this gate, every tag push shows a failed
-    # run until the keystore is configured.
-    if: ${{ secrets.ANDROID_KEYSTORE_B64 != '' }}
     runs-on: ubuntu-latest
+    # NOTE: the secrets context is NOT available in job-level `if` (it silently evaluates
+    # empty, which would skip the job forever) — so the "no keystore yet" gate lives in the
+    # first STEP below, which sets HAS_KEYSTORE for every later step to check.
     container:
       image: barichello/godot-ci:4.6.3   # same image/version as android.yml's debug build
 
@@ -31,11 +30,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Until the one-time keystore setup (docs/RELEASE-SIGNING.md) is done, end the run
+      # green-with-a-notice instead of red: every later step is gated on HAS_KEYSTORE.
+      - name: Check signing secrets
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KS" ]; then
+            echo "HAS_KEYSTORE=false" >> "$GITHUB_ENV"
+            echo "::notice::Signing secrets not configured — skipping the release AAB build. Run the setup in docs/RELEASE-SIGNING.md, then re-push the tag."
+          else
+            echo "HAS_KEYSTORE=true" >> "$GITHUB_ENV"
+          fi
+
       # Play rejects any upload whose versionCode isn't strictly greater than every prior
       # upload, so a hardcoded version/code=1 would work exactly once. Derive a monotonic
       # code from the tag (vMAJOR.MINOR.PATCH -> MAJOR*10000 + MINOR*100 + PATCH) and stamp
       # both presets, mirroring android.yml's debug stamp step (same ^-anchored seds).
       - name: Stamp Android version from the tag
+        if: env.HAS_KEYSTORE == 'true'
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           MAJOR=$(echo "$TAG" | cut -d. -f1)
@@ -47,6 +60,7 @@ jobs:
           sed -i "s#^version/name=.*#version/name=\"${TAG}\"#" export_presets.cfg
 
       - name: Decode upload keystore
+        if: env.HAS_KEYSTORE == 'true'
         env:
           ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
         run: |
@@ -55,6 +69,7 @@ jobs:
           ls -la /root/release-keystore/
 
       - name: Export Android release AAB
+        if: env.HAS_KEYSTORE == 'true'
         env:
           HOME: /root   # use the image's pre-configured Godot/editor settings (SDK, templates)
           GODOT_ANDROID_KEYSTORE_RELEASE_PATH: /root/release-keystore/upload.keystore
@@ -67,6 +82,7 @@ jobs:
           ls -la build/
 
       - name: Attach AAB to the tag's Release
+        if: env.HAS_KEYSTORE == 'true'
         uses: softprops/action-gh-release@v2
         with:
           name: The Dead Shift ${{ github.ref_name }}
