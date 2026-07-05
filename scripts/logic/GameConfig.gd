@@ -366,3 +366,48 @@ const TALENT_OVERPEN_BRIGHTEN := 0.15        # Color.lightened() fraction per pi
 const MAX_LEECH_MOTES := 4
 const LEECH_MOTE_LIFE := 0.25                # seconds to lerp enemy -> player
 const LEECH_MOTE_RADIUS := 4.0               # px
+
+# --- Talent Overhaul, Phase 2 (29 new talents / 16 new proc kinds) ---
+
+# Night Terror (onhit_fear): Risk #10 hard cap so a feared ranged enemy can't drag off-screen.
+const TALENT_FEAR_MAX_DURATION := 2.0        # seconds; Enemy.apply_fear() clamps to this
+
+# Double Tap (oncrit_echo): the second hit lands a beat after the first (visual separation);
+# its gold number is pushed with source_id 0 (proximity fallback) offset past the crit ICD's
+# own dedupe radius so it renders as a SECOND number instead of being suppressed as "same enemy".
+const TALENT_ECHO_DELAY := 0.06              # seconds before the echo hit resolves
+const TALENT_ECHO_TEXT_OFFSET := 34.0        # px; must exceed COMBAT_TEXT_CRIT_DEDUPE_RADIUS (30)
+
+# Septic Shock (onhit_dot_detonate): double-ring proc — outer green (full radius) + inner orange.
+const TALENT_RUPTURE_INNER_FRAC := 0.5       # inner ring size, as a fraction of the outer radius
+
+# Outbreak (onkill_spread): hard target cap on the corpse's status-spread (group scan like _explode).
+const TALENT_OUTBREAK_SPREAD_CAP := 6
+
+# Parting Gift (onkill_mine): pooled proximity mine, capped + auto-expiring like every other
+# player-placed transient (mirrors MAX_PLAYER_POOLS / MAX_LEECH_MOTES' evict-oldest idiom).
+const MAX_PLAYER_MINES := 6
+const MINE_ARM_DELAY := 0.5                  # seconds before a dropped mine can detonate
+const MINE_PROXIMITY_RADIUS := 40.0          # px; an enemy this close triggers detonation
+const MINE_TTL := 10.0                       # seconds before an untriggered mine self-frees
+const MINE_BLINK_HZ := 2.0                   # armed-tell blink rate
+const MINE_RADIUS_PX := 8.0                  # visual disc radius
+
+# Black Friday (onhit_gravity): capped, no-damage pull well — feeds AoE talents, never stacks.
+const MAX_GRAVITY_WELLS := 1
+const GRAVITY_WELL_PULL_SPEED := 140.0       # px/s knockback impulse toward the well's center per tick
+                                              # (tick cadence reuses HAZARD_TICK_INTERVAL, Risks #11)
+
+# Dead Man's Switch (onhurt_nova): retaliation blast on taking damage. Internal ICD is GUN-held
+# (Gun._hurt_nova_cd), not global, since only one gun is ever equipped at a time.
+const TALENT_HURT_NOVA_ICD := 6.0            # seconds between retaliation blasts
+const TALENT_HURT_NOVA_FORCE := 250.0        # knockback force on the retaliation blast
+const TALENT_HURT_NOVA_FLASH_ALPHA := 0.2    # dimmer than Ryan's purge (ScreenFlash.PEAK_ALPHA 0.7)
+
+# Graveyard Shift (lowhp_frenzy): reuses the shared frenzy channel (Bloodrush/Adrenaline/Rampage
+# are the other sources; max-wins across all four is deliberate, not a bug — Risks #9).
+const TALENT_LOWHP_FRENZY_REFRESH := 0.2     # add_frenzy() refresh duration while armed
+const TALENT_GRAVEYARD_RING_RADIUS := 40.0   # Shockwave.flash() radius on the arm transition
+
+# Closing Time (aura_slow): tick cadence reuses HAZARD_TICK_INTERVAL (never per-frame).
+const TALENT_AURA_SLOW_REFRESH_DUR := 0.4    # apply_slow() duration per tick (> tick interval, no gaps)

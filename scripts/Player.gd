@@ -247,6 +247,12 @@ func take_damage(amount: float, attacker = null, is_contact: bool = false) -> vo
 
 	_health.take_damage(amount)
 	_hurt_flash()
+
+	# Dead Man's Switch (onhurt_nova): retaliation blast after damage lands. Gun-held ICD; a
+	# no-op on a weapon without the talent (try_hurt_nova checks talent_payload itself).
+	if amount > 0.0 and gun != null and is_instance_valid(gun):
+		gun.try_hurt_nova(self)
+
 	if _health.is_dead():
 		if has_second_wind and not second_wind_used:
 			second_wind_used = true

@@ -22,6 +22,8 @@ const MARK_TINT := Hazards.GOLD
 const MARK_BLEND := 0.35
 const SLOW_TINT := FROZEN_TINT          # same indigo family as freeze, just a weaker blend
 const SLOW_BLEND := 0.4
+const FEAR_TINT := Color("0A001A")      # C1 void — Night Terror's "feared" tell (palette-compliant)
+const FEAR_BLEND := 0.8                 # near-solid — outranks burn/poison/mark/slow, below pin/frozen
 
 const FLASH_CD := 0.15           # min seconds between hit-flashes. A continuous weapon (flame cone,
                                  # beam) or a rapid gun (Nail Gun) calls flash_hit far faster than the
@@ -51,6 +53,7 @@ var _frozen := false           # Cold Snap: fully stopped while true
 var _freeze_time := 0.0
 var _pinned := false           # Nail Gun: rooted in place (movement only) while true
 var _pin_time := 0.0
+var _fear_time := 0.0          # seconds remaining feared (Night Terror talent); 0 = not feared
 var _knockback := Vector2.ZERO # decaying impulse (Concussive talent)
 var _contact_cd := 0.0         # bite cooldown: counts down between contact hits so we bounce, not stick
 var _flash_mat: ShaderMaterial
@@ -87,13 +90,16 @@ func _setup_flash() -> void:
 	_flash_mat.shader = FLASH_SHADER
 	spr.material = _flash_mat
 
-## Brief white pop on bullet impact (called by Bullet, not by burn ticks). Throttled by
-## FLASH_CD so continuous/rapid fire can't re-slam the flash and pin the sprite white.
-func flash_hit() -> void:
+## Brief pop on bullet impact (called by Bullet, not by burn ticks). Throttled by FLASH_CD so
+## continuous/rapid fire can't re-slam the flash and pin the sprite white. `tint` defaults to
+## white; Curb Stomp (cc_bonus) passes C2 indigo on a "boosted hit" against a hampered target so
+## the flash itself reads as "you punished a controlled target" instead of adding a new node.
+func flash_hit(tint: Color = Color(1, 1, 1, 1)) -> void:
 	if _flash_mat == null or _flash_cd > 0.0:
 		return
 	_flash_cd = FLASH_CD
 	SoundManager.play("hit_enemy")   # single chokepoint: bullet/cone/beam/lightning all call flash_hit()
+	_flash_mat.set_shader_parameter("flash_color", tint)
 	_flash_mat.set_shader_parameter("flash", 1.0)
 	var tw := create_tween()
 	tw.tween_method(_set_flash, 1.0, 0.0, 0.12)
@@ -165,19 +171,61 @@ func apply_pin(duration: float) -> void:
 func is_pinned() -> bool:
 	return _pinned
 
-## Pure: persistent base tint by status precedence — frozen > pinned > feared (Phase 2 slot,
-## commented below) > burning > poisoned > marked > slowed > neutral. Static so a probe can
-## verify the precedence headlessly. Frozen/pinned are solid tells; everything below blends
-## toward its family color so overlapping mild statuses stay readable (see the BLEND consts).
-static func _resolve_tint(frozen: bool, pinned: bool, burning: bool, poisoned: bool, marked: bool, slowed: bool) -> Color:
+## Night Terror (`onhit_fear`): reverse this enemy's chase for `duration`s (movement-only — _act
+## still runs, mirroring the Nail Gun pin pattern above). Capped at TALENT_FEAR_MAX_DURATION
+## (Risks #10) so a feared ranged enemy can't drag off-screen. Boss-immune for free: BossBase
+## never defines this method, so the has_method gate at every call site excludes it.
+func apply_fear(duration: float) -> void:
+	var was_active := _fear_time > 0.0
+	_fear_time = maxf(_fear_time, minf(duration, GameConfig.TALENT_FEAR_MAX_DURATION))
+	if not was_active:
+		_refresh_tint()
+
+## Septic Shock (`onhit_dot_detonate`): the total damage still owed by the active burn + poison
+## channels, at their CURRENT per-tick rate — i.e. what `_physics_process` would deal if both
+## ran to completion untouched. Read-only; pairs with clear_dots() below.
+func dot_remaining() -> float:
+	return _burn_dps * _burn_time + _dot_dps * _dot_time
+
+## Septic Shock (`onhit_dot_detonate`): wipes both DoT channels (after their damage has been
+## read via dot_remaining() and converted into an instant burst). Refreshes the tint only if a
+## channel was actually active (mirrors every other status's off/on transition gate).
+func clear_dots() -> void:
+	var was_active := _burn_time > 0.0 or _dot_time > 0.0
+	_burn_dps = 0.0
+	_burn_time = 0.0
+	_dot_dps = 0.0
+	_dot_time = 0.0
+	if was_active:
+		_refresh_tint()
+
+## Outbreak (`onkill_spread`): a same-frame-safe copy of this enemy's active statuses, for the
+## killed-branch to read IMMEDIATELY (queue_free is deferred, so the corpse is still valid this
+## frame — see Risks #5) and re-apply onto nearby enemies.
+func status_snapshot() -> Dictionary:
+	return {
+		"burn_dps": _burn_dps, "burn_time": _burn_time,
+		"dot_dps": _dot_dps, "dot_time": _dot_time,
+		"slow_factor": _slow_factor, "slow_time": _slow_time,
+	}
+
+## Curb Stomp (`cc_bonus`): true while this enemy is slowed, frozen, or pinned — the CC
+## archetype's payoff condition. Bosses are immune for free (has_method gate at the call site;
+## BossBase never defines this method).
+func is_hampered() -> bool:
+	return _slow_factor < 1.0 or _frozen or _pinned
+
+## Pure: persistent base tint by status precedence — frozen > pinned > feared > burning >
+## poisoned > marked > slowed > neutral. Static so a probe can verify the precedence headlessly.
+## Frozen/pinned are solid tells; feared is a near-solid blend; everything below blends toward
+## its family color so overlapping mild statuses stay readable (see the BLEND consts).
+static func _resolve_tint(frozen: bool, pinned: bool, feared: bool, burning: bool, poisoned: bool, marked: bool, slowed: bool) -> Color:
 	if frozen:
 		return FROZEN_TINT
 	if pinned:
 		return PIN_TINT
-	# Phase 2 (Night Terror, NEW:onhit_fear): feared slots here, a near-C1 void-dark tint,
-	# outranking burn/poison/mark/slow but below the movement-root tells above.
-	# if feared:
-	#     return FEAR_TINT
+	if feared:
+		return Color(1, 1, 1, 1).lerp(FEAR_TINT, FEAR_BLEND)
 	if burning:
 		return Color(1, 1, 1, 1).lerp(BURN_TINT, BURN_BLEND)
 	if poisoned:
@@ -192,7 +240,7 @@ static func _resolve_tint(frozen: bool, pinned: bool, burning: bool, poisoned: b
 func _refresh_tint() -> void:
 	if _flash_mat != null:
 		_flash_mat.set_shader_parameter("base_tint",
-			_resolve_tint(_frozen, _pinned, _burn_time > 0.0, _dot_time > 0.0, _vuln_time > 0.0, _slow_time > 0.0))
+			_resolve_tint(_frozen, _pinned, _fear_time > 0.0, _burn_time > 0.0, _dot_time > 0.0, _vuln_time > 0.0, _slow_time > 0.0))
 
 ## Remaining-health fraction (for the above-head bar).
 func health_fraction() -> float:
@@ -244,6 +292,11 @@ func _physics_process(delta: float) -> void:
 			_pinned = false
 			_refresh_tint()
 
+	if _fear_time > 0.0:
+		_fear_time -= delta
+		if _fear_time <= 0.0:
+			_refresh_tint()
+
 	if _target == null or not is_instance_valid(_target):
 		return
 
@@ -279,8 +332,12 @@ func _physics_process(delta: float) -> void:
 ## Base movement intent (before slow/knockback). Override per enemy. Default = chase the player,
 ## but if we slid against solid cover last frame, steer tangentially around it (no pathfinding —
 ## just peel along the obstacle toward the player so a nav-less horde doesn't wedge on a car).
+## Night Terror (`onhit_fear`): while feared, the chase vector is simply NEGATED — movement-only,
+## no cover-steer — so a terrified enemy visibly reverses and runs (the primary read; no VFX).
 func _desired_velocity() -> Vector2:
 	var dir := (_target.global_position - global_position).normalized()
+	if _fear_time > 0.0:
+		return -dir * move_speed
 	for i in get_slide_collision_count():
 		var col := get_slide_collision(i)
 		var other := col.get_collider()

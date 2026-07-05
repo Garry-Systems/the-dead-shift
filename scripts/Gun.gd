@@ -65,6 +65,13 @@ var _overpen := {}                 # Railbreaker: {pierce, growth} from talent_p
 var _frenzy_was_active := false    # transition-only FRENZY callout gate (frenzy is a shared, max-wins channel)
 var _surge_was_active := false     # transition-only SURGE callout gate
 
+# --- Talent Overhaul Phase 2: Gun-held passive state ---
+var _first_shot_armed := false     # Clock In (first_shot_bonus): armed on equip + reload-finish, consumed by the next shot
+var _aura_tick := 0.0              # Closing Time (aura_slow): HAZARD_TICK_INTERVAL accumulator
+var _aura_ring: AuraRing = null    # Closing Time: the persistent faint aura-edge outline (child of this Gun)
+var _graveyard_armed := false      # Graveyard Shift (lowhp_frenzy): arm-transition gate for its one-shot callout+flash
+var _hurt_nova_cd := 0.0           # Dead Man's Switch (onhurt_nova): gun-held internal ICD (not global — only one gun equipped at a time)
+
 const MUZZLE_TIME := 0.05         # seconds the muzzle flash stays visible per shot
 const FRENZY_ORANGE := Hazards.ORANGE                # fire family
 const SURGE_LAVENDER := Color(0.878, 0.898, 1.0)     # C4 lavender (matches Shockwave.RING_COLOR / Beam.COLOR)
@@ -151,6 +158,21 @@ func apply_loot(inst: Dictionary) -> void:
 	_reload_nova = talent_payload.get("reload_nova", {})
 	_overpen = talent_payload.get("overpen", {})
 	_ammo = mag_size   # start the run with a full (boosted) magazine
+	_first_shot_armed = true   # Clock In (first_shot_bonus): armed on equip too, not just reload-finish
+	_setup_aura_ring()
+
+## Closing Time (`aura_slow`): creates the persistent faint aura-edge outline once, if this
+## weapon actually rolled the talent. A no-op (and zeroes any existing ring) otherwise.
+func _setup_aura_ring() -> void:
+	var cfg: Dictionary = talent_payload.get("aura_slow", {})
+	if cfg.is_empty():
+		if _aura_ring != null:
+			_aura_ring.radius = 0.0
+		return
+	if _aura_ring == null:
+		_aura_ring = AuraRing.new()
+		add_child(_aura_ring)
+	_aura_ring.radius = float(cfg.get("radius", 0.0))
 
 ## Talent (Bloodrush): temporary fire-rate surge, refreshed on each kill.
 func add_frenzy(pct: float, duration: float) -> void:
@@ -174,7 +196,15 @@ func _process(delta: float) -> void:
 			_surge_pierce = 0
 			_surge_shots = 0
 
+	if _hurt_nova_cd > 0.0:
+		_hurt_nova_cd -= delta
+
 	_update_buff_callouts()
+
+	# Passive-while-held talent ticks (Phase 2) run every frame regardless of reload/hold-fire
+	# state — the aura and the low-HP surge are always "on" while this gun is equipped.
+	_tick_lowhp_frenzy()
+	_tick_aura_slow(delta)
 
 	# aim_direction is set by the Player each frame (the last-faced direction).
 	# The gun no longer picks targets — it fires where the player is looking.
@@ -184,6 +214,7 @@ func _process(delta: float) -> void:
 		if _reload_timer <= 0.0:
 			_ammo = mag_size
 			_reloading = false
+			_first_shot_armed = true   # Clock In (first_shot_bonus): armed on every reload-finish
 			if not _reload_nova.is_empty():
 				var nova_radius := float(_reload_nova.get("radius", 0.0))
 				TalentEngine.detonate(global_position, float(_reload_nova.get("dmg", 0.0)), nova_radius, get_tree())
@@ -209,6 +240,75 @@ func _process(delta: float) -> void:
 	if _ammo <= 0:
 		_start_reload()
 
+## Graveyard Shift (`lowhp_frenzy`): while the player is below the rolled HP threshold, refresh
+## the shared frenzy channel (max-wins across Bloodrush/Adrenaline/Rampage — a deliberate,
+## documented non-stack, Risks #9) and fire the arm-transition callout + flash exactly once.
+func _tick_lowhp_frenzy() -> void:
+	var cfg: Dictionary = talent_payload.get("lowhp_frenzy", {})
+	if cfg.is_empty():
+		return
+	var player := get_parent() as Player
+	if player == null or not is_instance_valid(player):
+		return
+	var active: bool = player.health_fraction() < float(cfg.get("threshold", 0.0))
+	if active:
+		add_frenzy(float(cfg.get("rof", 0.0)), GameConfig.TALENT_LOWHP_FRENZY_REFRESH)
+		if not _graveyard_armed:
+			_graveyard_armed = true
+			CombatText.callout(global_position, "GRAVEYARD SHIFT", Hazards.BLOOD_RED)
+			TalentEngine.spawn_ring(global_position, GameConfig.TALENT_GRAVEYARD_RING_RADIUS, Hazards.BLOOD_RED, get_tree())
+	else:
+		_graveyard_armed = false
+
+## Closing Time (`aura_slow`): a HAZARD_TICK_INTERVAL-cadence accumulator (never per-frame) that
+## slows every enemy within radius. Reuses Enemy.apply_slow's existing strongest-wins/refreshed
+## merge, so repeated ticks can NOT stack into a permanent/ever-deepening slow — the status is
+## always exactly one {factor, time} pair, just kept topped up.
+func _tick_aura_slow(delta: float) -> void:
+	var cfg: Dictionary = talent_payload.get("aura_slow", {})
+	if cfg.is_empty():
+		return
+	_aura_tick += delta
+	if _aura_tick < GameConfig.HAZARD_TICK_INTERVAL:
+		return
+	_aura_tick = 0.0
+	var radius: float = float(cfg.get("radius", 0.0))
+	var slow: float = float(cfg.get("slow", 0.0))
+	var r2 := radius * radius
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(e) and e.has_method("apply_slow"):
+			if (e as Node2D).global_position.distance_squared_to(global_position) <= r2:
+				e.apply_slow(slow, GameConfig.TALENT_AURA_SLOW_REFRESH_DUR)
+
+## Dead Man's Switch (`onhurt_nova`): retaliation blast when the player takes a hit. gun=null on
+## the Shockwave.blast call so the retaliation itself carries NO talents (no proc loops by
+## construction) — called from Player.take_damage after damage lands.
+func try_hurt_nova(player: Player) -> void:
+	if _hurt_nova_cd > 0.0:
+		return
+	var nova: Dictionary = talent_payload.get("hurt_nova", {})
+	if nova.is_empty():
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	_hurt_nova_cd = GameConfig.TALENT_HURT_NOVA_ICD
+	var sw := Shockwave.new()
+	sw.color = SURGE_LAVENDER
+	tree.current_scene.add_child(sw)
+	sw.global_position = player.global_position
+	sw.blast(float(nova.get("radius", 0.0)), float(nova.get("dmg", 0.0)), GameConfig.TALENT_HURT_NOVA_FORCE, null, player)
+	var flash := ScreenFlash.new()
+	flash.alpha = GameConfig.TALENT_HURT_NOVA_FLASH_ALPHA
+	tree.current_scene.add_child(flash)
+
+## Brass Picker (`onkill_ammo`): a kill loads `n` rounds back into the mag, capped at mag_size.
+## No-op mid-reload — the mag physically isn't there to top up.
+func refund_rounds(n: int) -> void:
+	if _reloading:
+		return
+	_ammo = mini(_ammo + n, mag_size)
+
 func _start_reload() -> void:
 	_reloading = true
 	_reload_timer = maxf(reload_time * reload_mult, GameConfig.RELOAD_TIME_FLOOR)
@@ -231,12 +331,23 @@ func reload_progress() -> float:
 	return clampf(1.0 - _reload_timer / dur, 0.0, 1.0)
 
 func _fire(dir: Vector2) -> bool:
+	# Clock In (first_shot_bonus) + Last Call (low_mag_bonus): one shot-level damage multiplier,
+	# computed BEFORE ammo is decremented (Last Call reads how empty the mag still is). Applied
+	# by temporarily scaling `damage` for the duration of this call and restoring it right after
+	# — every fire mode below reads `damage` directly, so this covers a bullet, the whole
+	# cone/beam sweep, or the first jump of a Tesla bolt with no signature changes anywhere else.
+	var mult := TalentEngine.shot_damage_mult(talent_payload, _first_shot_armed, _ammo, mag_size)
+	_first_shot_armed = false
+	var saved_damage := damage
+	if mult != 1.0:
+		damage *= mult
 	var fired: bool
 	match fire_mode:
 		"cone":      fired = _fire_cone(dir)
 		"lightning": fired = _fire_lightning(dir)
 		"beam":      fired = _fire_beam(dir)
 		_:           fired = _fire_projectile(dir)
+	damage = saved_damage
 	# Single chokepoint for every fire mode: whichever branch above actually landed a
 	# shot (a "no target" lightning bolt returns false and plays nothing) fires the
 	# category-mapped sound exactly once per trigger-pull, not once per pellet/target.
@@ -431,11 +542,12 @@ func _fire_lightning(dir: Vector2) -> bool:
 			dmg *= jump_falloff
 			continue
 		var was_alive: bool = e.has_method("health_fraction") and e.health_fraction() > 0.0
-		var roll := TalentEngine.roll_damage(dmg, talent_payload)
+		var hampered: bool = was_alive and talent_payload.has("cc_bonus") and e.has_method("is_hampered") and e.is_hampered()
+		var roll := TalentEngine.roll_damage(TalentEngine.apply_cc_bonus(dmg, talent_payload, hampered), talent_payload)
 		e.take_damage(float(roll["damage"]))
 		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
 		if was_alive and not killed and e.has_method("flash_hit"):
-			e.flash_hit()
+			e.flash_hit(TalentEngine.cc_flash_tint(hampered))
 		if was_alive and bool(roll.get("crit", false)):
 			CombatText.crit(hit_pos, float(roll["damage"]), e.get_instance_id())
 		if was_alive and not talent_payload.is_empty():
@@ -467,12 +579,13 @@ func _fire_beam(dir: Vector2) -> bool:
 			continue
 		var hit_pos: Vector2 = e.global_position
 		var was_alive: bool = e.has_method("health_fraction") and e.health_fraction() > 0.0
-		var roll := TalentEngine.roll_damage(damage, talent_payload)
+		var hampered: bool = was_alive and talent_payload.has("cc_bonus") and e.has_method("is_hampered") and e.is_hampered()
+		var roll := TalentEngine.roll_damage(TalentEngine.apply_cc_bonus(damage, talent_payload, hampered), talent_payload)
 		e.take_damage(float(roll["damage"]))
 		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
 		if was_alive and not killed:
 			if e.has_method("flash_hit"):
-				e.flash_hit()
+				e.flash_hit(TalentEngine.cc_flash_tint(hampered))
 			if incendiary and e.has_method("ignite"):
 				e.ignite(burn_dps, burn_duration)
 		if was_alive and bool(roll.get("crit", false)):
@@ -511,12 +624,13 @@ func _fire_cone(dir: Vector2) -> bool:
 			continue
 		var hit_pos: Vector2 = e.global_position
 		var was_alive: bool = e.has_method("health_fraction") and e.health_fraction() > 0.0
-		var roll := TalentEngine.roll_damage(damage, talent_payload)
+		var hampered: bool = was_alive and talent_payload.has("cc_bonus") and e.has_method("is_hampered") and e.is_hampered()
+		var roll := TalentEngine.roll_damage(TalentEngine.apply_cc_bonus(damage, talent_payload, hampered), talent_payload)
 		e.take_damage(float(roll["damage"]))
 		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
 		if was_alive and not killed:
 			if e.has_method("flash_hit"):
-				e.flash_hit()
+				e.flash_hit(TalentEngine.cc_flash_tint(hampered))
 			if e.has_method("ignite"):
 				e.ignite(bdps, btime)
 		if was_alive and bool(roll.get("crit", false)):

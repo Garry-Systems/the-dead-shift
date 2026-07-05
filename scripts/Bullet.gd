@@ -89,13 +89,14 @@ func _on_body_entered(body) -> void:
 	# TRANSITION this hit caused; a second same-frame hit on an already-dead body
 	# (pellet fan, overlapping AoE) is a non-event: no statuses, no procs.
 	var was_alive: bool = body.has_method("health_fraction") and body.health_fraction() > 0.0
-	var roll := TalentEngine.roll_damage(damage, talent_payload)
+	var hampered: bool = was_alive and talent_payload.has("cc_bonus") and body.has_method("is_hampered") and body.is_hampered()
+	var roll := TalentEngine.roll_damage(TalentEngine.apply_cc_bonus(damage, talent_payload, hampered), talent_payload)
 	body.take_damage(float(roll["damage"]))
 	var killed: bool = was_alive and body.health_fraction() <= 0.0
 
 	if was_alive and not killed:
 		if body.has_method("flash_hit"):
-			body.flash_hit()
+			body.flash_hit(TalentEngine.cc_flash_tint(hampered))
 		if incendiary and body.has_method("ignite"):
 			body.ignite(burn_dps, burn_duration)
 		if pin_chance > 0.0 and body.has_method("apply_pin") and randf() < pin_chance:
