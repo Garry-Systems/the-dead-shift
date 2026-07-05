@@ -178,7 +178,7 @@ func _reward() -> void:
 			get_tree().current_scene.add_child(gem)
 			var a := randf_range(0.0, TAU)
 			gem.global_position = global_position + Vector2(cos(a), sin(a)) * randf_range(8.0, 64.0)
-	# Heal — full in Endless; only a small top-up in Boss Rush.
+	# Heal — a strong top-up in Endless (BOSS_KILL_HEAL_FRAC); smaller in Boss Rush.
 	if _target and is_instance_valid(_target):
 		if boss_rush:
 			_target.heal(_target.max_hp() * GameConfig.BOSS_RUSH_HEAL_FRAC)
