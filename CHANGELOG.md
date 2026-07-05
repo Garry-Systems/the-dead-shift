@@ -4,6 +4,15 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.46 — Store-Shelf Ready (2026-07-05)
+
+Launch prep — the boring build that makes the Play Store possible:
+
+- **A real app icon** — a gas pump under the crescent moon, in the game's palette (goodbye Godot robot), with proper Android adaptive-icon layers.
+- **A real name** — the app installs as **The Dead Shift** (was "Mobile Game"). ⚠️ The app identity changed, so this installs as a NEW app — delete the old one after installing this.
+- **Release pipeline** — a tag-triggered workflow that builds a Play-Store-ready signed .aab (one keystore step remains, documented in docs/RELEASE-SIGNING.md).
+- **Privacy policy** — the game collects nothing and says so, hosted and ready for the Play Console data-safety form.
+
 ## v0.1.45 — Meet the Staff (2026-07-05)
 
 The boss roster more than doubles — 3 → 7, and the new hires all work the night shift:
