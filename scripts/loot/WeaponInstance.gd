@@ -61,6 +61,18 @@ static func active_talents(inst: Dictionary) -> Array:
 			out.append(t)
 	return out
 
+## Lowest unlock_level among this instance's still-locked talents (unlock_level > current
+## level). -1 if every talent is already active (or the instance has none) — used by the
+## pay-stub's "next talent at LVk" line.
+static func next_locked_talent_level(inst: Dictionary) -> int:
+	var lvl := int(inst.get("level", 1))
+	var best := -1
+	for t in inst.get("talents", []):
+		var unlock := int(t.get("unlock_level", 0))
+		if unlock > lvl and (best == -1 or unlock < best):
+			best = unlock
+	return best
+
 ## Tooltip line for talents. Active ones plain; still-locked ones tagged with the weapon
 ## level they unlock at — e.g. "Napalm, Live Wire, Venom (Lv14)".
 static func talent_summary(inst: Dictionary) -> String:

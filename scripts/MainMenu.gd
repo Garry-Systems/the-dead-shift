@@ -54,6 +54,11 @@ func _ready() -> void:
 	_build_reward_popup()
 	_ensure_valid_character()
 	_show_only(_hub)
+	# The pay-stub's STORE button (GameOver) sets this before returning here — land straight
+	# in the store instead of the hub, one-shot (consumed immediately).
+	if RunConfig.open_store_on_menu:
+		RunConfig.open_store_on_menu = false
+		_show_store()
 	# Hand out any free rewards earned since last time (daily login + every-10-games), over the hub.
 	_check_free_rewards()
 

@@ -5,6 +5,7 @@ extends CanvasLayer
 var _bar: ProgressBar
 var _label: Label
 var _wave_label: Label
+var _clock_label: Label     # night-shift clock (endless only), just under the wave/timer label
 var _boss_bar: ProgressBar
 var _ammo_label: Label
 var _reload_bar: ProgressBar
@@ -13,6 +14,12 @@ var _hp_bar: ProgressBar
 var _hp_label: Label
 var _player: Player
 var _hints: FirstRunHints   # first-run onboarding hint strip (no-op once SaveManager.tutorial_done())
+
+var _dawn_fired := false    # DAWN banner + coin bonus fire once per run (Hud is rebuilt each run)
+
+# --- DAWN banner (self-freeing, presentation-only; mirrors ScreenFlash's spawn-and-forget pattern) ---
+const DAWN_BANNER_HOLD := 2.6   # seconds fully visible
+const DAWN_BANNER_FADE := 0.4   # seconds fade-out (HOLD + FADE ~= the brief's "~3s")
 
 func _ready() -> void:
 	_player = get_tree().get_first_node_in_group("player") as Player
@@ -53,6 +60,19 @@ func _ready() -> void:
 	_wave_label.offset_top = 64
 	_wave_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(_wave_label)
+
+	# Night-shift clock — sits just under the wave/timer label, same column (right-aligned,
+	# top-right); hidden entirely in Boss Rush. Clears well above FirstRunHints' strip (140-196).
+	_clock_label = Label.new()
+	_clock_label.anchor_left = 1.0
+	_clock_label.anchor_right = 1.0
+	_clock_label.offset_left = -260
+	_clock_label.offset_right = -76
+	_clock_label.offset_top = 100
+	_clock_label.offset_bottom = 128
+	_clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_clock_label.visible = false
+	add_child(_clock_label)
 
 	_boss_bar = ProgressBar.new()
 	_boss_bar.show_percentage = false
@@ -108,6 +128,7 @@ func _apply_pixel_style() -> void:
 	_label_px(_label, 26, PixelTheme.TEXT)
 	_label_px(_hp_label, 22, PixelTheme.TEXT)
 	_label_px(_wave_label, 24, PixelTheme.TEXT)
+	_label_px(_clock_label, 22, PixelTheme.TEXT)
 	_label_px(_ammo_label, 48, PixelTheme.ACCENT)
 	_label_px(_ability_label, 28, PixelTheme.ACCENT)
 	_style_bar(_bar, PixelTheme.SELECT)        # XP — C4 lavender (full-width strip up top)
@@ -152,8 +173,15 @@ func _process(_delta: float) -> void:
 		if spawner != null:
 			n = int(spawner.boss_rush_count)
 		_wave_label.text = "Boss #%d" % n
+		_clock_label.visible = false
 	else:
 		_wave_label.text = "Wave %d   %s" % [DifficultyManager.wave, DifficultyManager.time_string()]
+		_clock_label.visible = true
+		_clock_label.text = ShiftClock.clock_string(DifficultyManager.run_time)
+		if not _dawn_fired and DifficultyManager.run_time >= ShiftClock.dawn_run_time():
+			_dawn_fired = true
+			RunStats.add_coins(GameConfig.DAWN_BONUS_COINS)
+			_show_dawn_banner()
 
 	var boss := get_tree().get_first_node_in_group("boss")
 	if boss != null:
@@ -184,3 +212,32 @@ func _process(_delta: float) -> void:
 			_ability_label.add_theme_color_override("font_color", PixelTheme.SELECT)
 	else:
 		_ability_label.visible = false
+
+## Once-per-run "DAWN — YOU SURVIVED THE SHIFT" banner: a big C4 label over a dim scrim,
+## held briefly then faded out, then it frees itself. Self-contained (spawn and forget),
+## same shape as ScreenFlash. The run continues underneath it — nothing is paused.
+func _show_dawn_banner() -> void:
+	var banner := Control.new()
+	banner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(banner)
+
+	var scrim := ColorRect.new()
+	scrim.color = PixelTheme.OVERLAY_DIM
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	banner.add_child(scrim)
+
+	var label := Label.new()
+	label.text = "DAWN\nYOU SURVIVED THE SHIFT"
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	PixelTheme.style_title(label, 46)
+	banner.add_child(label)
+
+	var tw := create_tween()
+	tw.tween_interval(DAWN_BANNER_HOLD)
+	tw.tween_property(banner, "modulate:a", 0.0, DAWN_BANNER_FADE)
+	tw.tween_callback(banner.queue_free)

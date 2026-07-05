@@ -5,3 +5,7 @@ extends Node
 
 var character_id := "ryan"
 var mode := "endless"        # "endless" | "boss_rush"
+
+## Set by GameOver's STORE button just before returning to the menu; MainMenu._ready()
+## consumes (and resets) this to land directly in the store view instead of the hub.
+var open_store_on_menu := false

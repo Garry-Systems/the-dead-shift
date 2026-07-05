@@ -259,3 +259,9 @@ const UPGRADE_CRIT_CHANCE_PCT := 5.0   # "Kill Shot" card: + this many crit-chan
 const UPGRADE_CRIT_MULT_BONUS := 1.0   # "Kill Shot" card: + this much crit-multiplier bonus (1.0 = "double" damage on proc)
 const UPGRADE_THORNS_MULT := 2.0       # thorns card: reflected damage = this x the biter's own raw bite damage
 const SECOND_WIND_HP_FRAC := 0.50      # Second Wind: revive fraction of max HP on what would otherwise be a lethal hit
+
+# --- Night-shift clock (Pack 3, endless only) ---
+const SHIFT_START_HOUR := 22           # the clock reads 10:00 PM at run start
+const SHIFT_END_HOUR := 6              # "dawn" — clock keeps climbing past this; the run continues
+const SHIFT_SECONDS_PER_MINUTE := 1.0  # real seconds per in-game clock minute
+const DAWN_BONUS_COINS := 250          # end-of-shift bonus, granted once per run at dawn
