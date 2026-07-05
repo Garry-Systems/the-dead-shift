@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.42 — Show Up, Cash In (2026-07-05)
+
+- **Daily login streak** — the daily reward now remembers you. Claim on consecutive days and the crate quality climbs: **day 3+** shifts the roll a whole tier up, **day 7+** guarantees Munitions Cache or better, every day. Miss a day and the streak resets — the popup shows STREAK: DAY N so you know exactly what's on the line.
+
 ## v0.1.41 — Clock In (2026-07-05)
 
 The night shift is finally on screen:
