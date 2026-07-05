@@ -369,7 +369,7 @@ func _fire_lightning(dir: Vector2) -> bool:
 			continue
 		var roll := TalentEngine.roll_damage(dmg, talent_payload)
 		e.take_damage(float(roll["damage"]))
-		var killed := not is_instance_valid(e)
+		var killed: bool = e.has_method("health_fraction") and e.health_fraction() <= 0.0
 		if not killed and e.has_method("flash_hit"):
 			e.flash_hit()
 		if not talent_payload.is_empty():
@@ -398,7 +398,7 @@ func _fire_beam(dir: Vector2) -> bool:
 		var hit_pos: Vector2 = e.global_position
 		var roll := TalentEngine.roll_damage(damage, talent_payload)
 		e.take_damage(float(roll["damage"]))
-		var killed := not is_instance_valid(e)
+		var killed: bool = e.has_method("health_fraction") and e.health_fraction() <= 0.0
 		if not killed:
 			if e.has_method("flash_hit"):
 				e.flash_hit()
@@ -435,7 +435,7 @@ func _fire_cone(dir: Vector2) -> bool:
 		var hit_pos: Vector2 = e.global_position
 		var roll := TalentEngine.roll_damage(damage, talent_payload)
 		e.take_damage(float(roll["damage"]))
-		var killed := not is_instance_valid(e)
+		var killed: bool = e.has_method("health_fraction") and e.health_fraction() <= 0.0
 		if not killed:
 			if e.has_method("flash_hit"):
 				e.flash_hit()

@@ -88,7 +88,7 @@ func _on_body_entered(body) -> void:
 	# Crit (Killshot) decides the damage dealt this impact.
 	var roll := TalentEngine.roll_damage(damage, talent_payload)
 	body.take_damage(float(roll["damage"]))
-	var killed := not is_instance_valid(body)
+	var killed: bool = body.has_method("health_fraction") and body.health_fraction() <= 0.0
 
 	if not killed:
 		if body.has_method("flash_hit"):

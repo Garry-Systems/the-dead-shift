@@ -21,6 +21,8 @@ var _target: Player
 var _burn_dps := 0.0
 var _burn_time := 0.0
 var _flash_mat: ShaderMaterial
+var _dead := false     # set by _die() before queue_free (which is deferred) so a same-frame
+						# post-mortem _physics_process (e.g. from the boss's own burn tick) bails
 
 # --- Phase / pattern engine ---
 var phases: Array = []     # built by _build_phases(); phases[0].at must be 1.0
@@ -106,10 +108,12 @@ func ignite(dps: float, duration: float) -> void:
 	_burn_time = maxf(_burn_time, duration)
 
 func _physics_process(delta: float) -> void:
+	if _dead:
+		return
 	if _burn_time > 0.0:
 		_burn_time -= delta
 		take_damage(_burn_dps * delta)
-		if not is_instance_valid(self):
+		if _dead:
 			return
 
 	if _target == null or not is_instance_valid(_target):
@@ -158,11 +162,14 @@ func _touching_player() -> bool:
 	return false
 
 func take_damage(amount: float) -> void:
+	if _health.is_dead():
+		return
 	_health.take_damage(amount)
 	if _health.is_dead():
 		_die()
 
 func _die() -> void:
+	_dead = true
 	_reward()
 	queue_free()
 

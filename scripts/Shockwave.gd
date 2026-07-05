@@ -40,7 +40,7 @@ func blast(radius: float, damage: float, force: float, gun, player, hit_destruct
 			e.apply_knockback(dir * force)
 		# Damage, then carry the gun's on-hit talents onto the hit, exactly like a bullet impact.
 		e.take_damage(damage)
-		var killed := not is_instance_valid(e)
+		var killed: bool = e.has_method("health_fraction") and e.health_fraction() <= 0.0
 		if not payload.is_empty():
 			TalentEngine.process_hit(e, enemy_pos, damage, killed, payload, {
 				"player": player,

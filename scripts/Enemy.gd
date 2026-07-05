@@ -162,13 +162,15 @@ func _physics_process(delta: float) -> void:
 	if _burn_time > 0.0:
 		_burn_time -= delta
 		take_damage(_burn_dps * delta)
-		if not is_instance_valid(self):
+		if _health.is_dead():
 			return
+		if _burn_time <= 0.0:
+			_burn_dps = 0.0
 
 	if _dot_time > 0.0:
 		_dot_time -= delta
 		take_damage(_dot_dps * delta)
-		if not is_instance_valid(self):
+		if _health.is_dead():
 			return
 		if _dot_time <= 0.0:
 			_dot_dps = 0.0
@@ -257,6 +259,8 @@ func _touching_player() -> bool:
 	return false
 
 func take_damage(amount: float) -> void:
+	if _health.is_dead():
+		return
 	if _vuln_bonus > 0.0:
 		amount *= (1.0 + minf(_vuln_bonus, GameConfig.TALENT_VULN_MAX))
 	_health.take_damage(amount)
