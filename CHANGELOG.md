@@ -4,6 +4,15 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.47 — ARMAGEDDON (2026-07-05)
+
+The rarity ladder gets a new ceiling — and a new look:
+
+- **★ ARMAGEDDON ★ — the new top rarity.** Molten gold, **5 talents** (nothing else has more than 4), and its prefixes always roll EVERY stat they can carry, with the fattest ranges in the game. From a basic Footlocker it's a ~1-in-360,000 pull — premium crates cut that down. The dream just got bigger.
+- **Apocalypse goes RAINBOW** — the old cyan is gone; Apocalypse weapons now shimmer through the whole spectrum, live, on tiles, in the inspect screen, and on the crate reel.
+- **Red and orange traded places** — Carnage (red) is now tier 6 and Merciless (orange) sits above it at tier 7. Same power, same odds — your guns keep everything; only the labels and colors moved.
+- Every crate that could reach Apocalypse can now reach Armageddon.
+
 ## v0.1.46 — Store-Shelf Ready (2026-07-05)
 
 Launch prep — the boring build that makes the Play Store possible:
