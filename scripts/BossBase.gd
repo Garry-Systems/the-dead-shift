@@ -16,6 +16,13 @@ var move_speed := GameConfig.BOSS_MOVE_SPEED
 var touch_damage := GameConfig.BOSS_TOUCH_DAMAGE
 var special_mult := 1.0        # wave-growth factor patterns apply to their flat damage numbers
 
+## True while a Charge-style pattern (see ChargeDash) is driving this body directly via its own
+## velocity + move_and_slide (e.g. THE NIGHT STOCKER / THE COURIER dashing at the player's
+## position-at-windup). BossBase's own chase-and-touch-damage stands down while this is true so
+## the two don't fight over velocity on the same physics tick; the pattern clears it when the
+## dash ends. Default false — every existing boss is unaffected.
+var charging := false
+
 var _health: Health
 var _target: Player
 var _burn_dps := 0.0
@@ -46,6 +53,11 @@ func _hp_mult() -> float:
 ## Per-boss base flash tint (default white = show the C3 enemy art). Override to recolor.
 func _base_tint() -> Color:
 	return Color(1.0, 1.0, 1.0, 1.0)
+
+## Override per boss: this boss's BOSS_ID (matches its Bosses.gd registry row). Used by the HUD
+## to look up the display name for the boss bar. Default "" (no name shown).
+func boss_id() -> String:
+	return ""
 
 ## Override per boss: returns the phase table. Each entry is a Dictionary:
 ##   { "at": float,           # enter when health_fraction() <= at; phases[0].at MUST be 1.0
@@ -127,14 +139,17 @@ func _physics_process(delta: float) -> void:
 		_enter_phase(_phase_idx + 1)
 
 	# Chase + contact damage. Contact uses the actual slide collision (robust vs collider
-	# radii / sprite scale), matching the 2026-06-14 fix in Enemy/Boss.
-	var dir := (_target.global_position - global_position).normalized()
-	velocity = dir * (move_speed * _speed_mult)
-	move_and_slide()
-	if _touching_player():
-		# is_contact=true so Armor reduces boss touch damage; attacker stays null ON PURPOSE —
-		# Thorns is bite-only (a per-frame reflect on this continuous touch would shred bosses).
-		_target.take_damage(touch_damage * delta, null, true)
+	# radii / sprite scale), matching the 2026-06-14 fix in Enemy/Boss. Skipped while a Charge
+	# pattern owns this body's velocity/move_and_slide (see `charging`) — it has its own
+	# distance-based hit-once contact damage instead of this continuous per-frame touch damage.
+	if not charging:
+		var dir := (_target.global_position - global_position).normalized()
+		velocity = dir * (move_speed * _speed_mult)
+		move_and_slide()
+		if _touching_player():
+			# is_contact=true so Armor reduces boss touch damage; attacker stays null ON PURPOSE —
+			# Thorns is bite-only (a per-frame reflect on this continuous touch would shred bosses).
+			_target.take_damage(touch_damage * delta, null, true)
 
 	# Cast the next pattern when the clock runs out.
 	_pat_clock -= delta

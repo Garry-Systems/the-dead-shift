@@ -6,6 +6,9 @@ extends BossBase
 
 const BOSS_ID := "brood_mother"
 
+func boss_id() -> String:
+	return BOSS_ID
+
 func _hp_mult() -> float:
 	return GameConfig.BROOD_HP / GameConfig.BOSS_BASE_HP
 

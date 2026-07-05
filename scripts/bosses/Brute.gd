@@ -5,6 +5,9 @@ extends BossBase
 
 const BOSS_ID := "brute"
 
+func boss_id() -> String:
+	return BOSS_ID
+
 func _build_phases() -> Array:
 	return [
 		{

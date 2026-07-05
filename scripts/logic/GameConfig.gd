@@ -292,3 +292,36 @@ const DAWN_BONUS_COINS := 250          # end-of-shift bonus, granted once per ru
 # --- Daily login streak (Pack 4) ---
 const DAILY_STREAK_TIER_UP := 3        # streak this high or more: daily crate weight shifts one price tier up
 const DAILY_STREAK_FLOOR := 7          # streak this high or more: daily crate result floored at munitions_cache-or-better
+
+# --- Charge (dash) pattern defaults (Pack 7) ---
+const CHARGE_SPEED := 520.0            # px/sec default dash speed
+const CHARGE_DURATION := 0.55          # seconds default dash length
+const CHARGE_DAMAGE := 30.0            # flat contact damage if the dash connects (once per dash)
+const CHARGE_HIT_RADIUS := 56.0        # px distance from the dashing boss counted as a hit
+
+# --- Night-shift staff bosses (Pack 7) ---
+# The Manager: tanky/slow. Calls in staff adds, jams the gun, ground-slams.
+const MANAGER_HP := 3000.0             # ~2x base — the tank of the roster
+const MANAGER_SPEED_MULT := 0.6        # persistent chase-speed multiplier (slow)
+const MANAGER_SUMMON_COUNT := 3        # staff adds per summon cast
+const MANAGER_JAM_DURATION := 2.2      # "Written Up" gun-jam length
+
+# The Night Stocker: fast, squishy, charges the player and litters cover behind it.
+const STOCKER_HP := 1100.0             # below base — glass cannon, dies fast if you land hits
+const STOCKER_SPEED_MULT := 1.7        # persistent chase-speed multiplier (fast)
+const STOCKER_CRATE_SIZE := 22.0       # px rect half-extent of a dropped crate obstacle
+const STOCKER_CRATE_DROP_DIST := 70.0  # px behind the boss a dropped crate lands
+
+# The Fryer: medium pace, denies ground with fire pools + heat-lamp bands.
+const FRYER_HP := 2000.0               # medium
+const FRYER_ZONE_DPS := 20.0           # fry-oil pool damage/sec
+const FRYER_BAND_DAMAGE := 26.0        # heat-lamp band damage
+
+# The Courier: mobile arena-crosser. Charges, radial parcel bursts, a slow-you-down aura.
+const COURIER_HP := 1400.0             # below base — relies on mobility, not tankiness
+const COURIER_SPEED_MULT := 1.3        # persistent chase-speed multiplier (brisk)
+const COURIER_CHARGE_SPEED := 650.0    # px/sec — crosses more of the arena than the Stocker's charge
+const COURIER_CHARGE_DURATION := 0.9   # seconds
+const COURIER_RING_COUNT := 10         # radial burst projectile count
+const COURIER_SLOW_DURATION := 3.0     # slow-aura debuff length
+const COURIER_SLOW_FACTOR := 0.4       # slow-aura move-speed cut

@@ -6,6 +6,9 @@ extends BossBase
 
 const BOSS_ID := "heat_tyrant"
 
+func boss_id() -> String:
+	return BOSS_ID
+
 func _hp_mult() -> float:
 	return GameConfig.HEAT_HP / GameConfig.BOSS_BASE_HP
 

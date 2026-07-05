@@ -1,0 +1,22 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/bosses/Courier.gd" id="1_courier"]
+[ext_resource type="Texture2D" path="res://art/enemy.png" id="2_tex"]
+[ext_resource type="PackedScene" path="res://scenes/XpGem.tscn" id="3_gem"]
+[ext_resource type="PackedScene" path="res://scenes/RelicPickup.tscn" id="5_relic"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_courier"]
+radius = 46.0
+
+[node name="Courier" type="CharacterBody2D"]
+script = ExtResource("1_courier")
+xp_gem_scene = ExtResource("3_gem")
+relic_pickup_scene = ExtResource("5_relic")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+z_index = -1
+scale = Vector2(2.4, 2.4)
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_courier")

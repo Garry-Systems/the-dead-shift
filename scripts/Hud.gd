@@ -7,6 +7,8 @@ var _label: Label
 var _wave_label: Label
 var _clock_label: Label     # night-shift clock (endless only), just under the wave/timer label
 var _boss_bar: ProgressBar
+var _boss_name_label: Label   # boss display name, shown just above the boss HP bar
+var _boss_was_alive := false  # edge-detects "a boss wave starts" for the SHIFT CHANGE toast
 var _ammo_label: Label
 var _reload_bar: ProgressBar
 var _ability_label: Label   # Ryan's purge cooldown, shown above the ammo (only when he has it)
@@ -17,9 +19,11 @@ var _hints: FirstRunHints   # first-run onboarding hint strip (no-op once SaveMa
 
 var _dawn_fired := false    # DAWN banner + coin bonus fire once per run (Hud is rebuilt each run)
 
-# --- DAWN banner (self-freeing, presentation-only; mirrors ScreenFlash's spawn-and-forget pattern) ---
-const DAWN_BANNER_HOLD := 2.6   # seconds fully visible
-const DAWN_BANNER_FADE := 0.4   # seconds fade-out (HOLD + FADE ~= the brief's "~3s")
+# --- Full-screen toast banner (self-freeing, presentation-only; mirrors ScreenFlash's
+# spawn-and-forget pattern). Shared by the once-per-run DAWN banner (Pack 3) and the
+# once-per-boss-wave SHIFT CHANGE toast (Pack 7) via _show_banner(text) below. ---
+const BANNER_HOLD := 2.6   # seconds fully visible
+const BANNER_FADE := 0.4   # seconds fade-out (HOLD + FADE ~= the brief's "~3s")
 
 func _ready() -> void:
 	_player = get_tree().get_first_node_in_group("player") as Player
@@ -88,6 +92,20 @@ func _ready() -> void:
 	_boss_bar.visible = false
 	add_child(_boss_bar)
 
+	# Boss display name, sitting just above its HP bar (same horizontal span, centered).
+	_boss_name_label = Label.new()
+	_boss_name_label.anchor_left = 0.5
+	_boss_name_label.anchor_right = 0.5
+	_boss_name_label.anchor_top = 1.0
+	_boss_name_label.anchor_bottom = 1.0
+	_boss_name_label.offset_left = -200
+	_boss_name_label.offset_right = 200
+	_boss_name_label.offset_top = -74
+	_boss_name_label.offset_bottom = -46
+	_boss_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_name_label.visible = false
+	add_child(_boss_name_label)
+
 	_ammo_label = Label.new()
 	_ammo_label.anchor_top = 1.0
 	_ammo_label.anchor_bottom = 1.0
@@ -129,6 +147,7 @@ func _apply_pixel_style() -> void:
 	_label_px(_hp_label, 22, PixelTheme.TEXT)
 	_label_px(_wave_label, 24, PixelTheme.TEXT)
 	_label_px(_clock_label, 22, PixelTheme.TEXT)
+	_label_px(_boss_name_label, 24, PixelTheme.ACCENT)   # C4 — boss name over the (C3 DANGER) HP bar
 	_label_px(_ammo_label, 48, PixelTheme.ACCENT)
 	_label_px(_ability_label, 28, PixelTheme.ACCENT)
 	_style_bar(_bar, PixelTheme.SELECT)        # XP — C4 lavender (full-width strip up top)
@@ -188,8 +207,15 @@ func _process(_delta: float) -> void:
 	if boss != null:
 		_boss_bar.visible = true
 		_boss_bar.value = (boss as BossBase).health_fraction()
+		_boss_name_label.visible = true
+		_boss_name_label.text = Bosses.name_for((boss as BossBase).boss_id())
+		if not _boss_was_alive:
+			_boss_was_alive = true
+			_show_banner("SHIFT CHANGE")   # Spawner already fires the "boss_roar" SFX on spawn
 	else:
 		_boss_bar.visible = false
+		_boss_name_label.visible = false
+		_boss_was_alive = false
 
 	var gun := _player.gun
 	if gun != null:
@@ -214,10 +240,15 @@ func _process(_delta: float) -> void:
 	else:
 		_ability_label.visible = false
 
-## Once-per-run "DAWN — YOU SURVIVED THE SHIFT" banner: a big C4 label over a dim scrim,
-## held briefly then faded out, then it frees itself. Self-contained (spawn and forget),
-## same shape as ScreenFlash. The run continues underneath it — nothing is paused.
+## Once-per-run "DAWN — YOU SURVIVED THE SHIFT" banner. Thin wrapper over _show_banner (Pack 7
+## extracted the node-building so the SHIFT CHANGE toast below can reuse it verbatim).
 func _show_dawn_banner() -> void:
+	_show_banner("DAWN\nYOU SURVIVED THE SHIFT")
+
+## A big C4 label over a dim scrim, held briefly then faded out, then it frees itself.
+## Self-contained (spawn and forget), same shape as ScreenFlash. The run continues underneath
+## it — nothing is paused. Shared by the DAWN banner (Pack 3) and the SHIFT CHANGE toast (Pack 7).
+func _show_banner(text: String) -> void:
 	var banner := Control.new()
 	banner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -230,7 +261,7 @@ func _show_dawn_banner() -> void:
 	banner.add_child(scrim)
 
 	var label := Label.new()
-	label.text = "DAWN\nYOU SURVIVED THE SHIFT"
+	label.text = text
 	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -239,6 +270,6 @@ func _show_dawn_banner() -> void:
 	banner.add_child(label)
 
 	var tw := create_tween()
-	tw.tween_interval(DAWN_BANNER_HOLD)
-	tw.tween_property(banner, "modulate:a", 0.0, DAWN_BANNER_FADE)
+	tw.tween_interval(BANNER_HOLD)
+	tw.tween_property(banner, "modulate:a", 0.0, BANNER_FADE)
 	tw.tween_callback(banner.queue_free)
