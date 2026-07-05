@@ -16,6 +16,9 @@ var _confirm_row: Control
 var _scroll: ScrollContainer
 var _inner: VBoxContainer
 var _card_w: float = 720.0
+var _title_lbl: Label
+const RAINBOW_REFRESH := 0.1   # seconds between title repaints for an Apocalypse-rarity weapon
+var _rainbow_accum := 0.0
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -56,6 +59,8 @@ func _rebuild() -> void:
 	PixelTheme.style_title(title, 28)
 	title.add_theme_color_override("font_color", WeaponInstance.color(_inst))
 	_card_vbox.add_child(title)
+	_title_lbl = title
+	_rainbow_accum = 0.0
 
 	# Subtitle — rarity name · level.
 	var sub := Label.new()
@@ -83,6 +88,19 @@ func _rebuild() -> void:
 	# Actions (unchanged behavior).
 	_action_row = _build_action_row()
 	_card_vbox.add_child(_action_row)
+
+## Cheap visible-only repaint of just the title color for the rainbow (Apocalypse) tier — the
+## rest of the card is a static snapshot taken at _rebuild() time (rebuilding the whole card
+## every 0.1s would be wasteful); only the title color animates while the popup is on screen.
+func _process(delta: float) -> void:
+	if not visible or int(_inst.get("rarity", 1)) != Rarity.RAINBOW_ID:
+		return
+	_rainbow_accum += delta
+	if _rainbow_accum < RAINBOW_REFRESH:
+		return
+	_rainbow_accum = 0.0
+	if is_instance_valid(_title_lbl):
+		_title_lbl.add_theme_color_override("font_color", WeaponInstance.color(_inst))
 
 # Sizes the scroll region to its content, capped at half the viewport height so short cards
 # don't pad and tall ones scroll. Deferred one frame so child labels have reported min sizes.

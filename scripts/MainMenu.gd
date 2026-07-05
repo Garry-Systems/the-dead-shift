@@ -34,7 +34,7 @@ var _last_unbox_color: Color = PixelTheme.TEXT
 var _char_vbox: VBoxContainer    # character panel content (rebuilt by _populate_characters)
 var _crate_opener: CrateOpener   # reused full-screen reel, opened from a crate tile
 
-## A crate win at this rarity or better (Merciless/orange and up) rains confetti on reveal.
+## A crate win at this rarity or better (Carnage/red and up) rains confetti on reveal.
 const CONFETTI_MIN_RARITY := 6
 
 var _reward_popup: RewardPopup   # reveals daily-login + every-10-games free rewards on entry

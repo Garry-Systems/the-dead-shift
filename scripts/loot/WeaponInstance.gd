@@ -11,8 +11,11 @@ static func display_name(inst: Dictionary) -> String:
 	var bname: String = base.get("name", String(inst.get("base", "?")))
 	return ("%s %s" % [prefix, bname]).strip_edges()
 
+## The rarity color to SHOW for this instance — routes through Rarity.display_color() so an
+## Apocalypse-rarity instance reads as the animated rainbow, not a flat cyan. Every UI element
+## that colors a weapon by rarity should go through this (never Rarity.color() directly).
 static func color(inst: Dictionary) -> Color:
-	return Rarity.color(int(inst.get("rarity", 1)))
+	return Rarity.display_color(int(inst.get("rarity", 1)))
 
 static func rarity_name(inst: Dictionary) -> String:
 	return Rarity.tier_name(int(inst.get("rarity", 1)))

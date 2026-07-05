@@ -60,6 +60,13 @@ static func all() -> Array:
 		{ "id": "r8_heavy",  "name": "Heavy",  "rarity": 8, "signature": "multishot", "min_stats": 4, "max_stats": 5, "min_talents": 3, "max_talents": 3, "stats": { "mag": [72, 135], "multishot": [3, 5], "damage": [95, 160], "reload": [45, 72], "pierce": [3, 5] } },
 		{ "id": "r8_hollow", "name": "Hollow", "rarity": 8, "signature": "pierce", "min_stats": 4, "max_stats": 5, "min_talents": 3, "max_talents": 3, "stats": { "pierce": [3, 5], "multishot": [3, 5], "damage": [88, 155], "ricochet": [1, 3], "range": [58, 95] } },
 		{ "id": "r8_brutal", "name": "Brutal", "rarity": 8, "signature": "multishot", "min_stats": 5, "max_stats": 6, "min_talents": 3, "max_talents": 3, "stats": { "damage": [110, 185], "multishot": [3, 5], "pierce": [3, 5], "ricochet": [2, 3], "fire_rate": [45, 68], "bullet_speed": [52, 100] } },
+		# --- Rarity 9 "Armageddon" (Pack 9): a CLEAR step above r8 — +30-40% on every % range,
+		# multishot/pierce reaching 4-6, ricochet up to 3-4, and min_stats bumped one notch above
+		# the matching r8 row (every row here always rolls its full stat list — no partial gods).
+		{ "id": "r9_razor",  "name": "Razor",  "rarity": 9, "signature": "damage", "min_stats": 6, "max_stats": 6, "min_talents": 5, "max_talents": 5, "stats": { "damage": [155, 265], "fire_rate": [60, 90], "range": [75, 125], "bullet_speed": [70, 130], "reload": [60, 95], "mag": [70, 135] } },
+		{ "id": "r9_heavy",  "name": "Heavy",  "rarity": 9, "signature": "multishot", "min_stats": 5, "max_stats": 5, "min_talents": 5, "max_talents": 5, "stats": { "mag": [95, 175], "multishot": [4, 6], "damage": [130, 215], "reload": [60, 95], "pierce": [4, 6] } },
+		{ "id": "r9_hollow", "name": "Hollow", "rarity": 9, "signature": "pierce", "min_stats": 5, "max_stats": 5, "min_talents": 5, "max_talents": 5, "stats": { "pierce": [4, 6], "multishot": [4, 6], "damage": [120, 210], "ricochet": [2, 4], "range": [75, 125] } },
+		{ "id": "r9_brutal", "name": "Brutal", "rarity": 9, "signature": "multishot", "min_stats": 6, "max_stats": 6, "min_talents": 5, "max_talents": 5, "stats": { "damage": [150, 250], "multishot": [4, 6], "pierce": [4, 6], "ricochet": [3, 4], "fire_rate": [60, 90], "bullet_speed": [70, 130] } },
 	]
 
 static func get_affix(id: String) -> Dictionary:

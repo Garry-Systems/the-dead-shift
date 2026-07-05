@@ -225,8 +225,8 @@ static func get_talent(id: String) -> Dictionary:
 	return {}
 
 ## Highest talent tier that exists in the catalog. Talent slots beyond this cap here, so a
-## rarity asking for more talents than there are tiers (Apocalypse = 4) fills the extra slot
-## with another top-tier talent instead of silently dropping it.
+## rarity asking for more talents than there are tiers (Apocalypse = 4, Armageddon = 5) fills
+## the extra slot(s) with another top-tier talent instead of silently dropping them.
 const MAX_TIER := 3
 
 static func of_tier(tier: int) -> Array:

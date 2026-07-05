@@ -9,8 +9,12 @@ signal tile_pressed(inst: Dictionary)
 
 const TILE_SIZE := Vector2(273, 273)
 const ICON_SIZE := Vector2(169, 169)
+const RAINBOW_REFRESH := 0.1   # seconds between repaints for an Apocalypse-rarity tile
 
 var _inst: Dictionary
+var _rarity_lbl: Label
+var _rainbow := false          # true when this instance's rarity is the animated Apocalypse tier
+var _rainbow_accum := 0.0
 
 ## Builds the tile for an instance. Call once right after instancing.
 func setup(inst: Dictionary, is_equipped: bool) -> void:
@@ -19,6 +23,7 @@ func setup(inst: Dictionary, is_equipped: bool) -> void:
 	clip_contents = true
 	text = ""
 	PixelTheme.style_tile(self, WeaponInstance.color(inst))
+	_rainbow = int(inst.get("rarity", 1)) == Rarity.RAINBOW_ID
 	pressed.connect(func(): tile_pressed.emit(_inst))
 
 	var box := VBoxContainer.new()
@@ -51,9 +56,25 @@ func setup(inst: Dictionary, is_equipped: bool) -> void:
 	rarity_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	PixelTheme.style_label(rarity_lbl, 14, WeaponInstance.color(inst))
 	box.add_child(rarity_lbl)
+	_rarity_lbl = rarity_lbl
 
 	if is_equipped:
 		_add_equipped_badge()
+
+## Cheap visible-only repaint for the rainbow (Apocalypse) tier: re-reads WeaponInstance.color
+## (which animates for that one rarity) every RAINBOW_REFRESH seconds, only while this tile is
+## actually on screen. Every other rarity is a flat color set once in setup() — no per-frame cost.
+func _process(delta: float) -> void:
+	if not _rainbow or not is_visible_in_tree():
+		return
+	_rainbow_accum += delta
+	if _rainbow_accum < RAINBOW_REFRESH:
+		return
+	_rainbow_accum = 0.0
+	var col := WeaponInstance.color(_inst)
+	PixelTheme.style_tile(self, col)
+	if is_instance_valid(_rarity_lbl):
+		_rarity_lbl.add_theme_color_override("font_color", col)
 
 ## A small green "EQ" badge pinned to the top-right corner.
 func _add_equipped_badge() -> void:

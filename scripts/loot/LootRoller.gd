@@ -54,7 +54,7 @@ static func _roll_talents(affix: Dictionary) -> Array:
 	var out: Array = []
 	var used := {}                                       # ids already taken — no duplicate talents on one weapon
 	for slot in count:
-		var tier: int = mini(slot + 1, Talents.MAX_TIER)   # cap so a 4th slot (Apocalypse) draws another top-tier talent
+		var tier: int = mini(slot + 1, Talents.MAX_TIER)   # cap so higher slots (Apocalypse's 4th, Armageddon's 4th+5th) draw another top-tier talent
 		var def := Talents.random_of_tier_excluding(tier, used)
 		if def.is_empty():
 			continue
