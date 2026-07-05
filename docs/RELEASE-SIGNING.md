@@ -106,3 +106,7 @@ your upload key just needs to be replaced and re-registered with Google). Steps:
    (no separate delete step needed).
 4. Update the local/backup copy of the keystore and destroy the old one once Google
    confirms the new upload key is registered.
+
+## Version codes on release tags
+
+`android-release.yml` derives the AAB's `versionCode` from the tag itself: `vMAJOR.MINOR.PATCH` → `MAJOR*10000 + MINOR*100 + PATCH` (e.g. `v1.2.3` → 10203), and `versionName` = the tag without the `v`. Play requires every upload's versionCode to be strictly greater than all previous ones, so always cut release tags in ascending semver order. The dev pipeline's `0.1.<run>` debug codes are unrelated (different package would collide otherwise — they share the id, so avoid uploading debug builds to Play at all).

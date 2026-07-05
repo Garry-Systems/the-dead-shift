@@ -27,6 +27,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Play rejects any upload whose versionCode isn't strictly greater than every prior
+      # upload, so a hardcoded version/code=1 would work exactly once. Derive a monotonic
+      # code from the tag (vMAJOR.MINOR.PATCH -> MAJOR*10000 + MINOR*100 + PATCH) and stamp
+      # both presets, mirroring android.yml's debug stamp step (same ^-anchored seds).
+      - name: Stamp Android version from the tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          MAJOR=$(echo "$TAG" | cut -d. -f1)
+          MINOR=$(echo "$TAG" | cut -d. -f2)
+          PATCH=$(echo "$TAG" | cut -d. -f3)
+          CODE=$(( MAJOR*10000 + MINOR*100 + PATCH ))
+          echo "Stamping version/name=$TAG version/code=$CODE"
+          sed -i "s#^version/code=.*#version/code=${CODE}#" export_presets.cfg
+          sed -i "s#^version/name=.*#version/name=\"${TAG}\"#" export_presets.cfg
+
       - name: Decode upload keystore
         env:
           ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
