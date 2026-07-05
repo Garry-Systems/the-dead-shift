@@ -25,6 +25,8 @@ const DEFAULTS := {
 	"games_played": 0,        # completed runs (game-over count) — drives the every-10-games reward
 	"game_rewards_given": 0,  # how many 10-game milestone rewards have already been handed out
 	"tutorial_done": false,   # first-run HUD hint sequence (move/shoot/dash) already completed?
+	"sfx_on": true,           # SoundManager: SFX bus enabled?
+	"music_on": true,         # SoundManager: Music bus enabled?
 }
 
 var _data: Dictionary = {}
@@ -230,3 +232,17 @@ func tutorial_done() -> bool:
 ## next run, by design.
 func set_tutorial_done() -> void:
 	_data["tutorial_done"] = true
+
+# --- Audio settings (read by SoundManager on boot; toggled from PauseMenu/MainMenu) ---
+
+func sfx_on() -> bool:
+	return bool(_data.get("sfx_on", true))
+
+func set_sfx_on(on: bool) -> void:
+	_data["sfx_on"] = on
+
+func music_on() -> bool:
+	return bool(_data.get("music_on", true))
+
+func set_music_on(on: bool) -> void:
+	_data["music_on"] = on

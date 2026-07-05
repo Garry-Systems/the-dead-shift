@@ -49,6 +49,7 @@ var _reloading := false
 var _reload_timer := 0.0
 
 var weapon_id := "pistol"         # which Weapons def is equipped (drives the talent pool)
+var shot_sfx_id := "shot_pistol"  # SoundManager id for this weapon's fire sound (set from def.category)
 
 # Weapon-loot identity (set by apply_loot; 0/"" when firing a plain base weapon).
 var loot_rarity := 0
@@ -88,6 +89,7 @@ func _ready() -> void:
 ## Loads a weapon definition from Weapons.all() as this gun's base stats.
 func configure(def: Dictionary) -> void:
 	weapon_id = String(def["id"])
+	shot_sfx_id = "shot_%s" % String(def.get("category", "Pistol")).to_lower()
 	damage = float(def["damage"])
 	_base_damage = damage
 	fire_interval = float(def["fire_interval"])
@@ -219,12 +221,18 @@ func reload_progress() -> float:
 	return clampf(1.0 - _reload_timer / dur, 0.0, 1.0)
 
 func _fire(dir: Vector2) -> bool:
+	var fired: bool
 	match fire_mode:
-		"cone":      return _fire_cone(dir)
-		"lightning": return _fire_lightning(dir)
-		"beam":      return _fire_beam(dir)
-		_:           return _fire_projectile(dir)
-	return false  # unreachable; satisfies the static checker
+		"cone":      fired = _fire_cone(dir)
+		"lightning": fired = _fire_lightning(dir)
+		"beam":      fired = _fire_beam(dir)
+		_:           fired = _fire_projectile(dir)
+	# Single chokepoint for every fire mode: whichever branch above actually landed a
+	# shot (a "no target" lightning bolt returns false and plays nothing) fires the
+	# category-mapped sound exactly once per trigger-pull, not once per pellet/target.
+	if fired:
+		SoundManager.play(shot_sfx_id)
+	return fired
 
 func _fire_projectile(dir: Vector2) -> bool:
 	var base_angle := dir.angle()

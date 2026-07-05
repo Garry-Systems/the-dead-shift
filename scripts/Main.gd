@@ -5,6 +5,7 @@ extends Node2D
 ## from the RunConfig autoload (defaults make launching this scene directly work in dev).
 
 func _ready() -> void:
+	SoundManager.music("run_loop")
 	DifficultyManager.reset()
 	RunStats.reset()
 

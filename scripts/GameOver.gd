@@ -106,6 +106,7 @@ func _on_player_died() -> void:
 	if RunStats.paid_out:
 		return
 	RunStats.paid_out = true
+	SoundManager.play("death_sting")
 	var wave := DifficultyManager.wave
 	var bosses := RunStats.bosses_killed
 	var kills := RunStats.kills

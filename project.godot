@@ -31,6 +31,7 @@ DifficultyManager="*res://scripts/DifficultyManager.gd"
 RunConfig="*res://scripts/RunConfig.gd"
 RunStats="*res://scripts/RunStats.gd"
 SaveManager="*res://scripts/SaveManager.gd"
+SoundManager="*res://scripts/SoundManager.gd"
 Inventory="*res://scripts/loot/Inventory.gd"
 
 [input_devices]

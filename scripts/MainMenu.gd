@@ -42,7 +42,11 @@ var _reward_queue: Array = []    # pending {title, reward} dicts shown one at a 
 var _current_reward: Dictionary = {}   # the reward dict currently shown in _reward_popup (kind/crate_id/inst)
 var _reward_flow_active := false       # true while a reward-claimed crate is spinning the reel (Pack 1)
 
+var _sfx_btn: Button      # hub SFX ON/OFF toggle (text refreshed on press)
+var _music_btn: Button    # hub MUSIC ON/OFF toggle
+
 func _ready() -> void:
+	SoundManager.music("menu_loop")
 	Inventory.grant_starter()  # first-launch seed so the inventory is never empty
 	SaveManager.grant_dev_bonus(30000)  # DEV (for now): one-time 30k coins to test the economy
 	_add_background()
@@ -103,11 +107,15 @@ func _make_title(parent: VBoxContainer, text: String, size: int = 57) -> void:
 	PixelTheme.style_title(title, size)
 	parent.add_child(title)
 
-func _make_button(text: String, cb: Callable) -> Button:
+## Shared button factory for the hub/mode/character/inventory panels (the "main menu" chokepoint
+## for the generic ui_tap sound — the STORE's buy buttons play "purchase"/"coin" instead, wired
+## at their own call sites). `min_size`/`font_size` default to the big menu-button look; pass
+## smaller ones for compact rows like the SFX/MUSIC toggles.
+func _make_button(text: String, cb: Callable, min_size: Vector2 = Vector2(806, 135), font_size: int = 39) -> Button:
 	var b := Button.new()
 	b.text = text
-	PixelTheme.style_button(b)
-	b.pressed.connect(cb)
+	PixelTheme.style_button(b, min_size, font_size)
+	b.pressed.connect(func(): SoundManager.play("ui_tap"); cb.call())
 	return b
 
 func _show_only(panel: Control) -> void:
@@ -141,6 +149,15 @@ func _build_hub() -> void:
 	vbox.add_child(_make_button("STORE", func(): _show_store()))
 	vbox.add_child(_make_button("CHARACTERS", func(): _show_characters()))
 	vbox.add_child(_make_button("INVENTORY", func(): _show_inventory(false)))
+	vbox.add_child(_spacer(4))
+	var toggle_row := HBoxContainer.new()
+	toggle_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	toggle_row.add_theme_constant_override("separation", 10)
+	_sfx_btn = _make_button(_sfx_label(), _on_toggle_sfx, Vector2(360, 68), 18)
+	_music_btn = _make_button(_music_label(), _on_toggle_music, Vector2(360, 68), 18)
+	toggle_row.add_child(_sfx_btn)
+	toggle_row.add_child(_music_btn)
+	vbox.add_child(toggle_row)
 
 ## PLAY: only proceed to the mode picker if a weapon is equipped; otherwise force the
 ## player into the inventory to pick one (Cancel there returns here to the menu).
@@ -154,6 +171,21 @@ func _spacer(h: int) -> Control:
 	var s := Control.new()
 	s.custom_minimum_size = Vector2(0, h)
 	return s
+
+# --- SFX / Music toggles (hub row; PauseMenu has its own matching pair) ---
+func _sfx_label() -> String:
+	return "SFX: ON" if SoundManager.sfx_on() else "SFX: OFF"
+
+func _music_label() -> String:
+	return "MUSIC: ON" if SoundManager.music_on() else "MUSIC: OFF"
+
+func _on_toggle_sfx() -> void:
+	SoundManager.set_sfx_on(not SoundManager.sfx_on())
+	_sfx_btn.text = _sfx_label()
+
+func _on_toggle_music() -> void:
+	SoundManager.set_music_on(not SoundManager.music_on())
+	_music_btn.text = _music_label()
 
 # --- mode picker ---
 func _build_mode_panel() -> void:
@@ -607,6 +639,7 @@ func _on_buy_character(id: String, price: int) -> void:
 		return
 	if not SaveManager.spend_coins(price):
 		return
+	SoundManager.play("purchase")
 	SaveManager.unlock_character(id)
 	SaveManager.save_game()
 	_populate_store()
@@ -622,6 +655,7 @@ func _on_buy_crate(crate_id: String) -> void:
 		_last_unbox_color = PixelTheme.TEXT_DIM
 		_populate_store()
 		return
+	SoundManager.play("coin")
 	if not _open_crate_reel(crate_id):
 		_last_unbox = "Inventory full — scrap a weapon first."
 		_last_unbox_color = PixelTheme.TEXT_DIM

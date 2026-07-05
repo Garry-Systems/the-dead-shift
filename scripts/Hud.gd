@@ -181,6 +181,7 @@ func _process(_delta: float) -> void:
 		if not _dawn_fired and DifficultyManager.run_time >= ShiftClock.dawn_run_time():
 			_dawn_fired = true
 			RunStats.add_coins(GameConfig.DAWN_BONUS_COINS)
+			SoundManager.play("dawn_sting")
 			_show_dawn_banner()
 
 	var boss := get_tree().get_first_node_in_group("boss")

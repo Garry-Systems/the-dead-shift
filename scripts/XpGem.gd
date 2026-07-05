@@ -14,6 +14,7 @@ func _process(delta: float) -> void:
 
 	var dist := global_position.distance_to(_player.global_position)
 	if dist <= GameConfig.GEM_COLLECT_DISTANCE:
+		SoundManager.play("gem")
 		_player.add_xp(value)
 		queue_free()
 		return

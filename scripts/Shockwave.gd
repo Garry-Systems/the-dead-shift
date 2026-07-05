@@ -20,6 +20,7 @@ var _age := 0.0
 func blast(radius: float, damage: float, force: float, gun, player, hit_destructibles := false) -> void:
 	_radius = radius
 	z_index = 50
+	SoundManager.play("explosion")
 	var payload: Dictionary = {}
 	if gun != null and is_instance_valid(gun):
 		payload = gun.talent_payload

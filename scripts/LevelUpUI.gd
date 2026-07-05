@@ -100,6 +100,7 @@ func _on_player_leveled_up() -> void:
 
 func _show_next() -> void:
 	var lvl: int = _queue.pop_front()
+	SoundManager.play("level_up")
 	_current_cards = _pick_three(lvl)
 	_title.text = "LEVEL %d — choose a %s upgrade" % [lvl, Upgrades.label_for_level(lvl)]
 	for i in 3:

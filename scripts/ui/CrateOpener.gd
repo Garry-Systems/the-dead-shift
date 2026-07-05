@@ -236,6 +236,7 @@ func _on_settle() -> void:
 	if not Inventory.commit_crate(_crate_id, _winner):
 		_close()
 		return
+	SoundManager.play("crate_win")
 	# Brief beat to enjoy the landed tile + flash, then hand off to the full weapon inspect
 	# (the SAME popup as tapping a gun in the inventory). The owner (MainMenu) opens it.
 	await get_tree().create_timer(0.55).timeout

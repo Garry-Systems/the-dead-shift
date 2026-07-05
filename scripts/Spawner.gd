@@ -111,3 +111,4 @@ func _spawn_boss(stats: Dictionary) -> void:
 	get_tree().current_scene.add_child(boss)
 	boss.global_position = _pick_spawn_pos()
 	_last_boss_id = String(entry["id"])
+	SoundManager.play("boss_roar")

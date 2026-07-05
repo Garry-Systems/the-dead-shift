@@ -178,6 +178,7 @@ func set_dash_ability(ability: String) -> void:
 ## Runs the moment a dash actually begins (gated by the dash cooldown). Plain characters do
 ## nothing extra; a character with a special dash ability resolves it here.
 func _on_dash_started() -> void:
+	SoundManager.play("dash")
 	match _dash_ability:
 		"shockwave":
 			_spawn_shockwave()
@@ -199,6 +200,7 @@ func _purge_projectiles() -> void:
 	if _ability_cd > 0.0:
 		return
 	_ability_cd = GameConfig.CHAR_RYAN_ABILITY_COOLDOWN
+	SoundManager.play("purge")
 	for p in get_tree().get_nodes_in_group("enemy_projectiles"):
 		if is_instance_valid(p):
 			p.queue_free()
@@ -259,6 +261,7 @@ func _hurt_flash() -> void:
 	if _flash_mat == null or _flash_cd > 0.0:
 		return
 	_flash_cd = HURT_FLASH_COOLDOWN
+	SoundManager.play("player_hurt")   # inherits the same cooldown gate as the flash above
 	_flash_mat.set_shader_parameter("flash", 1.0)
 	var tw := create_tween()
 	tw.tween_method(_set_flash, 1.0, 0.0, 0.15)

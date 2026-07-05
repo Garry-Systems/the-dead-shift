@@ -79,6 +79,7 @@ func flash_hit() -> void:
 	if _flash_mat == null or _flash_cd > 0.0:
 		return
 	_flash_cd = FLASH_CD
+	SoundManager.play("hit_enemy")   # single chokepoint: bullet/cone/beam/lightning all call flash_hit()
 	_flash_mat.set_shader_parameter("flash", 1.0)
 	var tw := create_tween()
 	tw.tween_method(_set_flash, 1.0, 0.0, 0.12)
@@ -266,6 +267,7 @@ func take_damage(amount: float) -> void:
 	_health.take_damage(amount)
 	if _health.is_dead():
 		RunStats.add_kill()
+		SoundManager.play("die_enemy")   # the one alive->dead transition, whatever damage source caused it
 		_drop_gem()
 		queue_free()
 	elif _health_bar != null:

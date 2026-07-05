@@ -7,6 +7,8 @@ extends CanvasLayer
 var _overlay: Control
 var _pause_btn: Button
 var _relics_box: VBoxContainer
+var _sfx_btn: Button      # SFX ON/OFF toggle (text refreshed on press + every time the overlay opens)
+var _music_btn: Button    # MUSIC ON/OFF toggle
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -73,6 +75,11 @@ func _build_overlay() -> void:
 	vbox.add_child(_menu_button("RESUME", _on_resume))
 	vbox.add_child(_menu_button("RESTART RUN", _on_restart))
 	vbox.add_child(_menu_button("BACK TO MENU", _on_back))
+	vbox.add_child(_spacer(6))
+	_sfx_btn = _menu_button(_sfx_label(), _on_toggle_sfx)
+	vbox.add_child(_sfx_btn)
+	_music_btn = _menu_button(_music_label(), _on_toggle_music)
+	vbox.add_child(_music_btn)
 
 func _spacer(h: int) -> Control:
 	var s := Control.new()
@@ -85,6 +92,21 @@ func _menu_button(text: String, cb: Callable) -> Button:
 	PixelTheme.style_button(b, Vector2(420, 72), 20)
 	b.pressed.connect(cb)
 	return b
+
+# --- SFX / Music toggles (MainMenu's hub has its own matching pair) ---
+func _sfx_label() -> String:
+	return "SFX: ON" if SoundManager.sfx_on() else "SFX: OFF"
+
+func _music_label() -> String:
+	return "MUSIC: ON" if SoundManager.music_on() else "MUSIC: OFF"
+
+func _on_toggle_sfx() -> void:
+	SoundManager.set_sfx_on(not SoundManager.sfx_on())
+	_sfx_btn.text = _sfx_label()
+
+func _on_toggle_music() -> void:
+	SoundManager.set_music_on(not SoundManager.music_on())
+	_music_btn.text = _music_label()
 
 ## Rebuilds the held-relic list: each relic's name + what it does + a REMOVE button.
 ## Refreshed every time the pause overlay opens (relics change during the run).
@@ -141,6 +163,8 @@ func _on_pause_pressed() -> void:
 	if get_tree().paused:
 		return                       # another menu owns the pause; don't stack
 	_populate_relics()
+	_sfx_btn.text = _sfx_label()
+	_music_btn.text = _music_label()
 	get_tree().paused = true
 	_overlay.visible = true
 	_pause_btn.visible = false
