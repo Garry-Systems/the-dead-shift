@@ -55,9 +55,10 @@ func _on_body_entered(body) -> void:
 		# (impact_frac of the shell's damage) BEFORE detonating, so the Grenade
 		# Launcher isn't dead weight against a single boss. Cover/props: blast only.
 		if body.is_in_group("cover") or body.is_in_group("destructibles") or body.is_in_group("enemies"):
-			if impact_frac > 0.0 and body.is_in_group("enemies") and body.has_method("take_damage"):
-				body.take_damage(damage * impact_frac)
-			_detonate()
+			if not _detonated:
+				if impact_frac > 0.0 and body.is_in_group("enemies") and body.has_method("take_damage"):
+					body.take_damage(damage * impact_frac)
+				_detonate()
 			queue_free()
 		return
 	# Solid cover damages-then-stops the bullet (cars are clearable; rubble shrugs it off).
