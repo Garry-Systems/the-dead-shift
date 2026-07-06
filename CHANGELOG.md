@@ -4,6 +4,11 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.53 — Clock In Tomorrow, Too (2026-07-06)
+
+- **CHALLENGE BOARD** — three challenges rotate daily: kill counts, elite hunts, elemental kill quotas, reach 2 AM, survive a Blood Moon, win an extraction, fuse weapons and more — each paying out a crate on completion. Fresh set every day.
+- **DAILY SHIFT** — one attempt, once a day: a seeded run where the night's events, elites, and horde composition are locked to the date. Same shift for everyone — post your pay stub. Best daily score lives on your RECORDS page.
+
 ## v0.1.52 — Feed the Beast (2026-07-06)
 
 - **WEAPON FUSION** — duplicates are food now. Open any gun and hit **FEED**: sacrifice a same-model duplicate to pump weapon XP into it (talents unlock on the spot — higher-rarity sacrifices are worth a fortune). Feed it a duplicate of **equal or higher rarity** and it also **rerolls the gun's weakest stat** — shown honestly, old → new, and yes, the dice can come up worse. Your equipped gun can eat but never be eaten. Fusions tracked on the RECORDS page.
