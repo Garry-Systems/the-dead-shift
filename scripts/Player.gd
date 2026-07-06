@@ -233,7 +233,7 @@ func _spawn_slick() -> void:
 	zone.global_position = global_position
 	zone.configure_hazard(cfg)
 
-## The Delivery Girl: dash drops an already-armed Parting-Gift-style proximity mine. Reuses
+## The Delivery Girl: dash drops a standard Parting-Gift-style proximity mine. Reuses
 ## Mine.spawn() directly, so it shares the SAME GameConfig.MAX_PLAYER_MINES cap/group (and
 ## oldest-eviction) as the Parting Gift talent's own mines — no separate pool.
 func _spawn_delivery_mine() -> void:
