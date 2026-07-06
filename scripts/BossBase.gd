@@ -99,6 +99,10 @@ func _setup_sprite() -> void:
 		return
 	var path := "res://art/bosses/%s.png" % id
 	if not ResourceLoader.exists(path):
+		# Every boss ships with art now — a miss means the sprite generator's hand-kept
+		# boss list (home repo gen_palette_sprites.py BOSS_SPRITES) drifted from Bosses.gd.
+		# Warn loudly instead of silently falling back to the generic texture.
+		push_warning("BossBase: no sprite for boss id '%s' — regenerate sprites (generator list drift?)" % id)
 		return
 	var spr := get_node_or_null("Sprite2D") as Sprite2D
 	if spr == null:
