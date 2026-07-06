@@ -4,6 +4,13 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.54 — New Hires (2026-07-06)
+
+Two more staff on the roster:
+
+- **THE JANITOR** (2,800) — his dash leaves a **mop-bucket slick** that heavily slows every zombie that slops through it, and his cleanup instincts earn **+1 coin on every kill**. Wet floor, no sign.
+- **THE DELIVERY GIRL** (3,200) — her dash **drops a live mine** behind her (same ordnance as the Parting Gift talent), and her long reach pulls in **XP gems from 20% further away**. She always finds the address.
+
 ## v0.1.53 — Clock In Tomorrow, Too (2026-07-06)
 
 - **CHALLENGE BOARD** — three challenges rotate daily: kill counts, elite hunts, elemental kill quotas, reach 2 AM, survive a Blood Moon, win an extraction, fuse weapons and more — each paying out a crate on completion. Fresh set every day.
