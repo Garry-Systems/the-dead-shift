@@ -8,6 +8,10 @@ var kills := 0
 var bosses_killed := 0
 var elites_killed := 0   # Pack A: elite-modifier kills (Pack C's challenge board will read this)
 var bonus_coins := 0     # coins from in-world sources (e.g. smashed crates), added to the run payout
+var coins_per_kill := 0.0   # Pack E: the Janitor's passive — flat bonus coins added on every kill
+                             # (0 = no character bonus); set by Main._ready() at run start from
+                             # Characters.coin_per_kill_bonus() (kept out of Characters.gd itself
+                             # so that file stays autoload-free — see its doc comment).
 var paid_out := false    # this run's payout already granted (death OR quit) — no double dipping
 var coin_mult := 1.0     # "Silver Tongue" level-up card: multiplies the WHOLE run payout (stacks); the
                          # one place GameOver + PauseMenu's quit path both read from — see CoinReward.final_payout
@@ -27,6 +31,7 @@ func reset() -> void:
 	bosses_killed = 0
 	elites_killed = 0
 	bonus_coins = 0
+	coins_per_kill = 0.0
 	paid_out = false
 	coin_mult = 1.0
 	fire_kills = 0

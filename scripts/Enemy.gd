@@ -496,6 +496,8 @@ func take_damage(amount: float) -> void:
 	_health.take_damage(amount)
 	if _health.is_dead():
 		RunStats.add_kill()
+		if RunStats.coins_per_kill > 0.0:   # Pack E: the Janitor's passive flat coin-per-kill bonus
+			RunStats.add_coins(int(RunStats.coins_per_kill))
 		if is_elite:
 			RunStats.add_coins(GameConfig.ELITE_COIN_BONUS)
 			RunStats.add_elite_kill()

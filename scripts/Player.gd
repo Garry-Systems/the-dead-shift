@@ -184,6 +184,10 @@ func _on_dash_started() -> void:
 			_spawn_shockwave()
 		"purge":
 			_purge_projectiles()
+		"slick":
+			_spawn_slick()
+		"mine":
+			_spawn_delivery_mine()
 
 ## Alstar Tuck: a radial blast at the dash origin — push + damage + the gun's on-hit talents.
 func _spawn_shockwave() -> void:
@@ -211,6 +215,29 @@ func _purge_projectiles() -> void:
 	get_tree().current_scene.add_child(fx)
 	fx.global_position = global_position
 	fx.flash(GameConfig.CHAR_RYAN_PURGE_FX_RADIUS)
+
+## The Janitor: dash leaves a mop-bucket slick — a HazardZone tuned to hurt NOBODY (dps 0,
+## hurts_player false) that only slows enemies standing in it. Rides the SAME shared
+## player_pools cap as the Acid Cannon / Bile Spill (cap_player_pools() evicts the oldest
+## member of that group first, exactly like Bullet._detonate() / TalentEngine's bile pool).
+func _spawn_slick() -> void:
+	HazardZone.cap_player_pools(get_tree())
+	var cfg := {
+		"color": PixelTheme.ACCENT, "dps": 0.0, "radius": GameConfig.CHAR_JANITOR_SLICK_RADIUS,
+		"duration": GameConfig.CHAR_JANITOR_SLICK_DURATION,
+		"slow": GameConfig.CHAR_JANITOR_SLICK_SLOW, "slow_dur": GameConfig.CHAR_JANITOR_SLICK_SLOW_DUR,
+		"stun": 0.0, "chain": 0, "drift": 0.0, "hurts_player": false,
+	}
+	var zone := HazardZone.new()
+	get_tree().current_scene.add_child(zone)
+	zone.global_position = global_position
+	zone.configure_hazard(cfg)
+
+## The Delivery Girl: dash drops an already-armed Parting-Gift-style proximity mine. Reuses
+## Mine.spawn() directly, so it shares the SAME GameConfig.MAX_PLAYER_MINES cap/group (and
+## oldest-eviction) as the Parting Gift talent's own mines — no separate pool.
+func _spawn_delivery_mine() -> void:
+	Mine.spawn(global_position, GameConfig.CHAR_DELIVERY_MINE_DMG, GameConfig.CHAR_DELIVERY_MINE_RADIUS, get_tree())
 
 ## --- Dash-ability readouts for the HUD ---
 

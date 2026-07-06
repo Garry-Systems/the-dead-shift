@@ -122,6 +122,23 @@ const UPGRADE_RELOAD_PCT := 0.20            # "Fast Hands" upgrade card: -% relo
 const UPGRADE_MAG_PCT := 0.50               # "Extended Mag" upgrade card: +% magazine size
 const CHAR_JIMBO_SNIPER_RELOAD_PCT := 0.20  # Jimbo's sniper perk: -% reload time
 
+# --- Characters (Pack E, v0.1.54): the Janitor + the Delivery Girl ---
+# The Janitor: dash drops a mop-bucket slick (a hurts-nobody HazardZone, player_pools-capped)
+# that slows enemies; passive flat coin-per-kill bonus.
+const CHAR_JANITOR_SLICK_RADIUS := 90.0       # px reach of the dropped slick
+const CHAR_JANITOR_SLICK_DURATION := 4.0      # seconds the puddle itself lingers before self-freeing
+const CHAR_JANITOR_SLICK_SLOW := 0.5          # move-speed cut applied to any enemy standing in it
+const CHAR_JANITOR_SLICK_SLOW_DUR := 2.0      # seconds the slow lasts per tick (refreshed at HAZARD_TICK_INTERVAL while inside)
+const CHAR_JANITOR_COIN_PER_KILL := 1.0       # flat bonus coins added to every kill (RunStats.coins_per_kill)
+# The Delivery Girl: dash drops an ARMED Parting-Gift-style mine (shares Mine's own
+# GameConfig.MAX_PLAYER_MINES cap/group automatically via Mine.spawn); passive +pickup radius.
+# Magnitudes sit inside Parting Gift's own talent roll ranges (dmg 30-60, radius 90-150) —
+# named CHAR_DELIVERY_* (NOT CHAR_COURIER_*: that prefix is already the Courier BOSS's, see
+# GameConfig.COURIER_HP etc.) to stay collision-free with Bosses.gd/Courier.gd.
+const CHAR_DELIVERY_MINE_DMG := 45.0
+const CHAR_DELIVERY_MINE_RADIUS := 110.0
+const CHAR_DELIVERY_PICKUP_PCT := 0.20        # Delivery Girl: +pickup radius always
+
 # --- Coins / economy (Phase 6 Spec 1) ---
 const COIN_BASE := 10          # flat coins for finishing any run
 const COIN_PER_WAVE := 5       # coins per wave reached
