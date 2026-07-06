@@ -547,6 +547,7 @@ func _on_fuse(inst: Dictionary, sacrifice_uid: String) -> void:
 	var result := Inventory.fuse(String(inst.get("uid", "")), sacrifice_uid)
 	if not result.is_empty():
 		SoundManager.play("crate_win")   # reuse the crate-win sting — no new audio for fusion
+		_last_unbox = ""   # a slot just freed — drop a stale "Inventory full" prompt before the popup-close re-render
 	_detail_popup.show_fuse_result(result)
 
 # --- records: lifetime stats (view-only), same card/scroll shape as the store/inventory ---

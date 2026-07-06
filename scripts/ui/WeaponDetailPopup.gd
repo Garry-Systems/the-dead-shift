@@ -377,6 +377,9 @@ func _show_scrap_confirm() -> void:
 ## disabled whenever this list would be empty (see _build_action_row).
 func _show_feed_picker() -> void:
 	_action_row.visible = false
+	if is_instance_valid(_feed_row):   # re-entry from the confirm step's NO — replace that row
+		_feed_row.visible = false       # hide NOW; queue_free is deferred (no one-frame overlap)
+		_feed_row.queue_free()
 	var dupes := Inventory.eligible_fusion_sacrifices(String(_inst.get("uid", "")))
 	_feed_row = VBoxContainer.new()
 	_feed_row.add_theme_constant_override("separation", 10)
@@ -425,6 +428,7 @@ func _feed_candidate_row(dup: Dictionary) -> Button:
 ## NOT close, so the result renders in the same card. NO backs out to the picker list.
 func _show_feed_confirm(dup: Dictionary) -> void:
 	if is_instance_valid(_feed_row):
+		_feed_row.visible = false   # hide NOW; queue_free is deferred (no one-frame overlap)
 		_feed_row.queue_free()
 	_feed_row = VBoxContainer.new()
 	_feed_row.add_theme_constant_override("separation", 10)
@@ -462,6 +466,7 @@ func _show_feed_confirm(dup: Dictionary) -> void:
 
 func _close_feed_row() -> void:
 	if is_instance_valid(_feed_row):
+		_feed_row.visible = false   # hide NOW; queue_free is deferred (no one-frame overlap)
 		_feed_row.queue_free()
 	_feed_row = null
 	_action_row.visible = true
@@ -486,10 +491,8 @@ func show_fuse_result(result: Dictionary) -> void:
 		lines.append("New talent%s unlocked: %s" % ["s" if unlocked.size() > 1 else "", ", ".join(unlocked)])
 	var rerolled: Dictionary = result.get("rerolled", {})
 	if not rerolled.is_empty():
-		var label := WeaponInstance.stat_label(String(rerolled.get("stat_id", "")))
-		var old_pct := int(round(float(rerolled.get("old", 0.0)) * 100.0))
-		var new_pct := int(round(float(rerolled.get("new", 0.0)) * 100.0))
-		lines.append("REROLLED: %s (%d%% -> %d%%)" % [label, old_pct, new_pct])
+		# Resolved through the affix ranges (real +N / +X.X% values), never the raw 0..1 rolls.
+		lines.append(WeaponInstance.reroll_line(_inst, rerolled))
 
 	var banner := Label.new()
 	banner.text = "\n".join(lines)

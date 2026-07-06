@@ -244,6 +244,29 @@ static func reroll_lowest_stat(inst: Dictionary) -> Dictionary:
 	stats[lowest_id] = new_val
 	return { "stat_id": lowest_id, "old": lowest_val, "new": new_val }
 
+## The "REROLLED: <stat> (+old -> +new)" result line for a fusion reroll. Resolves BOTH the
+## old and new 0..1 quality rolls through the instance's affix ranges (Affixes.resolve) so the
+## player sees the REAL displayed stat values — "+N" for flat stats (multishot/pierce/ricochet,
+## roundi like resolved_stats) and "+X.X%" for percent stats — never the raw quality rolls.
+## When the resolved DISPLAY doesn't change (e.g. a flat stat where both rolls round to the
+## same +N), says so honestly with a ", no change" suffix.
+static func reroll_line(inst: Dictionary, rerolled: Dictionary) -> String:
+	var stat_id := String(rerolled.get("stat_id", ""))
+	var affix := Affixes.get_affix(String(inst.get("affix", "")))
+	var old_s := _resolved_display(affix, stat_id, float(rerolled.get("old", 0.0)))
+	var new_s := _resolved_display(affix, stat_id, float(rerolled.get("new", 0.0)))
+	var suffix := ", no change" if old_s == new_s else ""
+	return "REROLLED: %s (%s -> %s%s)" % [stat_label(stat_id), old_s, new_s, suffix]
+
+## "+N" (flat) / "+X.X%" (percent) for a stat's resolved value at a 0..1 roll — same rounding
+## the stat rows use (roundi for flat via resolved_stats; percent shown to one decimal here so
+## a small reroll delta is still visible).
+static func _resolved_display(affix: Dictionary, stat_id: String, roll: float) -> String:
+	var v := Affixes.resolve(affix, stat_id, roll)
+	if Affixes.is_flat(stat_id):
+		return "+%d" % roundi(v)
+	return "+%.1f%%" % v
+
 # --- private formatters for the inspection helpers ---
 
 # 0..1 multiplier from a resolved percent stat (e.g. 11.0 -> 0.11); 0 if the stat wasn't rolled.
