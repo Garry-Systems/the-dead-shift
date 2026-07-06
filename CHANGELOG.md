@@ -4,6 +4,16 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.58 — Climb the Ladder (2026-07-06)
+
+You work here now. Time to get promoted:
+
+- **EMPLOYEE RANK** — every coin you earn is also career progress. Ten ranks from TRAINEE to FRANCHISE OWNER, with your rank and progress bar on the hub, RANK XP on every pay stub, and a ★ PROMOTED ★ celebration when you climb.
+- **Promotions unlock new shifts:**
+  - **HORDE NIGHT** (Night Clerk, rank 3) — no bosses, no events, just double-rate swarm forever. How long can you hold the register?
+  - **OVERTIME** (Keyholder, rank 5) — clock in at 2 AM with a stack of level-ups already in hand. Straight into the deep end (records don't count — that would be cheating).
+  - **HARDCORE** (Store Manager, rank 7) — one life, zero healing of any kind, for 3× pay and double weapon XP. Management doesn't do sick days.
+
 ## v0.1.57 — You Can Die Again (2026-07-06)
 
 - **HOTFIX: dying no longer freezes the game.** A one-line bug in the death screen's confetti code (shipped back in v0.1.49) silently broke the entire game-over script — so on death the game paused forever with no screen. Dying now correctly shows your SHIFT'S OVER pay stub, pays out, and gets you back to the menu. Extraction wins were affected too — both work now.
