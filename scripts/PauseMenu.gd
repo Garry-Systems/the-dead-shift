@@ -200,13 +200,28 @@ func _abandon_run_payout() -> void:
 	# already rounds once for the coin_mult; this only re-truncates the QUIT_PAYOUT_FRAC step.
 	var earned := int(CoinReward.final_payout(wave, bosses, RunStats.kills, RunStats.bonus_coins, RunStats.coin_mult) * GameConfig.QUIT_PAYOUT_FRAC)
 	SaveManager.add_coins(earned)
-	SaveManager.record_run(wave, bosses)
+	# Rank XP (Pack G): the ACTUAL (already QUIT_PAYOUT_FRAC-haircut) amount just granted — same
+	# accessor GameOver's death/win flush uses. A quit never shows the pay-stub, so any resulting
+	# PROMOTED popup queues at the next menu entry instead (pending-rewards idiom) — same as every
+	# other exit path.
+	SaveManager.add_rank_xp(earned)
+	# Records (Pack G): mirrors GameOver._finish_run's twin gating — see that function's comment
+	# for why HORDE/OVERTIME are excluded from the shared best_wave/best_bosses/best_clockout.
+	if RunConfig.mode != "horde" and not RunConfig.overtime:
+		SaveManager.record_run(wave, bosses)
+	if RunConfig.mode == "horde":
+		SaveManager.record_horde_best_wave(wave)
+	if RunConfig.overtime:
+		SaveManager.record_overtime_best_clockout(DifficultyManager.run_time)
+	if RunConfig.hardcore:
+		SaveManager.record_hardcore_best_clockout(DifficultyManager.run_time)
 	SaveManager.add_game_played()
 	# Lifetime records (Pack D): flushed exactly once per run via the RunStats.paid_out guard
 	# above (mirrors GameOver._finish_run's twin call). `earned` is the ALREADY-haircut
-	# (QUIT_PAYOUT_FRAC) amount — the actual amount this quit just granted.
+	# (QUIT_PAYOUT_FRAC) amount — the actual amount this quit just granted. OVERTIME suppresses
+	# only the best_clockout_seconds bump (mirrors GameOver._finish_run's twin call).
 	SaveManager.add_lifetime_run(RunStats.kills, bosses, RunStats.elites_killed, earned, DifficultyManager.run_time,
-		String(Inventory.equipped_instance().get("base", "")))
+		String(Inventory.equipped_instance().get("base", "")), not RunConfig.overtime)
 	# Challenge board (Pack C): same guarded block, mirrors GameOver._finish_run's twin call.
 	# A quit/restart is never a win, so extraction_wins is always 0 here.
 	SaveManager.flush_challenge_counters({
@@ -219,7 +234,11 @@ func _abandon_run_payout() -> void:
 	if RunConfig.daily:
 		SaveManager.record_daily_score(earned)
 	SaveManager.save_game()
-	Inventory.add_run_xp(RunStats.kills + wave * 10 + bosses * 50)
+	# HARDCORE doubles weapon XP at the flush (Pack G) — mirrors GameOver._finish_run's twin call.
+	var xp_amount := RunStats.kills + wave * 10 + bosses * 50
+	if RunConfig.hardcore:
+		xp_amount *= GameConfig.HARDCORE_WEAPON_XP_MULT
+	Inventory.add_run_xp(xp_amount)
 
 func _on_restart() -> void:
 	_abandon_run_payout()

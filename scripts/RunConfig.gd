@@ -4,11 +4,19 @@ extends Node
 ## Session-only (no persistence). No class_name: the autoload name is already global.
 
 var character_id := "ryan"
-var mode := "endless"        # "endless" | "boss_rush"
+var mode := "endless"        # "endless" | "boss_rush" | "horde"
 
 ## Set by GameOver's STORE button just before returning to the menu; MainMenu._ready()
 ## consumes (and resets) this to land directly in the store view instead of the hub.
 var open_store_on_menu := false
+
+# --- Mode-exclusivity flags (Pack G: v0.1.58) ---
+## HARDCORE and OVERTIME both keep `mode == "endless"` (same pattern `daily` already established)
+## so every endless-only gate (NightEvents/Extraction/Hud's dawn bonus, the elite roll) keeps
+## working unchanged. HORDE NIGHT is instead its own top-level `mode` value (Spawner routes on it
+## directly) since it needs its own spawn/boss/elite behavior, not just a flag layered on endless.
+var hardcore := false
+var overtime := false
 
 # --- Daily Shift (Pack C, v0.1.53) ---
 ## True only for a Daily Shift run (always mode == "endless" underneath). `daily_rng` is seeded
@@ -35,6 +43,16 @@ func start_daily(date_str: String) -> void:
 func clear_daily() -> void:
 	daily = false
 	daily_rng = null
+
+## Clears every mode-exclusivity flag (daily + hardcore + overtime). Call at the top of EVERY
+## mode-select launch path (MainMenu's ENDLESS/BOSS RUSH/HORDE/DAILY SHIFT/OVERTIME/HARDCORE
+## buttons) before arming the ONE flag (if any) that launch actually wants — keeps every picker
+## button mutually exclusive, so a flag left over from an earlier session's pick can never leak
+## into a different mode's run.
+func clear_mode_flags() -> void:
+	clear_daily()
+	hardcore = false
+	overtime = false
 
 ## Float roll for the 3 daily-seeded decision points above: the seeded generator while `daily` is
 ## armed, otherwise the engine's own global RNG (byte-identical to every non-daily run today).

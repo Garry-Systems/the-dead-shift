@@ -515,3 +515,27 @@ const CHALLENGE_POISON_KILLS_TARGET := 20  # kill N enemies while Venom's poison
 # --- Sprites (Pack F: v0.1.55) ---
 const SPRITE_ENEMY_PX := 32.0   # native canvas size of art/enemies/<id>.png (matches the old shared enemy.png/ranged_enemy.png, so trash-type Sprite2D scales need no change on swap)
 const SPRITE_BOSS_PX := 48.0    # native canvas size of art/bosses/<id>.png — bigger canvas than the old shared enemy.png, so BossBase scales its Sprite2D by SPRITE_ENEMY_PX/SPRITE_BOSS_PX on swap to keep the same on-screen size
+
+# --- Employee Rank + unlockable modes (Pack G: v0.1.58) ---
+# Rank is DERIVED from lifetime rank_xp (see Ranks.gd) — nothing but the XP itself is ever saved.
+const RANK_COUNT := 10
+const RANK_NAMES: Array[String] = [
+	"TRAINEE", "CLERK", "NIGHT CLERK", "SHIFT LEAD", "KEYHOLDER",
+	"ASSISTANT MANAGER", "STORE MANAGER", "DISTRICT MANAGER", "REGIONAL DIRECTOR", "FRANCHISE OWNER",
+]
+# Starter values: ~500-900 coins/run -> rank 3 (NIGHT CLERK) in ~2-3 runs, rank 7 (STORE MANAGER)
+# ~30 runs, rank 10 (FRANCHISE OWNER) the long chase. Index i's threshold unlocks rank i+1.
+const RANK_THRESHOLDS: Array[int] = [0, 500, 1500, 3500, 7000, 12000, 20000, 32000, 50000, 75000]
+const RANK_HORDE_UNLOCK := 3       # NIGHT CLERK
+const RANK_OVERTIME_UNLOCK := 5    # KEYHOLDER
+const RANK_HARDCORE_UNLOCK := 7    # STORE MANAGER
+
+const HORDE_SPAWN_MULT := 0.5      # HORDE NIGHT: spawn interval x this (reuses the Blood-Moon spawn-interval-mult mechanism)
+
+const HARDCORE_COIN_MULT := 3.0       # HARDCORE: RunStats.coin_mult x this at run start (composes with the "Silver Tongue" card — same accumulator)
+const HARDCORE_WEAPON_XP_MULT := 2    # HARDCORE: weapon XP x this at the end-of-run flush (the one Inventory.add_run_xp chokepoint)
+
+const OVERTIME_START_SECONDS := 240.0 # OVERTIME: DifficultyManager.run_time preset at run start (2:00 AM, ~wave 9)
+# Enough raw XP for ~8 level-ups at run start (xp_mult is always 1.0 there — no Fast Learner card
+# taken yet): sum of XpCurve.xp_for_level(0..7) = (5+0*3)+(5+1*3)+...+(5+7*3) = 124.
+const OVERTIME_HEADSTART_XP := 124

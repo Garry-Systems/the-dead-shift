@@ -12,7 +12,10 @@ class_name Upgrades
 
 ## Player-stat cards. Each card is a dictionary {id, title, desc}. `player` (optional) gates
 ## Second Wind out of the pool once it's already been taken this run — see cards_for_level.
-static func player_cards(player: Player = null) -> Array:
+## `hardcore` (Pack G, v0.1.58) excludes it unconditionally for the whole run — passed in by the
+## caller (LevelUpUI, via RunConfig.hardcore) rather than read here, since this file is
+## deliberately kept free of autoload references (see the header comment).
+static func player_cards(player: Player = null, hardcore: bool = false) -> Array:
 	var cards: Array = [
 		{"id": "move_speed", "title": "Swift Feet", "desc": "+10% Move Speed"},
 		{"id": "max_health", "title": "Tough Hide", "desc": "+20 Max Health"},
@@ -28,8 +31,9 @@ static func player_cards(player: Player = null) -> Array:
 		{"id": "second_wind", "title": "Second Wind", "desc": "Cheat Death Once: Revive at %d%% HP" % int(round(GameConfig.SECOND_WIND_HP_FRAC * 100.0))},
 	]
 	# Excluded once TAKEN (not just once consumed) — a second pick would be a wasted no-op,
-	# since has_second_wind is a flag, not a stacking counter.
-	if player != null and player.has_second_wind:
+	# since has_second_wind is a flag, not a stacking counter. Also excluded for the entire run
+	# under HARDCORE (Pack G): no cheat-death safety net.
+	if (player != null and player.has_second_wind) or hardcore:
 		cards = cards.filter(func(c): return String(c["id"]) != "second_wind")
 	return cards
 
@@ -70,8 +74,8 @@ static func gun_cards(player: Player) -> Array:
 	return cards
 
 ## Returns the right pool for a given level (odd = player stats, even = equipped gun).
-static func cards_for_level(level: int, player: Player) -> Array:
-	return player_cards(player) if level % 2 == 1 else gun_cards(player)
+static func cards_for_level(level: int, player: Player, hardcore: bool = false) -> Array:
+	return player_cards(player, hardcore) if level % 2 == 1 else gun_cards(player)
 
 ## Human label for the level's upgrade type (used in the screen title).
 static func label_for_level(level: int) -> String:

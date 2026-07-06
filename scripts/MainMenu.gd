@@ -13,6 +13,11 @@ var _records_vbox: VBoxContainer   # records list content (rebuilt by _populate_
 var _records_scroll: ScrollContainer   # current records list scroll (null when not shown)
 var _char_buttons := {}        # character id -> Button (to highlight the selected one)
 var _daily_btn: Button         # DAILY SHIFT button (mode panel) — refreshed on every show (Pack C)
+var _horde_btn: Button         # HORDE NIGHT button (mode panel) — locked/unlocked by rank (Pack G)
+var _overtime_btn: Button      # OVERTIME button (mode panel) — locked/unlocked by rank (Pack G)
+var _hardcore_btn: Button      # HARDCORE button (mode panel) — locked/unlocked by rank (Pack G)
+var _hub_rank_label: Label     # hub "RANK N — NAME" readout (Pack G), refreshed alongside _hub_coins
+var _hub_rank_bar: ProgressBar # hub progress-toward-next-rank bar (Pack G)
 var _inv_vbox: VBoxContainer   # inventory card content (rebuilt by _populate_inventory)
 var _hub_coins: Label          # hub coin readout (refreshed when returning to hub)
 var _inv_from_play := false    # true when the inventory was opened by PLAY (no weapon equipped)
@@ -133,6 +138,7 @@ func _show_only(panel: Control) -> void:
 	_store_panel.visible = panel == _store_panel
 	if panel == _hub and _hub_coins != null:
 		_hub_coins.text = "COINS: %d" % SaveManager.coins()
+		_refresh_hub_rank()
 
 # --- hub ---
 func _build_hub() -> void:
@@ -151,6 +157,22 @@ func _build_hub() -> void:
 	_hub_coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	PixelTheme.style_label(_hub_coins, 39, PixelTheme.ACCENT)
 	vbox.add_child(_hub_coins)
+
+	# Employee Rank readout (Pack G): name label + a thin progress bar toward the next rank.
+	# 806px wide — matches the PLAY button's own custom_minimum_size below (the widest element
+	# already proven to fit: 806 + the card's 64px content margins = 870, inside the 1080px
+	# portrait viewport — same "compute width vs 1080" check the toggle row's comment documents).
+	_hub_rank_label = Label.new()
+	_hub_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(_hub_rank_label, 22, PixelTheme.SELECT)
+	vbox.add_child(_hub_rank_label)
+	_hub_rank_bar = ProgressBar.new()
+	_hub_rank_bar.show_percentage = false
+	_hub_rank_bar.custom_minimum_size = Vector2(806, 22)
+	_hub_rank_bar.max_value = 1.0
+	_style_rank_bar(_hub_rank_bar)
+	vbox.add_child(_hub_rank_bar)
+
 	vbox.add_child(_spacer(8))
 	vbox.add_child(_make_button("PLAY", _on_play))
 	vbox.add_child(_make_button("STORE", func(): _show_store()))
@@ -186,6 +208,7 @@ func _on_play() -> void:
 ## baked in once at _build_mode_panel() time.
 func _show_mode_panel() -> void:
 	_refresh_daily_button()
+	_refresh_mode_lock_buttons()
 	_show_only(_mode_panel)
 
 func _spacer(h: int) -> Control:
@@ -217,6 +240,33 @@ func _on_toggle_effects() -> void:
 	SaveManager.save_game()
 	_effects_btn.text = _effects_label()
 
+# --- Employee Rank hub readout (Pack G) ---
+
+## Hard-cornered progress bar matching Hud._style_bar's look, filled in the C4 ACCENT color.
+func _style_rank_bar(bar: ProgressBar) -> void:
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = PixelTheme.BTN_BG
+	bg.border_color = PixelTheme.ACCENT_DIM
+	bg.set_border_width_all(2)
+	bg.set_corner_radius_all(0)
+	bg.anti_aliasing = false
+	bar.add_theme_stylebox_override("background", bg)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = PixelTheme.ACCENT
+	fill.set_corner_radius_all(0)
+	fill.anti_aliasing = false
+	bar.add_theme_stylebox_override("fill", fill)
+
+## Refreshes the hub's rank name + progress bar. Called whenever the hub becomes the visible
+## panel (see _show_only) — the same chokepoint the coin readout already uses.
+func _refresh_hub_rank() -> void:
+	if _hub_rank_label == null:
+		return
+	var xp := SaveManager.rank_xp()
+	var rank := Ranks.rank_for(xp)
+	_hub_rank_label.text = "RANK %d — %s" % [rank, Ranks.name_for(rank)]
+	_hub_rank_bar.value = Ranks.progress_in_rank(xp)
+
 # --- mode picker ---
 func _build_mode_panel() -> void:
 	_mode_panel = _make_panel()
@@ -227,18 +277,47 @@ func _build_mode_panel() -> void:
 	vbox.add_child(_make_button("BOSS RUSH", func(): _start_run("boss_rush")))
 	_daily_btn = _make_button("DAILY SHIFT", _on_daily_shift)
 	vbox.add_child(_daily_btn)
-	var soon := Label.new()
-	soon.text = "more modes coming soon"
-	soon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(soon, 14, PixelTheme.TEXT_DIM)
-	vbox.add_child(soon)
+	# Pack G: 3 unlockable modes, gated by Employee Rank (Ranks.UNLOCKS) — locked buttons are
+	# disabled + read "<NAME> — UNLOCKS AT <RANK NAME>" (PixelTheme's disabled font color already
+	# renders them dim, matching the CHARACTERS panel's locked-button look).
+	_horde_btn = _make_button("HORDE NIGHT", func(): _start_run("horde"))
+	vbox.add_child(_horde_btn)
+	_overtime_btn = _make_button("OVERTIME", _start_overtime)
+	vbox.add_child(_overtime_btn)
+	_hardcore_btn = _make_button("HARDCORE", _start_hardcore)
+	vbox.add_child(_hardcore_btn)
 	vbox.add_child(_spacer(4))
 	vbox.add_child(_make_button("BACK", func(): _show_only(_hub)))
 
+## `mode` is "endless" | "boss_rush" | "horde" — the three mode-select launches that don't carry
+## a hardcore/overtime flag. HORDE re-checks its own unlock defensively (mirrors the DAILY SHIFT
+## precedent below) even though the button is already disabled while locked.
 func _start_run(mode: String) -> void:
+	if mode == "horde" and not Ranks.is_unlocked("horde", SaveManager.rank_xp()):
+		return
 	RunConfig.mode = mode
-	RunConfig.clear_daily()   # a normal mode pick can never inherit a stale Daily Shift seed
+	RunConfig.clear_mode_flags()   # a normal mode pick can never inherit a stale daily/hardcore/overtime flag
 	# Clock in for your shift: a short themed loading beat, then gameplay.
+	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
+
+## OVERTIME (Pack G): endless underneath (RunConfig.mode stays "endless" — every endless-only
+## gate keeps working), flagged via RunConfig.overtime. Re-checks its own unlock defensively.
+func _start_overtime() -> void:
+	if not Ranks.is_unlocked("overtime", SaveManager.rank_xp()):
+		return
+	RunConfig.mode = "endless"
+	RunConfig.clear_mode_flags()
+	RunConfig.overtime = true
+	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
+
+## HARDCORE (Pack G): endless underneath, flagged via RunConfig.hardcore. Re-checks its own unlock
+## defensively.
+func _start_hardcore() -> void:
+	if not Ranks.is_unlocked("hardcore", SaveManager.rank_xp()):
+		return
+	RunConfig.mode = "endless"
+	RunConfig.clear_mode_flags()
+	RunConfig.hardcore = true
 	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
 
 ## Pack C: Daily Shift — one attempt per calendar day, consumed the instant this fires (not on
@@ -250,6 +329,7 @@ func _on_daily_shift() -> void:
 	if not SaveManager.is_daily_shift_available():
 		return
 	RunConfig.mode = "endless"
+	RunConfig.clear_mode_flags()   # a Daily Shift pick can never inherit a stale hardcore/overtime flag
 	RunConfig.start_daily(SaveManager.today_string())
 	SaveManager.mark_daily_shift_started()
 	SaveManager.save_game()
@@ -264,6 +344,21 @@ func _refresh_daily_button() -> void:
 	var available := SaveManager.is_daily_shift_available()
 	_daily_btn.disabled = not available
 	_daily_btn.text = "DAILY SHIFT" if available else "DAILY SHIFT — TOMORROW"
+
+## Refreshes the 3 unlockable mode buttons' disabled/text state to the player's current rank.
+## Called every time the mode panel is about to show (see _show_mode_panel) — a promotion earned
+## since the last visit can change this between two mode-panel visits in the same app session.
+func _refresh_mode_lock_buttons() -> void:
+	_apply_mode_lock(_horde_btn, "horde", "HORDE NIGHT")
+	_apply_mode_lock(_overtime_btn, "overtime", "OVERTIME")
+	_apply_mode_lock(_hardcore_btn, "hardcore", "HARDCORE")
+
+func _apply_mode_lock(btn: Button, mode_id: String, label: String) -> void:
+	if btn == null:
+		return
+	var unlocked := Ranks.is_unlocked(mode_id, SaveManager.rank_xp())
+	btn.disabled = not unlocked
+	btn.text = label if unlocked else "%s — %s" % [label, Ranks.lock_text(mode_id)]
 
 # --- character select ---
 func _build_char_panel() -> void:
@@ -704,7 +799,10 @@ func _populate_records() -> void:
 	var best_clockout := SaveManager.best_clockout_seconds()
 	var clockout_text := ShiftClock.clock_string(best_clockout) if best_clockout > 0.0 else "—"
 	var best_daily := SaveManager.best_daily_score()
+	var rank := Ranks.rank_for(SaveManager.rank_xp())
 
+	_stat_row(list, "RANK", "%d — %s" % [rank, Ranks.name_for(rank)])
+	_stat_row(list, "RANK XP", "%d" % SaveManager.rank_xp())
 	_stat_row(list, "RUNS PLAYED", "%d" % SaveManager.games_played())
 	_stat_row(list, "TOTAL KILLS", "%d" % SaveManager.total_kills())
 	_stat_row(list, "BOSSES DEFEATED", "%d" % SaveManager.total_bosses())
@@ -714,6 +812,11 @@ func _populate_records() -> void:
 	_stat_row(list, "BEST WAVE", "%d" % SaveManager.best_wave())
 	_stat_row(list, "BEST BOSSES", "%d" % SaveManager.best_bosses())
 	_stat_row(list, "BEST CLOCK-OUT", clockout_text)
+	_stat_row(list, "HORDE BEST WAVE", "%d" % SaveManager.horde_best_wave())
+	var overtime_co := SaveManager.overtime_best_clockout_seconds()
+	_stat_row(list, "OVERTIME BEST CLOCK-OUT", ShiftClock.clock_string(overtime_co) if overtime_co > 0.0 else "—")
+	var hardcore_co := SaveManager.hardcore_best_clockout_seconds()
+	_stat_row(list, "HARDCORE BEST CLOCK-OUT", ShiftClock.clock_string(hardcore_co) if hardcore_co > 0.0 else "—")
 	_stat_row(list, "ARMAGEDDONS PULLED", "%d" % SaveManager.armageddons_pulled())
 	_stat_row(list, "DAILY STREAK", "%d" % SaveManager.daily_streak())
 	_stat_row(list, "WEAPONS FUSED", "%d" % SaveManager.fusions())
@@ -939,8 +1042,29 @@ func _check_free_rewards() -> void:
 	# call (that function ADDS the reward — doing so again here would double-grant the crate).
 	for crate_id in SaveManager.take_pending_challenge_rewards():
 		_reward_queue.append({ "title": "CHALLENGE COMPLETE", "reward": { "kind": "crate", "crate_id": String(crate_id) } })
+	# Employee Rank (Pack G): queues at menu entry when a run crossed a rank threshold — same
+	# pending-rewards idiom as the challenge-completion crates above (persisted flag, cleared here
+	# so it can never show twice). Nothing to grant (the rank XP was already added during the run's
+	# flush), so this is a pure "queue the reveal" step, like the challenge-crate loop above.
+	if SaveManager.has_pending_promotion():
+		_reward_queue.append({ "title": "PROMOTED!", "reward": _promotion_reward() })
+		SaveManager.clear_pending_promotion()
 	SaveManager.save_game()
 	_show_next_reward()
+
+## Builds the PROMOTED popup's reward descriptor: the rank just reached + any mode ids whose
+## unlock threshold falls strictly after the rank held before this (possibly multi-run) promotion
+## window began, and at or before the rank now — covers a single payout (or several restarts in a
+## row, all bypassing the menu) skipping more than one rank threshold at once.
+func _promotion_reward() -> Dictionary:
+	var from_rank := SaveManager.pending_promotion_from_rank()
+	var to_rank := Ranks.rank_for(SaveManager.rank_xp())
+	var unlocked: Array = []
+	for mode_id in Ranks.UNLOCKS:
+		var need := int(Ranks.UNLOCKS[mode_id])
+		if need > from_rank and need <= to_rank:
+			unlocked.append(String(mode_id))
+	return { "kind": "rank", "rank": to_rank, "unlocked": unlocked }
 
 ## Adds the reward to the player's stuff and returns the (possibly converted) descriptor to reveal.
 func _grant_reward(reward: Dictionary) -> Dictionary:

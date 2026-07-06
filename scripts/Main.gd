@@ -7,7 +7,24 @@ extends Node2D
 func _ready() -> void:
 	SoundManager.music("run_loop")
 	DifficultyManager.reset()
+	# OVERTIME (Pack G): preset run_time AND the derived wave BEFORE any wave-reading system's
+	# first tick (Spawner's boss/elite gates, NightEvents' wave-diff check) — set explicitly here
+	# rather than waiting a frame for DifficultyManager's own _process to recompute wave, so
+	# nothing can ever observe the pre-headstart wave-1 state, not even for a single frame.
+	if RunConfig.overtime:
+		DifficultyManager.run_time = GameConfig.OVERTIME_START_SECONDS
+		DifficultyManager.wave = int(floor(DifficultyManager.run_time / GameConfig.WAVE_DURATION)) + 1
+	# HORDE NIGHT (Pack G): reuses the exact Blood-Moon spawn-interval-mult mechanism. Safe because
+	# NightEvents — the only OTHER writer of this same multiplier — is gated off entirely outside
+	# mode == "endless", so it can never also touch this during a horde run. reset() above already
+	# zeroed it to 1.0 first (the cross-run safety net a leftover override relies on).
+	if RunConfig.mode == "horde":
+		DifficultyManager.set_spawn_interval_mult(GameConfig.HORDE_SPAWN_MULT)
 	RunStats.reset()
+	# HARDCORE (Pack G): x3 the whole run's coin payout. Multiplies the SAME coin_mult the
+	# "Silver Tongue" level-up card raises later, so the two compose as one multiplicative number.
+	if RunConfig.hardcore:
+		RunStats.coin_mult *= GameConfig.HARDCORE_COIN_MULT
 	# Pack C: Daily Shift — re-arm a FRESH seeded generator every time this scene loads while
 	# RunConfig.daily is true (covers a mid-run "RESTART RUN" from PauseMenu, which reloads
 	# Main.tscn directly, bypassing MainMenu's mode picker entirely) so a restart replays the
@@ -23,6 +40,12 @@ func _ready() -> void:
 		RunStats.coins_per_kill = Characters.coin_per_kill_bonus(RunConfig.character_id)   # Pack E: the Janitor's passive
 		player.set_dash_ability(Characters.dash_ability(RunConfig.character_id))
 		_equip_loadout(player)
+		# OVERTIME (Pack G): headstart XP AFTER the loadout is equipped, per spec. Any resulting
+		# level-ups queue in LevelUpUI (its _ready already connected `leveled_up` before this runs —
+		# children ready before their parent, and LevelUpUI is a sibling child of this scene root)
+		# and show once the run's first frame renders — expected behavior, not a bug.
+		if RunConfig.overtime:
+			player.add_xp(GameConfig.OVERTIME_HEADSTART_XP)
 
 	var spawner := get_tree().get_first_node_in_group("spawner")
 	if spawner != null:

@@ -40,6 +40,8 @@ func _process_endless(delta: float) -> void:
 	_spawn_enemy()
 
 func _check_boss() -> void:
+	if mode == "horde":
+		return   # HORDE NIGHT (Pack G): no boss ever spawns — spawn interval instead runs faster (see Main._ready)
 	var w := DifficultyManager.wave
 	if w % GameConfig.BOSS_WAVE_INTERVAL != 0:
 		return
@@ -104,12 +106,14 @@ func _spawn_enemy() -> void:
 	enemy.global_position = _pick_spawn_pos()
 
 ## Elites (Pack A): a wave-gated, capped chance to promote a freshly-configured trash spawn to
-## an elite. Endless only — gated HERE (not in Enemy/Enemies) so Boss Rush's call through this
-## SAME _spawn_enemy path stays completely untouched, and the Dawn Extraction final surge (which
-## multiplies this same chance via DifficultyManager.elite_chance_mult()) only ever matters in
-## endless too, since nothing outside endless ever sets that multiplier off 1.0.
+## an elite. Endless + HORDE NIGHT only (Pack G extended the gate from endless-only to
+## endless|horde — horde still rolls elites even though it never spawns a boss) — gated HERE (not
+## in Enemy/Enemies) so Boss Rush's call through this SAME _spawn_enemy path stays completely
+## untouched, and the Dawn Extraction final surge (which multiplies this same chance via
+## DifficultyManager.elite_chance_mult()) only ever matters in endless too, since nothing outside
+## endless ever sets that multiplier off 1.0 (Extraction itself is endless-only — see Extraction.gd).
 func _maybe_apply_elite(enemy) -> void:
-	if mode != "endless":
+	if mode != "endless" and mode != "horde":   # HORDE NIGHT (Pack G): elites still roll there
 		return
 	var chance := DifficultyCurve.elite_chance(DifficultyManager.wave) * DifficultyManager.elite_chance_mult()
 	# Pack C (Daily Shift): both rolls go through RunConfig.rand_float()/rand_int(), which only

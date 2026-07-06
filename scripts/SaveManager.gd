@@ -44,6 +44,12 @@ const DEFAULTS := {
 	"pending_challenge_rewards": [],   # Pack C: crate ids already granted by a completed challenge, awaiting reveal at the next menu entry
 	"last_daily_shift_date": "",       # Pack C: date of the last STARTED Daily Shift attempt (consumed on START, not completion)
 	"best_daily_score": 0,             # Pack C: highest coin payout ever earned from a Daily Shift run
+	"rank_xp": 0,                        # Pack G: lifetime Employee Rank XP; rank itself is DERIVED (Ranks.rank_for), never stored
+	"pending_promotion": false,          # Pack G: a run crossed a rank threshold; queues the PROMOTED popup at the next menu entry
+	"pending_promotion_from_rank": 1,    # Pack G: the rank held BEFORE the still-unshown promotion window began (for the "newly unlocked" list)
+	"horde_best_wave": 0,                # Pack G: HORDE NIGHT's own best-wave record (never touched by endless/boss_rush/overtime runs)
+	"overtime_best_clockout_seconds": 0.0,  # Pack G: OVERTIME's own best clock-out (the shared best_clockout_seconds must NOT move on an overtime run)
+	"hardcore_best_clockout_seconds": 0.0,  # Pack G: HARDCORE's own best clock-out
 }
 
 var _data: Dictionary = {}
@@ -183,6 +189,67 @@ func record_run(wave: int, bosses: int) -> void:
 	_data["best_wave"] = maxi(best_wave(), wave)
 	_data["best_bosses"] = maxi(best_bosses(), bosses)
 
+# --- Employee Rank + per-mode records (Pack G: v0.1.58) ---
+
+func rank_xp() -> int:
+	return int(_data.get("rank_xp", 0))
+
+## Adds lifetime rank XP (the run's ACTUAL paid coins) and queues a PROMOTED popup if this pushed
+## the player past one or more rank thresholds. Called from BOTH paid_out-guarded flush blocks
+## (GameOver._finish_run / PauseMenu._abandon_run_payout) with the run's real `earned` value — see
+## Ranks.gd for the pure threshold math. Memory only; caller saves.
+func add_rank_xp(amount: int) -> void:
+	if amount <= 0:
+		return
+	var before := Ranks.rank_for(rank_xp())
+	_data["rank_xp"] = rank_xp() + amount
+	var after := Ranks.rank_for(rank_xp())
+	if after > before:
+		# Only stamp "from_rank" the FIRST time a promotion window opens — a player can restart
+		# straight back into Main.tscn (bypassing the menu) across several runs before ever seeing
+		# the popup, so a later, already-pending promotion must not overwrite the earlier start
+		# point (that would hide modes unlocked in between from the "newly unlocked" list).
+		if not has_pending_promotion():
+			_data["pending_promotion_from_rank"] = before
+		_data["pending_promotion"] = true
+
+func has_pending_promotion() -> bool:
+	return bool(_data.get("pending_promotion", false))
+
+## The rank held before the still-unshown promotion window began (1 if never set / already shown).
+func pending_promotion_from_rank() -> int:
+	return int(_data.get("pending_promotion_from_rank", 1))
+
+## Pops the queued PROMOTED popup flag (memory only; caller saves) — mirrors
+## take_pending_challenge_rewards()'s one-shot consume idiom.
+func clear_pending_promotion() -> void:
+	_data["pending_promotion"] = false
+
+## HORDE NIGHT's own best-wave record — horde never touches the shared best_wave/best_bosses
+## above (a different game: no boss ever spawns), so it gets a dedicated track instead.
+func horde_best_wave() -> int:
+	return int(_data.get("horde_best_wave", 0))
+
+func record_horde_best_wave(wave: int) -> void:
+	_data["horde_best_wave"] = maxi(horde_best_wave(), wave)
+
+## OVERTIME's own best clock-out — kept separate because OVERTIME's preset run_time headstart
+## would otherwise unfairly inflate a shared "best clock-out reached" comparison.
+func overtime_best_clockout_seconds() -> float:
+	return float(_data.get("overtime_best_clockout_seconds", 0.0))
+
+func record_overtime_best_clockout(run_time: float) -> void:
+	_data["overtime_best_clockout_seconds"] = maxf(overtime_best_clockout_seconds(), run_time)
+
+## HARDCORE's own best clock-out (HARDCORE keeps mode == "endless", so the shared best_wave/
+## best_bosses/best_clockout records above still apply to it normally; this is an ADDITIONAL
+## dedicated track, not a replacement).
+func hardcore_best_clockout_seconds() -> float:
+	return float(_data.get("hardcore_best_clockout_seconds", 0.0))
+
+func record_hardcore_best_clockout(run_time: float) -> void:
+	_data["hardcore_best_clockout_seconds"] = maxf(hardcore_best_clockout_seconds(), run_time)
+
 ## Pack A: lifetime count of runs WON via the Dawn Extraction chopper LZ.
 func shifts_survived() -> int:
 	return int(_data.get("shifts_survived", 0))
@@ -315,9 +382,13 @@ func record_daily_score(score: int) -> void:
 	_data["best_daily_score"] = maxi(best_daily_score(), score)
 
 ## Flushes one run's lifetime-record deltas (memory only; caller saves). See the section header
-## above for the exactly-once guarantee — this function itself is NOT idempotent.
-func add_lifetime_run(kills: int, bosses: int, elites: int, coins_earned: int, run_time: float, weapon_base_id: String) -> void:
-	_data = LifetimeRecords.merge_run(_data, kills, bosses, elites, coins_earned, run_time, weapon_base_id)
+## above for the exactly-once guarantee — this function itself is NOT idempotent. `update_clockout`
+## (Pack G) defaults true for every existing caller; OVERTIME runs pass false so their preset
+## run_time headstart can't inflate the shared best_clockout_seconds record (they get their own
+## overtime_best_clockout_seconds instead — see record_overtime_best_clockout above). kills/
+## bosses/elites/coins_earned/gun_kills are unaffected by this flag either way.
+func add_lifetime_run(kills: int, bosses: int, elites: int, coins_earned: int, run_time: float, weapon_base_id: String, update_clockout: bool = true) -> void:
+	_data = LifetimeRecords.merge_run(_data, kills, bosses, elites, coins_earned, run_time, weapon_base_id, update_clockout)
 
 ## EFFECTS toggle: screen shake + crit-kill hit-stop (Juice.gd / CameraShake.gd both read this
 ## directly — no manager autoload needed for two settings this small).

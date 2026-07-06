@@ -124,7 +124,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	if health_regen > 0.0:
-		_health.heal(health_regen * delta)
+		heal(health_regen * delta)
 
 ## Swaps Ryan's sprite to the directional rotation nearest the move vector.
 func _face(dir: Vector2) -> void:
@@ -338,12 +338,22 @@ func hp() -> float:
 func max_hp() -> float:
 	return _health.maxhp if _health != null else 0.0
 
-## Restores the player to full health (called by a boss death reward).
+## Restores the player to full health (called by a boss death reward). Routed through heal()
+## (Pack G) so HARDCORE's no-op gate covers it too, like every other heal source.
 func full_heal() -> void:
-	_health.heal(_health.maxhp)
+	heal(_health.maxhp)
 
-## Talent hook (Bloodthirst lifesteal): restore a flat amount, clamped to max by Health.
+## Talent hook (Bloodthirst lifesteal): restore a flat amount, clamped to max by Health. The
+## SINGLE no-op gate HARDCORE mode uses (Pack G, v0.1.58): every live heal source in the game
+## routes through here — boss-kill/boss-rush heals (BossBase.gd), lifesteal talents
+## (TalentEngine.gd), passive regen (the physics tick above), and full_heal() above — so gating
+## just this one function blocks all of them under HARDCORE. The one exception is Second Wind's
+## own death-save (_health.heal() called directly in take_damage(), below), which is moot under
+## HARDCORE regardless since the card itself is excluded from the level-up pool entirely (see
+## Upgrades.player_cards) — has_second_wind can never be true on a HARDCORE run.
 func heal(amount: float) -> void:
+	if RunConfig.hardcore:
+		return
 	if _health != null:
 		_health.heal(amount)
 

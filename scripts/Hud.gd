@@ -199,7 +199,12 @@ func _process(_delta: float) -> void:
 		_wave_label.text = "Wave %d   %s" % [DifficultyManager.wave, DifficultyManager.time_string()]
 		_clock_label.visible = true
 		_clock_label.text = ShiftClock.clock_string(DifficultyManager.run_time)
-		if not _dawn_fired and DifficultyManager.run_time >= ShiftClock.dawn_run_time():
+		# HORDE NIGHT (Pack G) falls into this "not boss_rush" branch too (the clock is shown there
+		# as flavor, per spec) but must NOT get the dawn bonus/banner — NightEvents and Extraction
+		# already gate on `mode == "endless"` directly and so already exclude horde; this block was
+		# the one dawn-adjacent gate that didn't (it only checked "not boss_rush"), so it's fixed
+		# here to require endless explicitly. OVERTIME/DAILY stay unaffected (mode stays "endless").
+		if RunConfig.mode == "endless" and not _dawn_fired and DifficultyManager.run_time >= ShiftClock.dawn_run_time():
 			_dawn_fired = true
 			RunStats.add_coins(GameConfig.DAWN_BONUS_COINS)
 			SoundManager.play("dawn_sting")

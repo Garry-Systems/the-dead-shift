@@ -12,15 +12,20 @@ class_name LifetimeRecords
 
 ## Returns a NEW dict = `data` with the lifetime-record keys incremented by one run's results.
 ## Missing keys default the same way SaveManager's own accessors do (0 / 0.0 / {}), so this is
-## safe to call against a bare `{}` (a fresh save) or a fully-populated `_data`.
+## safe to call against a bare `{}` (a fresh save) or a fully-populated `_data`. `update_clockout`
+## (Pack G, v0.1.58) defaults true; OVERTIME's caller passes false so its preset run_time
+## headstart can't inflate this shared record — every other term (kills/bosses/elites/coins/
+## gun_kills) still updates regardless, per the pack's "coins/rank XP/lifetime kills DO [count]"
+## rule for OVERTIME.
 static func merge_run(data: Dictionary, kills: int, bosses: int, elites: int, coins_earned: int,
-		run_time: float, weapon_base_id: String) -> Dictionary:
+		run_time: float, weapon_base_id: String, update_clockout: bool = true) -> Dictionary:
 	var out := data.duplicate(true)
 	out["total_kills"] = int(out.get("total_kills", 0)) + maxi(kills, 0)
 	out["total_bosses"] = int(out.get("total_bosses", 0)) + maxi(bosses, 0)
 	out["total_elites"] = int(out.get("total_elites", 0)) + maxi(elites, 0)
 	out["total_coins_earned"] = int(out.get("total_coins_earned", 0)) + maxi(coins_earned, 0)
-	out["best_clockout_seconds"] = maxf(float(out.get("best_clockout_seconds", 0.0)), run_time)
+	if update_clockout:
+		out["best_clockout_seconds"] = maxf(float(out.get("best_clockout_seconds", 0.0)), run_time)
 	if weapon_base_id != "" and kills > 0:
 		var gk: Dictionary = (out.get("gun_kills", {}) as Dictionary).duplicate()
 		gk[weapon_base_id] = int(gk.get(weapon_base_id, 0)) + kills

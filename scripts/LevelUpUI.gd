@@ -120,6 +120,6 @@ func _on_card_pressed(index: int) -> void:
 		get_tree().paused = false
 
 func _pick_three(level: int) -> Array:
-	var pool := Upgrades.cards_for_level(level, _player)
+	var pool := Upgrades.cards_for_level(level, _player, RunConfig.hardcore)
 	pool.shuffle()
 	return pool.slice(0, 3)

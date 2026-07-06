@@ -9,6 +9,7 @@ signal claimed()
 
 var _title: Label
 var _streak: Label
+var _free_label: Label   # "FREE REWARD!" — hidden for a PROMOTED reveal (Pack G), which isn't a "reward" claim
 var _icon: TextureRect
 var _name: Label
 var _sub: Label
@@ -49,11 +50,11 @@ func _ready() -> void:
 	_streak.visible = false
 	vbox.add_child(_streak)
 
-	var free := Label.new()
-	free.text = "FREE REWARD!"
-	free.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(free, 22, PixelTheme.SELECT)
-	vbox.add_child(free)
+	_free_label = Label.new()
+	_free_label.text = "FREE REWARD!"
+	_free_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(_free_label, 22, PixelTheme.SELECT)
+	vbox.add_child(_free_label)
 
 	_icon = TextureRect.new()
 	_icon.custom_minimum_size = Vector2(220, 220)
@@ -82,9 +83,10 @@ func _ready() -> void:
 	btn.pressed.connect(_on_claim)
 	vbox.add_child(btn)
 
-## Reveal one already-granted reward. `title` = the source ("DAILY REWARD" / "10-GAME REWARD").
-## reward = { kind:"crate", crate_id } or { kind:"gun", inst }, optionally with a "streak" int
-## (Pack 4, daily reward only) that shows a "STREAK: DAY N" line under the title.
+## Reveal one already-granted reward. `title` = the source ("DAILY REWARD" / "10-GAME REWARD" /
+## "PROMOTED!"). reward = { kind:"crate", crate_id } or { kind:"gun", inst } or (Pack G) {
+## kind:"rank", rank, unlocked: Array[String] } — optionally with a "streak" int (Pack 4, daily
+## reward only) that shows a "STREAK: DAY N" line under the title.
 func open(title: String, reward: Dictionary) -> void:
 	_title.text = title
 	if reward.has("streak"):
@@ -92,11 +94,12 @@ func open(title: String, reward: Dictionary) -> void:
 		_streak.visible = true
 	else:
 		_streak.visible = false
+	_free_label.visible = true
+	_icon.visible = true
 	match String(reward.get("kind", "")):
 		"crate":
-			var cid := String(reward.get("crate_id", ""))
-			_icon.texture = Crates.icon(cid)
-			_name.text = String(Crates.get_crate(cid).get("name", "Crate")).to_upper()
+			_icon.texture = Crates.icon(String(reward.get("crate_id", "")))
+			_name.text = String(Crates.get_crate(String(reward.get("crate_id", ""))).get("name", "Crate")).to_upper()
 			_name.add_theme_color_override("font_color", PixelTheme.ACCENT)
 			_sub.text = "Crate added to your inventory"
 		"gun":
@@ -105,6 +108,23 @@ func open(title: String, reward: Dictionary) -> void:
 			_name.text = WeaponInstance.display_name(inst).to_upper()
 			_name.add_theme_color_override("font_color", WeaponInstance.color(inst))
 			_sub.text = WeaponInstance.rarity_name(inst) + " — added to your inventory"
+		"rank":
+			# Employee Rank promotion (Pack G) — not a "free reward" claim, so the icon + that
+			# label are hidden entirely (Control layout skips invisible children, so the card just
+			# shrinks around the remaining rows instead of leaving a blank gap).
+			_free_label.visible = false
+			_icon.visible = false
+			var rank := int(reward.get("rank", 1))
+			_name.text = "RANK %d — %s" % [rank, Ranks.name_for(rank)]
+			_name.add_theme_color_override("font_color", PixelTheme.ACCENT)
+			var unlocked: Array = reward.get("unlocked", [])
+			if unlocked.is_empty():
+				_sub.text = "Keep grinding — more modes ahead."
+			else:
+				var names: Array[String] = []
+				for id in unlocked:
+					names.append(Ranks.mode_display_name(String(id)))
+				_sub.text = "Unlocked: %s" % ", ".join(names)
 	visible = true
 
 func _on_claim() -> void:
