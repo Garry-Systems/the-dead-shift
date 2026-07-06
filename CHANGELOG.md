@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.52 — Feed the Beast (2026-07-06)
+
+- **WEAPON FUSION** — duplicates are food now. Open any gun and hit **FEED**: sacrifice a same-model duplicate to pump weapon XP into it (talents unlock on the spot — higher-rarity sacrifices are worth a fortune). Feed it a duplicate of **equal or higher rarity** and it also **rerolls the gun's weakest stat** — shown honestly, old → new, and yes, the dice can come up worse. Your equipped gun can eat but never be eaten. Fusions tracked on the RECORDS page.
+
 ## v0.1.51 — For the Record (2026-07-05)
 
 - **RECORDS page** — a new hub screen with your lifetime story: total kills, runs worked, coins earned, bosses and elites dropped, best wave, best clock-out time, shifts survived, Armageddons pulled, and kill counts for every gun you've ever carried.
