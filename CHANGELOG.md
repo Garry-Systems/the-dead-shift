@@ -4,6 +4,17 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.49 — The Talent Tree Grows Teeth (2026-07-05)
+
+**29 new talents — the pool nearly doubles to 60**, and 16 of them are mechanics the game has never had:
+
+- **Black Friday** rips open a gravity well that drags the horde into a pile. **Double Tap** makes your crits echo with a phantom second hit. **Septic Shock** ruptures every burn and poison on a target in one burst; **Outbreak** spreads them to everything nearby on a kill.
+- **A full crowd-control build**: **Deadbolt** pins targets on any gun, **Curb Stomp** punishes anything slowed/frozen/pinned, **Closing Time** slows everything near you.
+- **Playstyle picks**: **Clock In** (first shot after a reload hits huge) vs **Last Call** (the mag hits harder as it empties). **Brass Picker** loads kills back into your mag. **Graveyard Shift** spikes your fire rate when you're nearly dead.
+- **Kills that keep killing**: **Death Rattle** arcs lightning, **Bile Spill** pools acid, **Parting Gift** leaves a mine. **Dead Man's Switch** detonates when something dares to bite you. **Night Terror** sends zombies fleeing in fear — while spitters fire over their shoulder as they run.
+- Plus deeper tiers for every family that was missing one — tier-1 finally has real variety (5 → 15 options), so early weapon levels matter.
+- Every one of them has its own visual and callout, riding the new effects system. New pulls only — your current guns keep their rolled talents.
+
 ## v0.1.48 — See Your Power (2026-07-05)
 
 Every talent proc in the game is now VISIBLE — nothing happens silently anymore:
