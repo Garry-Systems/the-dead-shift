@@ -220,6 +220,15 @@ func _finish_run(is_win: bool) -> void:
 	})
 	if RunConfig.daily:
 		SaveManager.record_daily_score(earned)
+	# Best single-run payout (Pack H: PAYDAY commendation) — max() at the SAME guarded flush,
+	# mirrors record_daily_score's shape but ungated (every run's actual payout counts, not only
+	# Daily Shift runs).
+	SaveManager.record_best_run_payout(earned)
+	# Commendations (Pack H): checked + granted (rank XP + crate) here, inside the SAME
+	# RunStats.paid_out guard as every other lifetime counter above, and BEFORE the save_game()
+	# below so a granted badge is part of the same atomic flush write — see
+	# CommendationProgress.check_and_grant's doc comment for the exactly-once contract.
+	SaveManager.check_and_grant_commendations()
 	SaveManager.save_game()
 
 	# Weapon-loot: award XP to the equipped weapon so its talents unlock over time, then read

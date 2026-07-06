@@ -84,9 +84,10 @@ func _ready() -> void:
 	vbox.add_child(btn)
 
 ## Reveal one already-granted reward. `title` = the source ("DAILY REWARD" / "10-GAME REWARD" /
-## "PROMOTED!"). reward = { kind:"crate", crate_id } or { kind:"gun", inst } or (Pack G) {
-## kind:"rank", rank, unlocked: Array[String] } — optionally with a "streak" int (Pack 4, daily
-## reward only) that shows a "STREAK: DAY N" line under the title.
+## "PROMOTED!" / "COMMENDATION EARNED"). reward = { kind:"crate", crate_id } or { kind:"gun", inst }
+## or (Pack G) { kind:"rank", rank, unlocked: Array[String] } or (Pack H) { kind:"commendation",
+## id } — optionally with a "streak" int (Pack 4, daily reward only) that shows a "STREAK: DAY N"
+## line under the title.
 func open(title: String, reward: Dictionary) -> void:
 	_title.text = title
 	if reward.has("streak"):
@@ -125,6 +126,19 @@ func open(title: String, reward: Dictionary) -> void:
 				for id in unlocked:
 					names.append(Ranks.mode_display_name(String(id)))
 				_sub.text = "Unlocked: %s" % ", ".join(names)
+		"commendation":
+			# Commendations wall (Pack H) — reads as an achievement badge, not a "free reward":
+			# the FREE REWARD! label is hidden (mirrors the "rank" kind above) but the icon stays
+			# (the tier crate art) since a crate + rank XP genuinely was just handed over.
+			_free_label.visible = false
+			var comm_row := Commendations.by_id(String(reward.get("id", "")))
+			var comm_tier: Dictionary = comm_row.get("tier", {})
+			var crate_id := String(comm_tier.get("crate_id", ""))
+			_icon.texture = Crates.icon(crate_id)
+			_name.text = String(comm_row.get("name", "COMMENDATION"))
+			_name.add_theme_color_override("font_color", PixelTheme.ACCENT)
+			var crate_name := String(Crates.get_crate(crate_id).get("name", "Crate")).to_upper()
+			_sub.text = "+%d RANK XP · %s awarded" % [int(comm_tier.get("rank_xp", 0)), crate_name]
 	visible = true
 
 func _on_claim() -> void:

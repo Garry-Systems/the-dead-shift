@@ -237,6 +237,11 @@ func _abandon_run_payout() -> void:
 	})
 	if RunConfig.daily:
 		SaveManager.record_daily_score(earned)
+	# Best single-run payout (Pack H: PAYDAY commendation) — mirrors GameOver._finish_run's twin call.
+	SaveManager.record_best_run_payout(earned)
+	# Commendations (Pack H): mirrors GameOver._finish_run's twin call — same guarded block, same
+	# exactly-once contract, called before this block's own save_game() below.
+	SaveManager.check_and_grant_commendations()
 	SaveManager.save_game()
 	# HARDCORE doubles weapon XP at the flush (Pack G) — mirrors GameOver._finish_run's twin call.
 	var xp_amount := RunStats.kills + wave * 10 + bosses * 50

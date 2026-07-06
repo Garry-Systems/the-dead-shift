@@ -539,3 +539,34 @@ const OVERTIME_START_SECONDS := 240.0 # OVERTIME: DifficultyManager.run_time pre
 # Enough raw XP for ~8 level-ups at run start (xp_mult is always 1.0 there — no Fast Learner card
 # taken yet): sum of XpCurve.xp_for_level(0..7) = (5+0*3)+(5+1*3)+...+(5+7*3) = 124.
 const OVERTIME_HEADSTART_XP := 124
+
+# --- Commendations wall (Pack H: v0.1.59) ---
+# 18 one-time lifetime badges (scripts/logic/Commendations.gd) — every target lives here per
+# house rules (mirrors CHALLENGE_*_TARGET above). Starter values per the spec's own framing.
+const COMMENDATION_COUNT := 18            # total badges — RECORDS "N/18" row + probe boundary check
+const COMMENDATION_FIRST_DAY_TARGET := 1
+const COMMENDATION_PUNCHING_IN_TARGET := 10
+const COMMENDATION_CAREER_CLERK_TARGET := 100
+const COMMENDATION_EXTERMINATOR_TARGET := 2500
+const COMMENDATION_GENOCIDE_SHIFT_TARGET := 25000
+const COMMENDATION_PEST_CONTROL_TARGET := 100
+const COMMENDATION_MIDDLE_MANAGEMENT_TARGET := 25
+const COMMENDATION_UPPER_MANAGEMENT_TARGET := 100
+const COMMENDATION_DAWN_PATROL_TARGET := 1
+const COMMENDATION_WEEK_ONE_TARGET := 5
+const COMMENDATION_EMPLOYEE_OF_MONTH_TARGET := 7
+const COMMENDATION_REGULAR_TARGET := 10
+const COMMENDATION_GOLDEN_TICKET_TARGET := 1
+const COMMENDATION_OVER_THE_RAINBOW_TARGET := 1
+const COMMENDATION_BIG_SPENDER_TARGET := 50
+const COMMENDATION_RECYCLER_TARGET := 10
+const COMMENDATION_TASKMASTER_TARGET := 25
+const COMMENDATION_PAYDAY_TARGET := 2000
+
+# Reward tiers, scaled scrap -> titan by difficulty (rank_xp_grant 100/250/500 + a one-time crate).
+const COMMENDATION_TIER_EASY_XP := 100
+const COMMENDATION_TIER_MED_XP := 250
+const COMMENDATION_TIER_HARD_XP := 500
+const COMMENDATION_TIER_EASY_CRATE := "scrap_crate"
+const COMMENDATION_TIER_MED_CRATE := "munitions_cache"
+const COMMENDATION_TIER_HARD_CRATE := "titan_crate"

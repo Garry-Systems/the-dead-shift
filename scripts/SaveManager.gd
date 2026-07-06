@@ -50,6 +50,12 @@ const DEFAULTS := {
 	"horde_best_wave": 0,                # Pack G: HORDE NIGHT's own best-wave record (never touched by endless/boss_rush/overtime runs)
 	"overtime_best_clockout_seconds": 0.0,  # Pack G: OVERTIME's own best clock-out (the shared best_clockout_seconds must NOT move on an overtime run)
 	"hardcore_best_clockout_seconds": 0.0,  # Pack G: HARDCORE's own best clock-out
+	"apocalypse_pulled": 0,              # Pack H: rarity-8 (Apocalypse) instances added to the inventory — same Inventory.add() chokepoint as armageddons_pulled
+	"crates_opened_total": 0,            # Pack H: LIFETIME crates opened — distinct from the challenge board's per-rotation "crates_opened" counter (wipes on a date change); bumped at the Inventory.commit_crate chokepoint
+	"dailies_played": 0,                 # Pack H: lifetime count of Daily Shift attempts STARTED (mirrors last_daily_shift_date's "consumed on start, not completion" semantics)
+	"best_run_payout": 0,                # Pack H: highest single-run actual coin payout (`earned`) ever, across every run — max() at the same paid_out-guarded flush as everything else, both exit paths
+	"commendations_earned": [],          # Pack H: ids of one-time Commendations badges already earned (persisted; never un-earned)
+	"pending_commendation_rewards": [],  # Pack H: commendation ids already granted (rank XP + crate), awaiting reveal at the next menu entry
 }
 
 var _data: Dictionary = {}
@@ -478,3 +484,86 @@ func music_on() -> bool:
 
 func set_music_on(on: bool) -> void:
 	_data["music_on"] = on
+
+# --- Commendations wall (Pack H: v0.1.59) ---
+# Pure check/grant math lives in Commendations.gd (data) + CommendationProgress.gd (merge math,
+# mirrors ChallengeProgress.gd's zero-autoload-dependency shape) — these wrappers just read/write
+# _data and persist, the same shape as the challenge-board wrappers above.
+
+func apocalypse_pulled() -> int:
+	return int(_data.get("apocalypse_pulled", 0))
+
+## Adds a rarity-8 (Apocalypse) pull. Called from the SAME Inventory.add() chokepoint as
+## add_armageddon_pulled() above (see that doc comment for the "every weapon-granting path is
+## covered" reasoning — it applies identically here). Caller saves.
+func add_apocalypse_pulled() -> void:
+	_data["apocalypse_pulled"] = apocalypse_pulled() + 1
+
+## LIFETIME crates opened — distinct from the challenge board's "crates_opened" counter
+## (ChallengeProgress/bump_challenge_counter above), which belongs to one day's rotation and wipes
+## on a date change. This one never resets; it exists solely for the BIG SPENDER commendation.
+func crates_opened_total() -> int:
+	return int(_data.get("crates_opened_total", 0))
+
+## Called once per real crate settle, from the SAME Inventory.commit_crate chokepoint that already
+## bumps the daily challenge-board counter. Caller saves.
+func add_crate_opened() -> void:
+	_data["crates_opened_total"] = crates_opened_total() + 1
+
+## Lifetime count of Daily Shift attempts STARTED (mirrors is_daily_shift_available/
+## mark_daily_shift_started's "consumed on start, not completion" semantics above) — for the
+## REGULAR commendation. Caller saves.
+func dailies_played() -> int:
+	return int(_data.get("dailies_played", 0))
+
+func add_daily_played() -> void:
+	_data["dailies_played"] = dailies_played() + 1
+
+## Highest single-run actual coin payout (`earned`) ever, across EVERY run (contrast
+## best_daily_score above, which is Daily-Shift-only). Flushed at the same paid_out-guarded blocks
+## as everything else, both exit paths. For the PAYDAY commendation.
+func best_run_payout() -> int:
+	return int(_data.get("best_run_payout", 0))
+
+func record_best_run_payout(earned: int) -> void:
+	_data["best_run_payout"] = maxi(best_run_payout(), earned)
+
+## Ids of one-time Commendation badges already earned (persisted; never un-earned once granted).
+func commendations_earned() -> Array:
+	return _data.get("commendations_earned", [])
+
+func is_commendation_earned(id: String) -> bool:
+	return id in commendations_earned()
+
+## Count of badges earned so far — the RECORDS wall's "N/18" readout (denominator is
+## GameConfig.COMMENDATION_COUNT / Commendations.all().size(), which the probe asserts agree).
+func commendations_earned_count() -> int:
+	return commendations_earned().size()
+
+## The live counter value backing one commendation row (e.g. the "1,840" half of "1,840 / 2,500")
+## — wraps Commendations.value_for so the wall UI never touches the raw save dict directly
+## (mirrors active_challenges()'s read-only wrapper shape above).
+func commendation_value(id: String) -> int:
+	return int(Commendations.value_for(Commendations.by_id(id), _data))
+
+func pending_commendation_rewards() -> Array:
+	return _data.get("pending_commendation_rewards", [])
+
+## Pops every queued commendation-earned reveal (already granted — see
+## check_and_grant_commendations below) for the caller to reveal. Memory only; caller saves.
+## Mirrors take_pending_challenge_rewards() above.
+func take_pending_commendation_rewards() -> Array:
+	var out: Array = pending_commendation_rewards().duplicate()
+	_data["pending_commendation_rewards"] = []
+	return out
+
+## Checks every Commendation row against the current save data and grants (rank XP + crate) any
+## newly crossed one exactly once — see CommendationProgress.check_and_grant's doc comment for the
+## full idempotence/exactly-once contract (identical guarantees to add_lifetime_run/
+## flush_challenge_counters above). Call at BOTH the run-flush chokepoints (GameOver._finish_run /
+## PauseMenu._abandon_run_payout, inside their RunStats.paid_out guard, right before that block's
+## own save_game()) AND at menu entry (MainMenu._check_free_rewards) — the latter catches lifetime
+## counters that only change between runs (crates opened, weapons fused, challenges completed).
+## Memory only; caller saves.
+func check_and_grant_commendations() -> void:
+	_data = CommendationProgress.check_and_grant(_data)

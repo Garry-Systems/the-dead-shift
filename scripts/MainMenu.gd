@@ -332,6 +332,7 @@ func _on_daily_shift() -> void:
 	RunConfig.clear_mode_flags()   # a Daily Shift pick can never inherit a stale hardcore/overtime flag
 	RunConfig.start_daily(SaveManager.today_string())
 	SaveManager.mark_daily_shift_started()
+	SaveManager.add_daily_played()   # lifetime counter (Pack H: REGULAR commendation) — consumed on START, mirrors mark_daily_shift_started
 	SaveManager.save_game()
 	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
 
@@ -763,6 +764,51 @@ func _challenge_progress_text(row: Dictionary) -> String:
 		return "%s / %s" % [ShiftClock.clock_string(progress), ShiftClock.clock_string(target)]
 	return "%d / %d" % [int(progress), int(target)]
 
+## One COMMENDATIONS wall row (Pack H): a reward-crate icon (tier-scaled scrap/munitions/titan —
+## reuses Crates.icon, zero new art, same trick as _challenge_row's crate icon above), the badge
+## name + desc, and a right-aligned progress readout. Earned rows light up (SELECT name / ACCENT
+## "EARNED") — the same lit/dim split _challenge_row already uses for completed/not; unearned rows
+## stay dim with a live "value / target" count (every commendation counter is a plain count, unlike
+## the challenge board's one clock-seconds row, so no time-format branch is needed here).
+func _commendation_row(parent: VBoxContainer, row: Dictionary) -> void:
+	var id := String(row.get("id", ""))
+	var earned := SaveManager.is_commendation_earned(id)
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var tier: Dictionary = row.get("tier", {})
+	var icon := TextureRect.new()
+	icon.texture = Crates.icon(String(tier.get("crate_id", "")))
+	icon.custom_minimum_size = Vector2(36, 36)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.modulate = Color(1, 1, 1, 1.0 if earned else 0.35)
+	line.add_child(icon)
+
+	var text_col := VBoxContainer.new()
+	text_col.add_theme_constant_override("separation", 0)
+	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var name_l := Label.new()
+	name_l.text = String(row.get("name", ""))
+	PixelTheme.style_label(name_l, 18, PixelTheme.SELECT if earned else PixelTheme.TEXT)
+	text_col.add_child(name_l)
+	var desc_l := Label.new()
+	desc_l.text = String(row.get("desc", ""))
+	desc_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	PixelTheme.style_label(desc_l, 14, PixelTheme.TEXT_DIM)
+	text_col.add_child(desc_l)
+	line.add_child(text_col)
+
+	var prog_l := Label.new()
+	prog_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	prog_l.text = "EARNED" if earned else "%d / %d" % [SaveManager.commendation_value(id), int(row.get("target", 0))]
+	PixelTheme.style_label(prog_l, 14, PixelTheme.ACCENT if earned else PixelTheme.TEXT_DIM)
+	line.add_child(prog_l)
+
+	parent.add_child(line)
+
 func _populate_records() -> void:
 	for c in _records_vbox.get_children():
 		c.queue_free()
@@ -822,7 +868,21 @@ func _populate_records() -> void:
 	_stat_row(list, "DAILY STREAK", "%d" % SaveManager.daily_streak())
 	_stat_row(list, "WEAPONS FUSED", "%d" % SaveManager.fusions())
 	_stat_row(list, "CHALLENGES COMPLETED", "%d" % SaveManager.challenges_completed_total())
+	_stat_row(list, "COMMENDATIONS", "%d/%d" % [SaveManager.commendations_earned_count(), Commendations.all().size()])
 	_stat_row(list, "BEST DAILY SCORE", "%d" % best_daily if best_daily > 0 else "—")
+
+	# --- Pack H: COMMENDATIONS wall (badge grid/list, folded into RECORDS per the spec's own
+	# "own view or RECORDS extension — implementer judgment" — this reuses the already-working
+	# scroll + drag-scroll idiom this whole panel already has, and the icon+desc+progress row
+	# shape _challenge_row above already proved fits inside this 660px list). ---
+	list.add_child(_spacer(6))
+	var comm_header := Label.new()
+	comm_header.text = "COMMENDATIONS %d/%d" % [SaveManager.commendations_earned_count(), Commendations.all().size()]
+	comm_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(comm_header, 22, PixelTheme.ACCENT)
+	list.add_child(comm_header)
+	for row in Commendations.all():
+		_commendation_row(list, row)
 
 	list.add_child(_spacer(6))
 	var gun_header := Label.new()
@@ -1043,6 +1103,19 @@ func _check_free_rewards() -> void:
 	# call (that function ADDS the reward — doing so again here would double-grant the crate).
 	for crate_id in SaveManager.take_pending_challenge_rewards():
 		_reward_queue.append({ "title": "CHALLENGE COMPLETE", "reward": { "kind": "crate", "crate_id": String(crate_id) } })
+	# Commendations (Pack H): pure checks run here (menu entry) AND at every run flush (GameOver/
+	# PauseMenu, inside their paid_out guard) — menu entry additionally catches lifetime counters
+	# that only change BETWEEN runs (crates opened, weapons fused, challenges completed, daily
+	# streak). Reward XP/crate are already granted by check_and_grant_commendations (same dict
+	# math as SaveManager.add_rank_xp/add_crate); this loop only queues the reveal, mirroring the
+	# challenge-crate loop above. This MUST run before the pending_promotion check below: a
+	# commendation's rank-XP grant can itself cross a rank threshold, and doing this first lets a
+	# commendation-driven promotion (first noticed right here, at menu time) queue its own PROMOTED
+	# popup in the SAME pass, right after the COMMENDATION EARNED popup(s) — see
+	# CommendationProgress._add_rank_xp's doc comment for the full trace.
+	SaveManager.check_and_grant_commendations()
+	for id in SaveManager.take_pending_commendation_rewards():
+		_reward_queue.append({ "title": "COMMENDATION EARNED", "reward": { "kind": "commendation", "id": String(id) } })
 	# Employee Rank (Pack G): queues at menu entry when a run crossed a rank threshold — same
 	# pending-rewards idiom as the challenge-completion crates above (persisted flag, cleared here
 	# so it can never show twice). Nothing to grant (the rank XP was already added during the run's

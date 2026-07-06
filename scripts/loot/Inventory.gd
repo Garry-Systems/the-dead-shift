@@ -61,15 +61,19 @@ func equipped_instance() -> Dictionary:
 ## The single chokepoint every weapon-granting path funnels through (crate opens via
 ## commit_crate, daily/milestone gun rewards, DEV grants, and any future path — e.g. Pack B's
 ## weapon fusion, if it ever mints a fresh instance) — so it's also where a rarity-9 (Armageddon)
-## pull is counted for the lifetime records (Pack D).
+## pull is counted for the lifetime records (Pack D) and a rarity-8 (Apocalypse) pull for the
+## OVER THE RAINBOW commendation (Pack H).
 func add(inst: Dictionary) -> bool:
 	if is_full():
 		return false
 	var list := weapons()
 	list.append(inst)
 	SaveManager.set_weapons(list)
-	if int(inst.get("rarity", 1)) == Rarity.MAX_ID:
+	var rarity_id := int(inst.get("rarity", 1))
+	if rarity_id == Rarity.MAX_ID:
 		SaveManager.add_armageddon_pulled()
+	elif rarity_id == Rarity.RAINBOW_ID:
+		SaveManager.add_apocalypse_pulled()
 	if equipped_uid() == "":
 		SaveManager.set_equipped_weapon(String(inst.get("uid", "")))
 		equipped_changed.emit(equipped_uid())
@@ -129,6 +133,8 @@ func commit_crate(crate_id: String, winner: Dictionary) -> bool:
 	# the one chokepoint every actual crate settle passes through, so it's bumped immediately
 	# (no paid_out guard needed; a settle here only ever happens once per real open).
 	SaveManager.bump_challenge_counter("crates_opened", 1)
+	# Commendations (Pack H): the LIFETIME twin of the line above — never resets, for BIG SPENDER.
+	SaveManager.add_crate_opened()
 	SaveManager.save_game()
 	return true
 
