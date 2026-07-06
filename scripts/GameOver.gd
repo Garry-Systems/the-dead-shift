@@ -241,11 +241,13 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 
 ## Confetti pop over the pay-stub card for a NEW BEST (mirrors MainMenu's crate-win
 ## _celebrate — Confetti is a self-contained Node2D, no scene dependency, so it works fine
-## parented under this different scene's overlay).
+## parented under this different scene's overlay). NOTE: get_viewport_rect() is a CanvasItem
+## method and this node is a CanvasLayer — call it on _root (a full-rect Control), or the
+## whole script fails to compile and `died` never connects (the v0.1.49–56 death freeze).
 func _celebrate() -> void:
 	var c := Confetti.new()
 	_root.add_child(c)
-	var vp := get_viewport_rect().size
+	var vp := _root.get_viewport_rect().size
 	c.position = Vector2(vp.x * 0.5, vp.y * 0.4)
 	c.burst(130, [PixelTheme.ACCENT])
 
