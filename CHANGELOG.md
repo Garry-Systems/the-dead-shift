@@ -4,6 +4,12 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.55 — Faces of the Dead (2026-07-06)
+
+- **Every zombie has a face now** — all 7 enemy types get hand-built pixel sprites: the drooping shambler, the lunging runner, the hunched and gashed brute, the exploder with its splitting belly, the pod-backed hive, the long-necked spitter, and the claw-dragging mutant. Ragged, dead-eyed, and on-palette.
+- **All 7 bosses too** — THE MANAGER's tie, THE NIGHT STOCKER's cap and stock, THE FRYER's basket, THE COURIER's helmet, plus the original three, at boss scale.
+- Every tint, flash, freeze, pin, fear and elite ring works on the new bodies exactly as before.
+
 ## v0.1.54 — New Hires (2026-07-06)
 
 Two more staff on the roster:
