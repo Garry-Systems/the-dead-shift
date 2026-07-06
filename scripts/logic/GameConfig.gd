@@ -465,6 +465,9 @@ const JUICE_HITSTOP_ENABLED := true    # hard switch, independent of the save-le
 const JUICE_HITSTOP_SCALE := 0.05      # Engine.time_scale during the freeze
 const JUICE_HITSTOP_DURATION := 0.05   # REAL seconds the freeze lasts (SceneTreeTimer ignores time_scale + pause)
 
+# --- Weapon fusion (Pack B: v0.1.52) ---
+const FUSION_XP_MULT := 2.0    # sacrifice's scrap-band midpoint (Rarity.scrap_midpoint) x this = weapon XP granted to the target
+
 # --- Juice: trauma-based screen shake (Pack D: Stats + juice, v0.1.51) ---
 const SHAKE_MAX_OFFSET := 18.0         # px cap on the camera's visible shake offset at full (1.0) trauma
 const SHAKE_DECAY := 2.5               # trauma drained per second (1.0 -> 0 in ~0.4s)

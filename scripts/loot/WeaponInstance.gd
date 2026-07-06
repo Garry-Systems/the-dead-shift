@@ -39,20 +39,26 @@ static func resolved_stats(inst: Dictionary) -> Dictionary:
 		out[stat_id] = roundi(v) if Affixes.is_flat(stat_id) else v
 	return out
 
+## Short display labels per stat id, e.g. "damage" -> "DMG". Shared by stat_summary() and
+## Pack B's fusion reroll result line ("REROLLED: <label>").
+const STAT_LABELS := {
+	"damage": "DMG", "fire_rate": "RoF", "bullet_speed": "SPD", "range": "RNG",
+	"reload": "RLD", "mag": "MAG", "multishot": "MULTI", "pierce": "PIERCE", "ricochet": "RICO",
+}
+
+## Display label for a stat id; falls back to the id itself, upper-cased.
+static func stat_label(stat_id: String) -> String:
+	return String(STAT_LABELS.get(stat_id, stat_id.to_upper()))
+
 ## A short one-line stat summary for tooltips: "+18% DMG  +2 MULTISHOT  +14% MAG".
 static func stat_summary(inst: Dictionary) -> String:
-	const LABELS := {
-		"damage": "DMG", "fire_rate": "RoF", "bullet_speed": "SPD", "range": "RNG",
-		"reload": "RLD", "mag": "MAG", "multishot": "MULTI", "pierce": "PIERCE", "ricochet": "RICO",
-	}
 	var parts: Array[String] = []
 	for stat_id in resolved_stats(inst):
 		var v: float = resolved_stats(inst)[stat_id]
-		var label: String = LABELS.get(stat_id, stat_id.to_upper())
 		if Affixes.is_flat(stat_id):
-			parts.append("+%d %s" % [int(v), label])
+			parts.append("+%d %s" % [int(v), stat_label(stat_id)])
 		else:
-			parts.append("+%d%% %s" % [roundi(v), label])
+			parts.append("+%d%% %s" % [roundi(v), stat_label(stat_id)])
 	return "  ".join(parts)
 
 ## Talents whose unlock_level has been reached at the instance's current level.
@@ -187,6 +193,56 @@ static func talent_details(inst: Dictionary) -> Array:
 			"quality_label": quality_label(q),
 		})
 	return out
+
+# --- Pack B: weapon fusion (v0.1.52) — shared with end-of-run XP so both paths behave identically ---
+
+## Applies `amount` weapon XP to `inst` (mutated in place: xp/level), using the level*100 curve
+## that used to live only inside Inventory.add_run_xp. Extracted here as the ONE shared,
+## pure XP/level chokepoint so end-of-run XP (Inventory.add_run_xp, always the equipped gun)
+## and Pack B's weapon fusion (Inventory.fuse, any owned gun) trigger level-ups and talent
+## unlocks identically. Returns the names of any talents newly unlocked by a level crossed
+## (unlock_level in (before_level, after_level]) — empty if no level was gained or amount<=0.
+static func apply_xp(inst: Dictionary, amount: int) -> Array:
+	if amount <= 0:
+		return []
+	var before := int(inst.get("level", 1))
+	inst["xp"] = int(inst.get("xp", 0)) + amount
+	var lvl := before
+	while inst["xp"] >= lvl * 100:
+		inst["xp"] -= lvl * 100
+		lvl += 1
+	inst["level"] = lvl
+	if lvl == before:
+		return []
+	var unlocked: Array = []
+	for t in inst.get("talents", []):
+		var unlock := int(t.get("unlock_level", 0))
+		if unlock > before and unlock <= lvl:
+			var def := Talents.get_talent(String(t.get("id", "")))
+			if not def.is_empty():
+				unlocked.append(String(def["name"]))
+	return unlocked
+
+## Rerolls the SINGLE lowest 0..1 quality roll in inst.stats to a fresh
+## snappedf(randf(), 0.001) value (mutated in place). Ties (two stats sharing the exact
+## lowest roll) resolve to whichever key Dictionary iteration reaches first — insertion
+## order in GDScript, so deterministic per instance but not otherwise meaningful; documented
+## rather than resolved, per the Pack B spec. Returns {} if the instance has no rolled stats
+## (defensive — every rollable affix rolls at least one). Else { stat_id, old, new }.
+static func reroll_lowest_stat(inst: Dictionary) -> Dictionary:
+	var stats: Dictionary = inst.get("stats", {})
+	if stats.is_empty():
+		return {}
+	var lowest_id := ""
+	var lowest_val := 2.0   # above the 0..1 range so the first key always wins the initial compare
+	for stat_id in stats:
+		var v := float(stats[stat_id])
+		if v < lowest_val:
+			lowest_val = v
+			lowest_id = stat_id
+	var new_val := snappedf(randf(), 0.001)
+	stats[lowest_id] = new_val
+	return { "stat_id": lowest_id, "old": lowest_val, "new": new_val }
 
 # --- private formatters for the inspection helpers ---
 

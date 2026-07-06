@@ -317,6 +317,7 @@ func _build_inventory_panel() -> void:
 	_inv_panel.add_child(_detail_popup)
 	_detail_popup.equip_requested.connect(_on_equip)
 	_detail_popup.scrap_confirmed.connect(_on_scrap)
+	_detail_popup.fuse_requested.connect(_on_fuse)
 	_detail_popup.closed.connect(_on_detail_popup_closed)   # refresh the grid after viewing (e.g. a crate win)
 
 	_crate_opener = CrateOpener.new()
@@ -538,6 +539,16 @@ func _on_scrap(inst: Dictionary) -> void:
 	_last_unbox = ""   # a slot just freed — drop a stale "Inventory full" prompt before re-render
 	_populate_inventory()
 
+## FEED confirmed in the popup (Pack B: weapon fusion) → perform the Inventory.fuse()
+## mutation here (the owner), then hand the result BACK to the SAME popup so it refreshes
+## in place instead of closing. The inventory grid behind it is refreshed lazily when the
+## popup eventually closes, same as the crate-reveal flow's `closed` -> _populate_inventory().
+func _on_fuse(inst: Dictionary, sacrifice_uid: String) -> void:
+	var result := Inventory.fuse(String(inst.get("uid", "")), sacrifice_uid)
+	if not result.is_empty():
+		SoundManager.play("crate_win")   # reuse the crate-win sting — no new audio for fusion
+	_detail_popup.show_fuse_result(result)
+
 # --- records: lifetime stats (view-only), same card/scroll shape as the store/inventory ---
 func _build_records_panel() -> void:
 	_records_panel = _make_panel()
@@ -612,6 +623,7 @@ func _populate_records() -> void:
 	_stat_row(list, "BEST CLOCK-OUT", clockout_text)
 	_stat_row(list, "ARMAGEDDONS PULLED", "%d" % SaveManager.armageddons_pulled())
 	_stat_row(list, "DAILY STREAK", "%d" % SaveManager.daily_streak())
+	_stat_row(list, "WEAPONS FUSED", "%d" % SaveManager.fusions())
 
 	list.add_child(_spacer(6))
 	var gun_header := Label.new()

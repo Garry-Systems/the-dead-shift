@@ -127,23 +127,85 @@ func commit_crate(crate_id: String, winner: Dictionary) -> bool:
 	add(winner)   # appends, auto-equips if none, saves, emits
 	return true
 
-## Awards XP to the equipped weapon (call at end of run). Levels up on the level*100 curve.
-## v1 has no talents gated on level yet, but this keeps the meta-progression data real.
+## Awards XP to the equipped weapon (call at end of run). Levels up on the level*100 curve
+## via the shared WeaponInstance.apply_xp() chokepoint (also used by Pack B's weapon fusion),
+## so talent unlocks trigger identically from either path.
 func add_run_xp(amount: int) -> void:
 	var uid := equipped_uid()
 	var it := get_item(uid)
 	if it.is_empty() or amount <= 0:
 		return
-	it["xp"] = int(it.get("xp", 0)) + amount
-	var lvl := int(it.get("level", 1))
-	while it["xp"] >= lvl * 100:
-		it["xp"] -= lvl * 100
-		lvl += 1
-	it["level"] = lvl
+	WeaponInstance.apply_xp(it, amount)
 	# it is a reference into the saved array; persist the mutation.
 	SaveManager.set_weapons(weapons())
 	SaveManager.save_game()
 	inventory_changed.emit()
+
+# --- Pack B: weapon fusion (v0.1.52) ---
+
+## Owned duplicates of `target_uid`'s base weapon that FEED may consume as a sacrifice: same
+## base id, not the currently-equipped weapon (mirrors deconstruct's equipped guard — belt-
+## and-suspenders alongside fuse()'s own guard below), and not the viewed instance itself.
+func eligible_fusion_sacrifices(target_uid: String) -> Array:
+	var target := get_item(target_uid)
+	if target.is_empty():
+		return []
+	var base_id := String(target.get("base", ""))
+	var eq := equipped_uid()
+	var out: Array = []
+	for it in weapons():
+		var uid := String(it.get("uid", ""))
+		if uid == target_uid or uid == eq:
+			continue
+		if String(it.get("base", "")) == base_id:
+			out.append(it)
+	return out
+
+## FEED: consumes `sacrifice_uid` (an owned same-base duplicate — never the equipped weapon,
+## never the target itself) to grant `target_uid` weapon XP = the sacrifice's scrap-band
+## midpoint x GameConfig.FUSION_XP_MULT, through the shared WeaponInstance.apply_xp() path so
+## level-ups/talent-unlocks trigger exactly like end-of-run XP. If the sacrifice's rarity is
+## >= the target's, ALSO rerolls the target's single lowest-quality stat roll. The sacrifice's
+## removal and the target's XP/reroll mutation are written in the SAME set_weapons() + one
+## save_game() call, so there's no window where the dup is gone but the XP wasn't applied (or
+## vice versa). Returns {} on any guard failure (equipped-as-sacrifice, unknown uid, same
+## instance, different base). On success:
+##   { xp_gained, leveled_up, new_level, unlocked: Array[String],
+##     rerolled: {} or { stat_id, old, new } }
+func fuse(target_uid: String, sacrifice_uid: String) -> Dictionary:
+	if sacrifice_uid == target_uid or sacrifice_uid == equipped_uid():
+		return {}   # equipped can NEVER be the sacrifice (feeding INTO it is fine — see eligible_fusion_sacrifices)
+	var target := get_item(target_uid)
+	var sac := get_item(sacrifice_uid)
+	if target.is_empty() or sac.is_empty():
+		return {}
+	if String(sac.get("base", "")) != String(target.get("base", "")):
+		return {}   # same-BASE duplicates only
+
+	var sac_rarity := int(sac.get("rarity", 1))
+	var target_rarity := int(target.get("rarity", 1))
+	var xp_gained := int(round(Rarity.scrap_midpoint(sac_rarity) * GameConfig.FUSION_XP_MULT))
+	var before_level := int(target.get("level", 1))
+	# target is a reference into the saved array — apply_xp/reroll_lowest_stat mutate it in place.
+	var unlocked := WeaponInstance.apply_xp(target, xp_gained)
+
+	var rerolled := {}
+	if sac_rarity >= target_rarity:
+		rerolled = WeaponInstance.reroll_lowest_stat(target)
+
+	var list := weapons().filter(func(w): return String(w.get("uid", "")) != sacrifice_uid)
+	SaveManager.set_weapons(list)   # persists both the sacrifice's removal AND target's mutation
+	SaveManager.add_fusion()
+	SaveManager.save_game()
+	inventory_changed.emit()
+
+	return {
+		"xp_gained": xp_gained,
+		"leveled_up": int(target.get("level", 1)) > before_level,
+		"new_level": int(target.get("level", 1)),
+		"unlocked": unlocked,
+		"rerolled": rerolled,
+	}
 
 ## Curated first-launch seed (Pack 1): exactly 3 gray (rarity 1) starters — pistol, SMG,
 ## shotgun — via the existing roll/instance path, auto-equipping the pistol so PLAY works

@@ -3,9 +3,14 @@ extends Control
 ## A modal weapon detail card over a dim scrim. Built once and reused; open(inst, eq)
 ## rebuilds its contents. Emits intent signals — the owner (MainMenu) performs the
 ## Inventory mutation and repopulates the grid. SCRAP uses an inline two-step confirm.
+## FEED (Pack B: weapon fusion) is the one exception to "mutation happens in the owner and
+## the popup closes": the owner still performs the Inventory.fuse() mutation, but hands the
+## result BACK to this same popup via show_fuse_result() so the card refreshes in place
+## (stats/level/talents/FEED-eligibility) instead of closing.
 
 signal equip_requested(inst: Dictionary)
 signal scrap_confirmed(inst: Dictionary)
+signal fuse_requested(inst: Dictionary, sacrifice_uid: String)
 signal closed()
 
 var _inst: Dictionary
@@ -13,6 +18,7 @@ var _is_equipped := false
 var _card_vbox: VBoxContainer
 var _action_row: Control
 var _confirm_row: Control
+var _feed_row: Control
 var _scroll: ScrollContainer
 var _inner: VBoxContainer
 var _card_w: float = 720.0
@@ -297,6 +303,21 @@ func _build_action_row() -> Control:
 		_close())
 	row.add_child(equip_btn)
 
+	var dupes := Inventory.eligible_fusion_sacrifices(String(_inst.get("uid", "")))
+	var feed_btn := Button.new()
+	feed_btn.text = "FEED"
+	PixelTheme.style_button(feed_btn, Vector2(0, 62), 20)
+	feed_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	feed_btn.disabled = dupes.is_empty()
+	feed_btn.pressed.connect(_show_feed_picker)
+	row.add_child(feed_btn)
+	if dupes.is_empty():
+		var hint := Label.new()
+		hint.text = "No duplicates to feed."   # mirrors the "Inventory full" dim-hint idiom
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelTheme.readable_label(hint, 14, PixelTheme.TEXT_DIM)
+		row.add_child(hint)
+
 	var band: Array = Rarity.tier(int(_inst.get("rarity", 1))).scrap
 	var scrap_btn := Button.new()
 	scrap_btn.text = "SCRAP (%d-%d)" % [int(band[0]), int(band[1])]
@@ -350,6 +371,133 @@ func _show_scrap_confirm() -> void:
 	hb.add_child(no)
 	_confirm_row.add_child(hb)
 	_card_vbox.add_child(_confirm_row)
+
+## FEED step 1: a scrollable list of eligible same-base duplicates (rarity-colored, with
+## level) to pick a sacrifice from. Only reachable via the FEED button, which is itself
+## disabled whenever this list would be empty (see _build_action_row).
+func _show_feed_picker() -> void:
+	_action_row.visible = false
+	var dupes := Inventory.eligible_fusion_sacrifices(String(_inst.get("uid", "")))
+	_feed_row = VBoxContainer.new()
+	_feed_row.add_theme_constant_override("separation", 10)
+	_feed_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var title := Label.new()
+	title.text = "FEED — choose a duplicate to consume"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.readable_label(title, 16, PixelTheme.SELECT)
+	_feed_row.add_child(title)
+
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(0, minf(280.0, float(dupes.size()) * 62.0 + 8.0))
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 6)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
+	for dup in dupes:
+		list.add_child(_feed_candidate_row(dup))
+	_feed_row.add_child(scroll)
+
+	var cancel := Button.new()
+	cancel.text = "CANCEL"
+	PixelTheme.style_button(cancel, Vector2(0, 56), 18)
+	cancel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cancel.pressed.connect(_close_feed_row)
+	_feed_row.add_child(cancel)
+
+	_card_vbox.add_child(_feed_row)
+
+## One selectable row in the FEED picker: rarity-colored name + level. Tapping goes straight
+## to the confirm step (_show_feed_confirm) — no separate "select" step.
+func _feed_candidate_row(dup: Dictionary) -> Button:
+	var b := Button.new()
+	b.text = "%s  ·  Lv%d  ·  %s" % [WeaponInstance.display_name(dup), int(dup.get("level", 1)), WeaponInstance.rarity_name(dup)]
+	PixelTheme.style_button(b, Vector2(0, 56), 16)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.add_theme_color_override("font_color", WeaponInstance.color(dup))
+	b.pressed.connect(func(): _show_feed_confirm(dup))
+	return b
+
+## FEED step 2: final YES/NO before the sacrifice is actually consumed (mirrors the scrap
+## confirm's shape). YES emits fuse_requested — the OWNER (MainMenu) performs the
+## Inventory.fuse() mutation and calls show_fuse_result() back on this popup; the popup does
+## NOT close, so the result renders in the same card. NO backs out to the picker list.
+func _show_feed_confirm(dup: Dictionary) -> void:
+	if is_instance_valid(_feed_row):
+		_feed_row.queue_free()
+	_feed_row = VBoxContainer.new()
+	_feed_row.add_theme_constant_override("separation", 10)
+	_feed_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var q := Label.new()
+	q.text = "Feed %s (Lv%d) into %s? It will be consumed." % [
+		WeaponInstance.display_name(dup), int(dup.get("level", 1)), WeaponInstance.display_name(_inst)]
+	q.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.readable_label(q, 18, PixelTheme.SELECT)
+	_feed_row.add_child(q)
+
+	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 12)
+	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var yes := Button.new()
+	yes.text = "YES"
+	PixelTheme.style_button(yes, Vector2(0, 62), 20)
+	yes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	yes.pressed.connect(func():
+		var sac_uid := String(dup.get("uid", ""))
+		_close_feed_row()
+		fuse_requested.emit(_inst, sac_uid))
+	hb.add_child(yes)
+	var no := Button.new()
+	no.text = "NO"
+	PixelTheme.style_button(no, Vector2(0, 62), 20)
+	no.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	no.pressed.connect(func(): _show_feed_picker())   # back to the candidate list
+	hb.add_child(no)
+	_feed_row.add_child(hb)
+	_card_vbox.add_child(_feed_row)
+
+func _close_feed_row() -> void:
+	if is_instance_valid(_feed_row):
+		_feed_row.queue_free()
+	_feed_row = null
+	_action_row.visible = true
+
+## Called by the owner (MainMenu) right after it performs the Inventory.fuse() mutation.
+## Rebuilds the whole card — stats/xp/level/talents/FEED-eligibility all reflect the fused
+## instance because `_inst` is the SAME Dictionary Inventory.fuse() just mutated in place
+## (the same aliasing add_run_xp's "it is a reference into the saved array" comment relies
+## on) — then appends a result banner just above the (freshly rebuilt) action row.
+## `result` is Inventory.fuse()'s return value; {} means the fusion was rejected by a guard
+## (shouldn't happen from this popup's own picker, but handled defensively — no banner shown).
+func show_fuse_result(result: Dictionary) -> void:
+	_rebuild()
+	if result.is_empty():
+		return
+	var lines: Array[String] = []
+	lines.append("+%d WEAPON XP" % int(result.get("xp_gained", 0)))
+	if bool(result.get("leveled_up", false)):
+		lines.append("LEVEL UP — now Lv%d" % int(result.get("new_level", 1)))
+	var unlocked: Array = result.get("unlocked", [])
+	if not unlocked.is_empty():
+		lines.append("New talent%s unlocked: %s" % ["s" if unlocked.size() > 1 else "", ", ".join(unlocked)])
+	var rerolled: Dictionary = result.get("rerolled", {})
+	if not rerolled.is_empty():
+		var label := WeaponInstance.stat_label(String(rerolled.get("stat_id", "")))
+		var old_pct := int(round(float(rerolled.get("old", 0.0)) * 100.0))
+		var new_pct := int(round(float(rerolled.get("new", 0.0)) * 100.0))
+		lines.append("REROLLED: %s (%d%% -> %d%%)" % [label, old_pct, new_pct])
+
+	var banner := Label.new()
+	banner.text = "\n".join(lines)
+	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	PixelTheme.readable_label(banner, 18, PixelTheme.SELECT)
+	_card_vbox.add_child(banner)
+	_card_vbox.move_child(banner, _action_row.get_index())   # above the action row
 
 func _close() -> void:
 	visible = false

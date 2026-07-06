@@ -63,6 +63,12 @@ static func display_color(id: int) -> Color:
 static func talent_count(id: int) -> int:
 	return int(tier(id).get("talents", 0))
 
+## Midpoint of the tier's scrap coin band — the basis for Pack B's weapon-fusion XP math
+## (sacrifice midpoint x GameConfig.FUSION_XP_MULT; see Inventory.fuse).
+static func scrap_midpoint(id: int) -> float:
+	var band: Array = tier(id).scrap
+	return (float(band[0]) + float(band[1])) * 0.5
+
 ## Factorial-decay ladder. Start at `floor_id`, try to climb each step; the chance to
 ## climb from tier i is 1/(i+1). Cascaded from floor 1 this yields roughly:
 ## Worn ~50%, Standard ~33%, Specialized ~12.5%, Superior ~3.3%, High-End ~0.7%, etc.

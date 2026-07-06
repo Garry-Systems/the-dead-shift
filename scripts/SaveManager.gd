@@ -36,6 +36,7 @@ const DEFAULTS := {
 	"armageddons_pulled": 0,    # Pack D: rarity-9 (Armageddon) instances added to the inventory
 	"gun_kills": {},            # Pack D: base weapon id -> lifetime kill count (equipped-at-kill-time gun)
 	"shake_on": true,           # Pack D: EFFECTS toggle — screen shake + crit-kill hit-stop
+	"fusions": 0,               # Pack B: lifetime count of successful weapon-fusion feeds (Inventory.fuse)
 }
 
 var _data: Dictionary = {}
@@ -222,6 +223,14 @@ func add_armageddon_pulled() -> void:
 ## LifetimeRecords.merge_run doc comments for why a single run-wide counter is enough).
 func gun_kills() -> Dictionary:
 	return _data.get("gun_kills", {})
+
+## Lifetime count of successful weapon-fusion feeds (Pack B, v0.1.52).
+func fusions() -> int:
+	return int(_data.get("fusions", 0))
+
+## Called once per successful Inventory.fuse() call. Caller saves.
+func add_fusion() -> void:
+	_data["fusions"] = fusions() + 1
 
 ## Flushes one run's lifetime-record deltas (memory only; caller saves). See the section header
 ## above for the exactly-once guarantee — this function itself is NOT idempotent.
