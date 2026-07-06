@@ -302,6 +302,16 @@ func _physics_process(delta: float) -> void:
 
 	velocity = _desired_velocity() * _slow_factor
 
+	# Night Terror (`onhit_fear`): enforced HERE at the base, like the frozen/pin zeroing below,
+	# so a subclass _desired_velocity override (RangedEnemy's standoff-keeping) can't bypass it —
+	# every feared enemy flees directly away from the player. Movement-only: _act still runs, so
+	# a feared spitter keeps firing over its shoulder while it runs.
+	if _fear_time > 0.0:
+		var flee := (global_position - _target.global_position).normalized()
+		if flee == Vector2.ZERO:
+			flee = Vector2.RIGHT
+		velocity = flee * move_speed * _slow_factor
+
 	if _knockback != Vector2.ZERO:
 		velocity += _knockback
 		_knockback = _knockback.move_toward(Vector2.ZERO, KNOCKBACK_DECAY * delta)
@@ -332,12 +342,10 @@ func _physics_process(delta: float) -> void:
 ## Base movement intent (before slow/knockback). Override per enemy. Default = chase the player,
 ## but if we slid against solid cover last frame, steer tangentially around it (no pathfinding —
 ## just peel along the obstacle toward the player so a nav-less horde doesn't wedge on a car).
-## Night Terror (`onhit_fear`): while feared, the chase vector is simply NEGATED — movement-only,
-## no cover-steer — so a terrified enemy visibly reverses and runs (the primary read; no VFX).
+## (Fear does NOT live here — it's enforced in _physics_process, like frozen/pin, so subclass
+## overrides of this method are automatically covered.)
 func _desired_velocity() -> Vector2:
 	var dir := (_target.global_position - global_position).normalized()
-	if _fear_time > 0.0:
-		return -dir * move_speed
 	for i in get_slide_collision_count():
 		var col := get_slide_collision(i)
 		var other := col.get_collider()

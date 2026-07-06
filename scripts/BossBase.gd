@@ -102,7 +102,9 @@ func _setup_flash() -> void:
 	_flash_mat.set_shader_parameter("base_tint", _base_tint())
 	spr.material = _flash_mat
 
-func flash_hit() -> void:
+## `_tint` is accepted-and-ignored: the 4 hit sites pass Curb Stomp's boosted-hit tint with one
+## shared signature (mirrors Enemy.flash_hit); bosses keep their plain white flash + _base_tint.
+func flash_hit(_tint: Color = Color(1, 1, 1, 1)) -> void:
 	if _flash_mat == null:
 		return
 	_flash_mat.set_shader_parameter("flash", 1.0)

@@ -42,6 +42,9 @@ func _process(delta: float) -> void:
 	if _time_left <= 0.0:
 		_collapsing = true
 		_collapse_age = 0.0
+		# Leave the cap group the moment the pull ends (mirrors Mine._detonate's hygiene):
+		# the 0.2s collapse pop is pure cosmetics and must not block a fresh well from spawning.
+		remove_from_group(GROUP)
 	queue_redraw()
 
 ## Pulls every enemy in radius toward the well's center — a knockback impulse, not a teleport, so

@@ -189,6 +189,11 @@ func _process(delta: float) -> void:
 	_fade_muzzle(delta)
 	if _frenzy_time > 0.0:
 		_frenzy_time -= delta
+		if _frenzy_time <= 0.0:
+			# Max-wins across ACTIVE sources only: zero the magnitude on expiry so the next
+			# frenzy (Bloodrush kill, Graveyard Shift re-arm) re-establishes its own strength
+			# instead of inheriting the strongest bonus this gun has EVER had.
+			_frenzy_mult = 0.0
 
 	if _surge_time > 0.0:
 		_surge_time -= delta
@@ -255,6 +260,7 @@ func _tick_lowhp_frenzy() -> void:
 		add_frenzy(float(cfg.get("rof", 0.0)), GameConfig.TALENT_LOWHP_FRENZY_REFRESH)
 		if not _graveyard_armed:
 			_graveyard_armed = true
+			_frenzy_was_active = true   # claim the frenzy-channel transition: GRAVEYARD SHIFT is the callout, don't also pop the generic FRENZY next frame
 			CombatText.callout(global_position, "GRAVEYARD SHIFT", Hazards.BLOOD_RED)
 			TalentEngine.spawn_ring(global_position, GameConfig.TALENT_GRAVEYARD_RING_RADIUS, Hazards.BLOOD_RED, get_tree())
 	else:
@@ -337,7 +343,6 @@ func _fire(dir: Vector2) -> bool:
 	# — every fire mode below reads `damage` directly, so this covers a bullet, the whole
 	# cone/beam sweep, or the first jump of a Tesla bolt with no signature changes anywhere else.
 	var mult := TalentEngine.shot_damage_mult(talent_payload, _first_shot_armed, _ammo, mag_size)
-	_first_shot_armed = false
 	var saved_damage := damage
 	if mult != 1.0:
 		damage *= mult
@@ -352,6 +357,7 @@ func _fire(dir: Vector2) -> bool:
 	# shot (a "no target" lightning bolt returns false and plays nothing) fires the
 	# category-mapped sound exactly once per trigger-pull, not once per pellet/target.
 	if fired:
+		_first_shot_armed = false   # Clock In consumed only by a shot that actually happened (a no-target Tesla pull keeps the bonus armed)
 		SoundManager.play(shot_sfx_id)
 	return fired
 
