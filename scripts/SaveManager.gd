@@ -536,7 +536,7 @@ func is_commendation_earned(id: String) -> bool:
 	return id in commendations_earned()
 
 ## Count of badges earned so far — the RECORDS wall's "N/18" readout (denominator is
-## GameConfig.COMMENDATION_COUNT / Commendations.all().size(), which the probe asserts agree).
+## Commendations.all().size(), the single source of truth for the badge count).
 func commendations_earned_count() -> int:
 	return commendations_earned().size()
 

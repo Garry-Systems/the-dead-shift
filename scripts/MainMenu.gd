@@ -1166,14 +1166,25 @@ func _show_next_reward() -> void:
 
 ## CLAIM pressed on the reward popup. Pack 1: a crate reward now opens the SAME reel every
 ## other crate-open path uses (instead of just sitting in the inventory unopened) before the
-## queue continues; a gun reward (the 10-game 50/50) keeps the old behavior unchanged.
+## queue continues; a gun reward (the 10-game 50/50) keeps the old behavior unchanged. Pack H:
+## a commendation reward carries a tier crate (already granted into SaveManager.crates() at
+## check_and_grant time), so its CLAIM resolves that crate id and rides the identical reel path
+## below — including the inventory-full failure behavior. The reward queue already serializes
+## popups one at a time, so several commendations earned in one flush just play out as
+## reel -> settle -> next popup, no overlap.
 func _on_reward_claimed() -> void:
 	var reward := _current_reward
 	_current_reward = {}
-	if String(reward.get("kind", "")) != "crate":
-		_advance_reward_queue()
+	var crate_id := ""
+	match String(reward.get("kind", "")):
+		"crate":
+			crate_id = String(reward.get("crate_id", ""))
+		"commendation":
+			var tier: Dictionary = Commendations.by_id(String(reward.get("id", ""))).get("tier", {})
+			crate_id = String(tier.get("crate_id", ""))
+	if crate_id == "":
+		_advance_reward_queue()   # gun / rank / unknown kinds: no crate to reel, queue moves on
 		return
-	var crate_id := String(reward.get("crate_id", ""))
 	_reward_flow_active = true
 	if not _open_crate_reel(crate_id):
 		# Already granted (owned unopened) — inventory's just full right now. Show the

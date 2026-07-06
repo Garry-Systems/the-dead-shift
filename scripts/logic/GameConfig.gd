@@ -543,7 +543,8 @@ const OVERTIME_HEADSTART_XP := 124
 # --- Commendations wall (Pack H: v0.1.59) ---
 # 18 one-time lifetime badges (scripts/logic/Commendations.gd) — every target lives here per
 # house rules (mirrors CHALLENGE_*_TARGET above). Starter values per the spec's own framing.
-const COMMENDATION_COUNT := 18            # total badges — RECORDS "N/18" row + probe boundary check
+# The badge COUNT itself is deliberately NOT a const: Commendations.all().size() is the single
+# source of truth for every "N/18" readout (a separate const could silently drift from the table).
 const COMMENDATION_FIRST_DAY_TARGET := 1
 const COMMENDATION_PUNCHING_IN_TARGET := 10
 const COMMENDATION_CAREER_CLERK_TARGET := 100
