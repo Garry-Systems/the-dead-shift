@@ -515,14 +515,17 @@ func upgrade_crit(chance_pct: float, mult_bonus: float) -> void:
 	talent_payload["crit_mult"] = float(talent_payload.get("crit_mult", 1.0)) + mult_bonus
 
 func _fire_lightning(dir: Vector2) -> bool:
+	# POWER SURGE (night event, Pack A): +2 chain jumps, additive at fire time only — jump_count
+	# itself is never mutated, so the bonus disappears the instant the event ends.
+	var surge_jumps := jump_count + NightEvents.chain_bonus(get_tree())
 	var raw_enemies := get_tree().get_nodes_in_group("enemies")
 	# Cheap geometry before the LoS raycast: bound candidates to the max distance any conductor
 	# could ever matter — first-target acquisition range (gun_range) plus the chain's full reach
-	# (jump_count hops of at most jump_radius each). Anything farther than that can never be
+	# (surge_jumps hops of at most jump_radius each). Anything farther than that can never be
 	# picked as `first` (gun_range-gated in _nearest_enemy) or reached by the chain, so this is
 	# a strict superset of the old unbounded filter_visible(all enemies) — same final conductor
 	# set, far fewer raycasts once the enemy count climbs late-game.
-	var reach := gun_range + float(jump_count) * jump_radius
+	var reach := gun_range + float(surge_jumps) * jump_radius
 	var near_enemies := _enemies_in_range(global_position, reach, raw_enemies)
 	var enemies := LineOfSight.filter_visible(global_position, near_enemies, get_world_2d().direct_space_state)
 	# Barrels/props conduct too — the bolt can target and arc through destructibles (raw damage,
@@ -533,7 +536,7 @@ func _fire_lightning(dir: Vector2) -> bool:
 	if first == null:
 		return false
 	_show_muzzle(dir.angle())
-	var chain := _chain_targets(first, jump_count, jump_radius, conductors)
+	var chain := _chain_targets(first, surge_jumps, jump_radius, conductors)
 	var player := get_parent() as Player
 	var points: Array = [global_position]
 	var dmg := damage

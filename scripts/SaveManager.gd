@@ -27,6 +27,7 @@ const DEFAULTS := {
 	"tutorial_done": false,   # first-run HUD hint sequence (move/shoot/dash) already completed?
 	"sfx_on": true,           # SoundManager: SFX bus enabled?
 	"music_on": true,         # SoundManager: Music bus enabled?
+	"shifts_survived": 0,     # Pack A: runs that WON via the Dawn Extraction chopper LZ (not just reaching dawn)
 }
 
 var _data: Dictionary = {}
@@ -165,6 +166,14 @@ func best_bosses() -> int:
 func record_run(wave: int, bosses: int) -> void:
 	_data["best_wave"] = maxi(best_wave(), wave)
 	_data["best_bosses"] = maxi(best_bosses(), bosses)
+
+## Pack A: lifetime count of runs WON via the Dawn Extraction chopper LZ.
+func shifts_survived() -> int:
+	return int(_data.get("shifts_survived", 0))
+
+## Called once from GameOver.trigger_win(). Caller saves.
+func add_shift_survived() -> void:
+	_data["shifts_survived"] = shifts_survived() + 1
 
 # --- Owned crates (unopened) ---
 

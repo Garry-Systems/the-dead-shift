@@ -27,6 +27,7 @@ const BANNER_HOLD := 2.6   # seconds fully visible
 const BANNER_FADE := 0.4   # seconds fade-out (HOLD + FADE ~= the brief's "~3s")
 
 func _ready() -> void:
+	add_to_group("hud")
 	_player = get_tree().get_first_node_in_group("player") as Player
 
 	_bar = ProgressBar.new()
@@ -248,10 +249,19 @@ func _process(_delta: float) -> void:
 	else:
 		_ability_label.visible = false
 
-## Once-per-run "DAWN — YOU SURVIVED THE SHIFT" banner. Thin wrapper over _show_banner (Pack 7
-## extracted the node-building so the SHIFT CHANGE toast below can reuse it verbatim).
+## Once-per-run dawn banner. Thin wrapper over _show_banner (Pack 7 extracted the node-building
+## so the SHIFT CHANGE toast below can reuse it verbatim). Reframed for Dawn Extraction (Pack A):
+## the DAWN_BONUS_COINS payout above still fires unconditionally at this same crossing —
+## Extraction.gd (a sibling node) independently watches the same run_time threshold to start the
+## final-surge/chopper sequence, so the two effects land together without this Hud knowing
+## anything about Extraction's internals.
 func _show_dawn_banner() -> void:
-	_show_banner("DAWN\nYOU SURVIVED THE SHIFT")
+	_show_banner("RESCUE INBOUND\nSURVIVE TO EXTRACT")
+
+## Public entry point for other scene nodes (NightEvents, Extraction — Pack A) that want the
+## same full-screen toast without reaching into this Hud's internals.
+func show_banner(text: String) -> void:
+	_show_banner(text)
 
 ## A big C4 label over a dim scrim, held briefly then faded out, then it frees itself.
 ## Self-contained (spawn and forget), same shape as ScreenFlash. The run continues underneath

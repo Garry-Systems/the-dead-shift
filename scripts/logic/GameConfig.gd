@@ -411,3 +411,51 @@ const TALENT_GRAVEYARD_RING_RADIUS := 40.0   # Shockwave.flash() radius on the a
 
 # Closing Time (aura_slow): tick cadence reuses HAZARD_TICK_INTERVAL (never per-frame).
 const TALENT_AURA_SLOW_REFRESH_DUR := 0.4    # apply_slow() duration per tick (> tick interval, no gaps)
+
+# --- Elites (Pack A: Run variety, v0.1.50) ---
+# Spawn roll: endless only, gated in Spawner (Boss Rush must stay completely untouched).
+const ELITE_MIN_WAVE := 6                # no elite roll before this wave
+const ELITE_CHANCE_BASE := 0.05          # + ELITE_CHANCE_PER_WAVE * wave, capped at ELITE_CHANCE_CAP
+const ELITE_CHANCE_PER_WAVE := 0.005
+const ELITE_CHANCE_CAP := 0.15
+const ELITE_HP_MULT := 2.5               # elite max_health multiplier (applied post-configure)
+const ELITE_GEM_VALUE_MULT := 3.0        # XP gem value multiplier on an elite kill
+const ELITE_COIN_BONUS := 5              # RunStats.add_coins() on an elite kill
+const ELITE_ARMORED_DR := 0.30           # Armored: -% damage taken
+const ELITE_VOLATILE_MULT := 1.2         # Volatile: exploder blast dmg/radius x this
+const ELITE_VOLATILE_FUSE := 0.6         # Volatile: telegraph seconds before the death-blast lands
+const ELITE_SPLITTER_CHILD_COUNT := 2    # Splitter: runners spawned on death
+const ELITE_SPLITTER_CHILD_HP_FRAC := 0.5 # Splitter: children's HP, as a fraction of the elite's OWN (scaled) max_health
+const ELITE_SPLITTER_CHILD_OFFSET := 24.0 # px the two children are spread apart on spawn
+const ELITE_ALPHA_RADIUS := 300.0        # Alpha aura reach
+const ELITE_ALPHA_SPEED_PCT := 0.20      # Alpha aura: +% move speed to enemies in range
+const ELITE_ALPHA_DMG_PCT := 0.20        # Alpha aura: +% damage to enemies in range
+const ELITE_ALPHA_BUFF_REFRESH := 0.4    # apply_elite_buff() duration per tick (> HAZARD_TICK_INTERVAL, no gaps — same idiom as TALENT_AURA_SLOW_REFRESH_DUR; when the Alpha dies, ticking stops and the buff decays on its own)
+
+# --- Night-shift events (Pack A: Run variety, v0.1.50) ---
+# Endless only, one active max; rolled at each new wave past NIGHT_EVENT_MIN_WAVE.
+const NIGHT_EVENT_MIN_WAVE := 4
+const NIGHT_EVENT_CHANCE := 0.22
+const NIGHT_EVENT_DURATION := 30.0       # ~1 wave (mirrors WAVE_DURATION)
+const BLOOD_MOON_SPAWN_MULT := 0.5       # spawn interval x this while active (faster spawns)
+const BLOOD_MOON_COIN_MULT_BONUS := 1.0  # added to RunStats.coin_mult on start, removed on end (exact reversal, composes with the Coin Gain card)
+const BLOOD_MOON_TINT_STRENGTH := 0.15   # CanvasModulate: how far toward red (~15%)
+const FOG_BANK_DIM := 0.35               # CanvasModulate: how far toward black (~35% dim)
+const FOG_BANK_GEM_MULT := 2.0           # XP gem value x this while active
+const POWER_SURGE_CHAIN_BONUS := 2       # + chain jumps (gun lightning fire + TalentEngine chain/bolt procs) while active
+const RUSH_HOUR_MIN_COUNT := 6
+const RUSH_HOUR_MAX_COUNT := 10
+const RUSH_HOUR_MIN_R := 250.0           # px along the corridor from the player (not right on top)
+const RUSH_HOUR_MAX_R := 900.0
+const RUSH_HOUR_WIDTH := 220.0           # px perpendicular jitter across the corridor
+
+# --- Dawn extraction (Pack A: Run variety, v0.1.50) ---
+# Endless only. Triggers at the existing dawn hook (ShiftClock.dawn_run_time()).
+const FINAL_SURGE_SECONDS := 90.0        # forced spawn floor + doubled elite chance before the chopper arrives
+const FINAL_SURGE_ELITE_MULT := 2.0
+const EXTRACT_WINDOW := 20.0             # seconds the chopper waits at the LZ before leaving
+const EXTRACT_PAY_MULT := 1.5            # win payout: final_payout() total x this
+const EXTRACTION_LZ_POS := Vector2(0.0, 460.0)  # apron spot near the forecourt, clear of the store/pumps
+const EXTRACTION_LZ_RADIUS := 130.0
+const EXTRACTION_CHOPPER_DESCEND_TIME := 3.0    # seconds the chopper's visual takes to settle onto the LZ (cosmetic only)
+const EXTRACTION_CHOPPER_ROTOR_HZ := 6.0

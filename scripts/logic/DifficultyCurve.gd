@@ -26,6 +26,15 @@ static func spawn_interval(wave: int) -> float:
 	var interval: float = GameConfig.SPAWN_INTERVAL * pow(GameConfig.SPAWN_INTERVAL_DECAY, w)
 	return maxf(interval, GameConfig.SPAWN_INTERVAL_FLOOR)
 
+## Elites (Pack A): the elite-roll chance on this wave (0 before ELITE_MIN_WAVE, capped at
+## ELITE_CHANCE_CAP). Pure -- no RNG -- so a probe can verify the curve headlessly; the actual
+## roll (randf() against this) lives in Spawner, which also applies the Dawn Extraction surge's
+## elite_chance_mult() on top.
+static func elite_chance(wave: int) -> float:
+	if wave < GameConfig.ELITE_MIN_WAVE:
+		return 0.0
+	return minf(GameConfig.ELITE_CHANCE_BASE + GameConfig.ELITE_CHANCE_PER_WAVE * float(wave), GameConfig.ELITE_CHANCE_CAP)
+
 ## Scaled stats for a boss spawned on the given wave. Reuses the enemy HP/damage
 ## growth curves on top of the boss base values; move speed is fixed (bosses are slow).
 static func boss_stats(wave: int) -> Dictionary:

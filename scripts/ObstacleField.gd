@@ -63,13 +63,37 @@ func _drop_cluster() -> void:
 		var r := randf_range(GameConfig.OBSTACLE_CLUSTER_MIN_R, GameConfig.OBSTACLE_CLUSTER_RADIUS)
 		_spawn_at(_player.global_position + Vector2(cos(ang), sin(ang)) * r)
 
-func _spawn_at(pos: Vector2) -> void:
+## `row` defaults to {} = pick a weighted/wave-gated row (the ambient path); Rush Hour (below)
+## passes an exact row instead so it can force car/rubble cover specifically.
+func _spawn_at(pos: Vector2, row: Dictionary = {}) -> void:
 	if pos.distance_squared_to(Vector2.ZERO) < GameConfig.FORECOURT_KEEPOUT_RADIUS * GameConfig.FORECOURT_KEEPOUT_RADIUS:
 		return   # never scatter into the forecourt (Pack 5) — it's a fixed structure, not ambient clutter
 	var d := Destructible.new()
-	d.configure(Obstacles.pick(DifficultyManager.wave))
+	d.configure(row if not row.is_empty() else Obstacles.pick(DifficultyManager.wave))
 	get_tree().current_scene.add_child(d)
 	d.global_position = pos
+
+## RUSH HOUR (night event, Pack A): scatters `count` extra car/rubble cover in a rough corridor
+## near the player — a random facing, then jittered along/across it. Reuses this field's own
+## keep-out (forecourt) + OBSTACLE_HARD_CAP via _spawn_at, and the resulting props are plain
+## managed destructibles afterward (no special flag), so they're normal, cullable obstacles —
+## exactly like an ambient or wave-cluster drop, just front-loaded.
+func rush_hour_scatter(count: int) -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	var dir := Vector2.RIGHT.rotated(randf_range(0.0, TAU))
+	var perp := Vector2(-dir.y, dir.x)
+	var car_row := Obstacles.by_id("car")
+	var rubble_row := Obstacles.by_id("rubble")
+	for i in count:
+		if _managed_destructibles().size() >= GameConfig.OBSTACLE_HARD_CAP:
+			return
+		var along := randf_range(GameConfig.RUSH_HOUR_MIN_R, GameConfig.RUSH_HOUR_MAX_R)
+		var across := randf_range(-GameConfig.RUSH_HOUR_WIDTH, GameConfig.RUSH_HOUR_WIDTH)
+		var pos := _player.global_position + dir * along + perp * across
+		var row := car_row if randf() < 0.5 else rubble_row
+		if not row.is_empty():
+			_spawn_at(pos, row)
 
 func _cull_far() -> void:
 	var cull2 := GameConfig.OBSTACLE_CULL_RADIUS * GameConfig.OBSTACLE_CULL_RADIUS

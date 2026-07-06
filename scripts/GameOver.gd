@@ -7,12 +7,14 @@ extends CanvasLayer
 ## PROCESS_MODE_ALWAYS so its buttons work while the tree is paused (death pauses the game).
 
 var _root: Control
-var _stub_vbox: VBoxContainer   # itemized pay-stub rows, (re)built once in _on_player_died
+var _title: Label               # header label; text/color flip for a WIN (Pack A: Dawn Extraction)
+var _stub_vbox: VBoxContainer   # itemized pay-stub rows, (re)built once per finish
 var _player: Player
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 20
+	add_to_group("game_over")   # Extraction.gd calls trigger_win() on this via the group
 	_player = get_tree().get_first_node_in_group("player") as Player
 	if _player != null:
 		_player.died.connect(_on_player_died)
@@ -41,12 +43,12 @@ func _build_ui() -> void:
 	vbox.add_theme_constant_override("separation", 14)
 	card.add_child(vbox)
 
-	var title := Label.new()
-	title.text = "YOU DIED" if RunConfig.mode == "boss_rush" else "SHIFT'S OVER"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_title(title, 40)
-	title.add_theme_color_override("font_color", PixelTheme.DANGER)
-	vbox.add_child(title)
+	_title = Label.new()
+	_title.text = "YOU DIED" if RunConfig.mode == "boss_rush" else "SHIFT'S OVER"
+	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_title(_title, 40)
+	_title.add_theme_color_override("font_color", PixelTheme.DANGER)
+	vbox.add_child(_title)
 
 	vbox.add_child(_spacer(4))
 
@@ -103,16 +105,30 @@ func _centered_line(parent: VBoxContainer, text: String, color: Color, size: int
 	parent.add_child(l)
 
 func _on_player_died() -> void:
+	_finish_run(false)
+
+## Public entry point for a WIN (Dawn Extraction's chopper LZ, Pack A) — called by Extraction.gd
+## via the "game_over" group, NOT via a Player signal, so nothing on Player needs to change.
+## Pauses the tree itself (mirrors Player._die()'s get_tree().paused = true) since a win is a
+## run end exactly like death is; routes through the SAME _finish_run the death path uses, so the
+## RunStats.paid_out guard makes a double-pay (or a death arriving the same frame) impossible.
+func trigger_win() -> void:
+	get_tree().paused = true
+	_finish_run(true)
+
+func _finish_run(is_win: bool) -> void:
 	if RunStats.paid_out:
 		return
 	RunStats.paid_out = true
-	SoundManager.play("death_sting")
+	SoundManager.play("dawn_sting" if is_win else "death_sting")
 	var wave := DifficultyManager.wave
 	var bosses := RunStats.bosses_killed
 	var kills := RunStats.kills
 	var bonus := RunStats.bonus_coins
 	var mult := RunStats.coin_mult
 	var earned := CoinReward.final_payout(wave, bosses, kills, bonus, mult)
+	if is_win:
+		earned = int(round(float(earned) * GameConfig.EXTRACT_PAY_MULT))
 
 	# NEW BEST must compare against what stood BEFORE this run — read it before record_run
 	# mutates best_wave/best_bosses (record_run takes maxi(existing, this run's value)).
@@ -123,6 +139,8 @@ func _on_player_died() -> void:
 	SaveManager.add_coins(earned)
 	SaveManager.record_run(wave, bosses)
 	SaveManager.add_game_played()   # counts toward the every-10-games free reward (granted at the menu)
+	if is_win:
+		SaveManager.add_shift_survived()
 	SaveManager.save_game()
 
 	# Weapon-loot: award XP to the equipped weapon so its talents unlock over time, then read
@@ -132,15 +150,19 @@ func _on_player_died() -> void:
 	Inventory.add_run_xp(xp_amount)
 	var inst := Inventory.get_item(equipped_uid)
 
-	_populate_stub(wave, bosses, kills, bonus, mult, earned, is_new_best, inst, xp_amount)
+	if is_win:
+		_title.text = "SHIFT SURVIVED\nCLOCKED OUT ALIVE"
+		_title.add_theme_color_override("font_color", PixelTheme.ACCENT)
+
+	_populate_stub(wave, bosses, kills, bonus, mult, earned, is_new_best, inst, xp_amount, is_win)
 	_root.visible = true
-	if is_new_best:
+	if is_new_best or is_win:
 		_celebrate()
 
 ## Fills the pay-stub: itemized coin lines (same terms CoinReward.final_payout computes — no
 ## magic numbers), a clocked-out timestamp (endless only), NEW BEST, and the weapon XP line.
 func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float, earned: int,
-		is_new_best: bool, inst: Dictionary, xp_amount: int) -> void:
+		is_new_best: bool, inst: Dictionary, xp_amount: int, is_win: bool = false) -> void:
 	for c in _stub_vbox.get_children():
 		c.queue_free()
 
@@ -159,6 +181,8 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 	# showing the same factor here keeps the stub's math identical to what actually got paid.
 	if not is_equal_approx(mult, 1.0):
 		_row(_stub_vbox, "SHIFT BONUS", "x%.2f" % mult, PixelTheme.SELECT)
+	if is_win:
+		_row(_stub_vbox, "EXTRACTION BONUS", "x%.2f" % GameConfig.EXTRACT_PAY_MULT, PixelTheme.SELECT)
 
 	var rule := Label.new()
 	rule.text = "══════════════"

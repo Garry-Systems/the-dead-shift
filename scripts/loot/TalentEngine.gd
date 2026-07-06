@@ -431,6 +431,10 @@ static func _chain(from_pos: Vector2, first, dmg: float, jumps: int, ctx: Dictio
 	var tree = ctx.get("tree")
 	if tree == null:
 		return
+	# POWER SURGE (night event, Pack A): +2 chain jumps, additive right here where jumps
+	# resolve — `jumps` is a local copy (the caller's proc dict is untouched), so this is never
+	# a permanent upgrade; it just reads live off NightEvents each call.
+	jumps += NightEvents.chain_bonus(tree)
 	var hit := [first]
 	var pos := from_pos
 	var points: Array = [from_pos]

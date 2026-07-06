@@ -6,6 +6,7 @@ extends CharacterBody2D
 ## stats even into wave 9.
 
 const FLASH_SHADER := preload("res://shaders/flash.gdshader")
+const RUNNER_SCENE := preload("res://scenes/Runner.tscn")   # Elites (Splitter): the children it spawns on death
 const KNOCKBACK_DECAY := 900.0    # px/s^2 the talent knockback impulse bleeds off
 const FROZEN_TINT := Color("3D0099")   # C2 indigo — frozen tell (palette-compliant)
 const PIN_TINT := Color("E0E5FF")      # C4 lavender — Nail Gun "nailed" tell (palette-compliant)
@@ -60,6 +61,16 @@ var _flash_mat: ShaderMaterial
 var _flash_cd := 0.0            # counts down between hit-flashes (see FLASH_CD)
 var _health_bar: EnemyHealthBar
 
+# --- Elites (Pack A: Run variety) --- fields are .get-defaulted / left at their neutral default
+# below, so a raw or summoned spawn (Splitter children, Hive broods, boss adds) that never gets
+# apply_elite() called on it behaves exactly like today — the whole modifier system is additive.
+var is_elite := false
+var elite_kind := ""            # "" | "armored" | "volatile" | "splitter" | "alpha"
+var _alpha_tick := 0.0          # Alpha aura: HAZARD_TICK_INTERVAL-cadence accumulator (never per-frame)
+var _elite_buff_speed := 0.0    # incoming Alpha-aura buff (any enemy can receive this, not just elites)
+var _elite_buff_dmg := 0.0
+var _elite_buff_time := 0.0
+
 ## Bakes scaled stats at spawn. Called by the Spawner before/at add_child.
 ## Cast every Variant out of the dict explicitly to dodge the GDScript typing traps.
 func configure(stats: Dictionary) -> void:
@@ -68,6 +79,101 @@ func configure(stats: Dictionary) -> void:
 	touch_damage = float(stats["touch_damage"])
 	_special_mult = float(stats.get("special_mult", 1.0))
 	_health = Health.new(max_health)
+
+## Elites (Pack A): promotes this already-configured enemy to an elite of `kind`. Called by the
+## Spawner right AFTER configure() (the "post-configure point"), before add_child — scales HP
+## (Health.add_max keeps current == max since the enemy hasn't taken a hit yet), remembers the
+## kind for take_damage/_drop_gem/_physics_process to read, and adds the family-colored tell
+## ring. Never called for Splitter's own children (no elite inheritance) or bosses.
+func apply_elite(kind: String) -> void:
+	is_elite = true
+	elite_kind = kind
+	var old_max := max_health
+	max_health *= GameConfig.ELITE_HP_MULT
+	if _health != null:
+		_health.add_max(max_health - old_max)
+	var ring := EliteRing.new()
+	ring.color = _elite_ring_color(kind)
+	add_child(ring)
+
+## Pure: the tell-ring color per modifier family. Static so a probe can verify it headlessly.
+static func _elite_ring_color(kind: String) -> Color:
+	match kind:
+		"armored":
+			return PixelTheme.TEXT_DIM   # C3 gray-tan — "metallic"
+		"volatile":
+			return Hazards.GREEN
+		"splitter":
+			return PixelTheme.ACCENT     # C4 lavender
+		"alpha":
+			return Hazards.GOLD
+		_:
+			return Color(1, 1, 1, 1)
+
+## Elites (Armored): pure damage-reduction math, static so a probe can verify it headlessly.
+static func armored_damage(amount: float) -> float:
+	return amount * (1.0 - GameConfig.ELITE_ARMORED_DR)
+
+## Elites (Splitter): pure HP math for a splitter's children, static so a probe can verify it
+## headlessly. `elite_max_health` is the dying splitter's OWN (already elite-scaled) max_health.
+static func splitter_child_hp(elite_max_health: float) -> float:
+	return elite_max_health * GameConfig.ELITE_SPLITTER_CHILD_HP_FRAC
+
+## Elites (Splitter): on death, spawns ELITE_SPLITTER_CHILD_COUNT plain Runners at
+## splitter_child_hp() of THIS enemy's own max_health — speed/damage come from the current
+## wave's normal runner stats (the Enemies registry), only HP is special-cased. Spawned directly
+## (never through Spawner._spawn_enemy's elite roll), so a child can never be an elite itself and
+## can never re-split.
+func _spawn_splitter_children() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var runner_row := {}
+	for e in Enemies.all():
+		if String(e.get("id", "")) == "runner":
+			runner_row = e
+			break
+	var stats: Dictionary
+	if runner_row.is_empty():
+		stats = {"max_health": max_health, "move_speed": move_speed, "touch_damage": touch_damage, "special_mult": _special_mult}
+	else:
+		stats = Enemies.stats_for(runner_row, DifficultyManager.wave)
+	stats["max_health"] = splitter_child_hp(max_health)
+	for i in GameConfig.ELITE_SPLITTER_CHILD_COUNT:
+		var child = RUNNER_SCENE.instantiate()
+		child.configure(stats)
+		tree.current_scene.add_child(child)
+		var ang := TAU * float(i) / float(GameConfig.ELITE_SPLITTER_CHILD_COUNT)
+		child.global_position = global_position + Vector2(cos(ang), sin(ang)) * GameConfig.ELITE_SPLITTER_CHILD_OFFSET
+
+## Elites (Alpha aura): buffs this enemy's speed/damage for `duration`s — strongest-wins,
+## refreshed (same merge shape as apply_slow/apply_vulnerable). Any enemy can receive this (not
+## just elites) — the Alpha's escort, matching the design's "enemies within 300px" wording.
+func apply_elite_buff(speed_pct: float, dmg_pct: float, duration: float) -> void:
+	_elite_buff_speed = maxf(_elite_buff_speed, speed_pct)
+	_elite_buff_dmg = maxf(_elite_buff_dmg, dmg_pct)
+	_elite_buff_time = maxf(_elite_buff_time, duration)
+
+## Current damage multiplier from an Alpha's aura buff (1.0 = none). Read at every damage-
+## dealing site an elite might reach (this enemy's own contact bite + RangedEnemy's projectile).
+func elite_damage_mult() -> float:
+	return 1.0 + _elite_buff_dmg
+
+## Elites (Alpha): a HAZARD_TICK_INTERVAL-cadence re-apply-with-expiry aura — same idiom as
+## Gun._tick_aura_slow — that keeps every enemy within ELITE_ALPHA_RADIUS topped up on a short-
+## lived speed/damage buff. When this Alpha dies (queue_free), ticking simply stops and every
+## buffed enemy's buff decays on its own within ELITE_ALPHA_BUFF_REFRESH seconds — leak-proof by
+## construction, no buffed-set bookkeeping that could itself leak if the Alpha died mid-frame.
+func _tick_alpha_aura(delta: float) -> void:
+	_alpha_tick += delta
+	if _alpha_tick < GameConfig.HAZARD_TICK_INTERVAL:
+		return
+	_alpha_tick = 0.0
+	var r2 := GameConfig.ELITE_ALPHA_RADIUS * GameConfig.ELITE_ALPHA_RADIUS
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(e) and e.has_method("apply_elite_buff"):
+			if (e as Node2D).global_position.distance_squared_to(global_position) <= r2:
+				e.apply_elite_buff(GameConfig.ELITE_ALPHA_SPEED_PCT, GameConfig.ELITE_ALPHA_DMG_PCT, GameConfig.ELITE_ALPHA_BUFF_REFRESH)
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -297,10 +403,19 @@ func _physics_process(delta: float) -> void:
 		if _fear_time <= 0.0:
 			_refresh_tint()
 
+	if _elite_buff_time > 0.0:
+		_elite_buff_time -= delta
+		if _elite_buff_time <= 0.0:
+			_elite_buff_speed = 0.0
+			_elite_buff_dmg = 0.0
+
+	if elite_kind == "alpha":
+		_tick_alpha_aura(delta)
+
 	if _target == null or not is_instance_valid(_target):
 		return
 
-	velocity = _desired_velocity() * _slow_factor
+	velocity = _desired_velocity() * _slow_factor * (1.0 + _elite_buff_speed)
 
 	# Night Terror (`onhit_fear`): enforced HERE at the base, like the frozen/pin zeroing below,
 	# so a subclass _desired_velocity override (RangedEnemy's standoff-keeping) can't bypass it —
@@ -310,7 +425,7 @@ func _physics_process(delta: float) -> void:
 		var flee := (global_position - _target.global_position).normalized()
 		if flee == Vector2.ZERO:
 			flee = Vector2.RIGHT
-		velocity = flee * move_speed * _slow_factor
+		velocity = flee * move_speed * _slow_factor * (1.0 + _elite_buff_speed)
 
 	if _knockback != Vector2.ZERO:
 		velocity += _knockback
@@ -332,7 +447,7 @@ func _physics_process(delta: float) -> void:
 	if _contact_cd > 0.0:
 		_contact_cd -= delta
 	if _contact_cd <= 0.0 and _touching_player():
-		_target.take_damage(touch_damage, self, true)   # attacker=self (Thorns), is_contact=true (Armor)
+		_target.take_damage(touch_damage * elite_damage_mult(), self, true)   # attacker=self (Thorns), is_contact=true (Armor)
 		var away := _target.global_position.direction_to(global_position)
 		if away == Vector2.ZERO:
 			away = Vector2.RIGHT
@@ -374,13 +489,24 @@ func _touching_player() -> bool:
 func take_damage(amount: float) -> void:
 	if _health.is_dead():
 		return
+	if elite_kind == "armored":
+		amount = armored_damage(amount)
 	if _vuln_bonus > 0.0:
 		amount *= (1.0 + minf(_vuln_bonus, GameConfig.TALENT_VULN_MAX))
 	_health.take_damage(amount)
 	if _health.is_dead():
 		RunStats.add_kill()
+		if is_elite:
+			RunStats.add_coins(GameConfig.ELITE_COIN_BONUS)
+			RunStats.add_elite_kill()
 		SoundManager.play("die_enemy")   # the one alive->dead transition, whatever damage source caused it
 		_drop_gem()
+		if elite_kind == "volatile":
+			EliteVolatileBlast.spawn(global_position,
+				GameConfig.EXPLODER_BLAST_DAMAGE * GameConfig.ELITE_VOLATILE_MULT * _special_mult,
+				GameConfig.EXPLODER_BLAST_RADIUS * GameConfig.ELITE_VOLATILE_MULT, get_tree())
+		elif elite_kind == "splitter":
+			_spawn_splitter_children()
 		queue_free()
 	elif _health_bar != null:
 		_health_bar.set_fraction(health_fraction())
@@ -391,6 +517,10 @@ func _drop_gem() -> void:
 	var gem = xp_gem_scene.instantiate()
 	# Elite/late kills pay proportionally: gem value scales with this enemy's baked
 	# max HP over the wave-1 base (capped), so killing the big thing beats runner-farming.
-	gem.value = clampi(roundi(max_health / GameConfig.ENEMY_MAX_HEALTH), 1, GameConfig.XP_GEM_VALUE_MAX)
+	var value := roundi(max_health / GameConfig.ENEMY_MAX_HEALTH)
+	if is_elite:
+		value = roundi(value * GameConfig.ELITE_GEM_VALUE_MULT)
+	value = roundi(value * NightEvents.gem_value_mult(get_tree()))   # Fog Bank: x2 while active
+	gem.value = clampi(value, 1, GameConfig.XP_GEM_VALUE_MAX)
 	get_tree().current_scene.add_child(gem)
 	gem.global_position = global_position

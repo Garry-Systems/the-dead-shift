@@ -99,8 +99,23 @@ func _spawn_enemy() -> void:
 	var entry := Enemies.pick(DifficultyManager.wave)
 	var enemy = (entry["scene"] as PackedScene).instantiate()
 	enemy.configure(Enemies.stats_for(entry, DifficultyManager.wave))
+	_maybe_apply_elite(enemy)
 	get_tree().current_scene.add_child(enemy)
 	enemy.global_position = _pick_spawn_pos()
+
+## Elites (Pack A): a wave-gated, capped chance to promote a freshly-configured trash spawn to
+## an elite. Endless only — gated HERE (not in Enemy/Enemies) so Boss Rush's call through this
+## SAME _spawn_enemy path stays completely untouched, and the Dawn Extraction final surge (which
+## multiplies this same chance via DifficultyManager.elite_chance_mult()) only ever matters in
+## endless too, since nothing outside endless ever sets that multiplier off 1.0.
+func _maybe_apply_elite(enemy) -> void:
+	if mode != "endless":
+		return
+	var chance := DifficultyCurve.elite_chance(DifficultyManager.wave) * DifficultyManager.elite_chance_mult()
+	if randf() >= chance:
+		return
+	const KINDS := ["armored", "volatile", "splitter", "alpha"]
+	enemy.apply_elite(KINDS[randi() % KINDS.size()])
 
 func _spawn_boss(stats: Dictionary) -> void:
 	var entry := Bosses.pick(_last_boss_id)
