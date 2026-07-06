@@ -4,6 +4,11 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.51 — For the Record (2026-07-05)
+
+- **RECORDS page** — a new hub screen with your lifetime story: total kills, runs worked, coins earned, bosses and elites dropped, best wave, best clock-out time, shifts survived, Armageddons pulled, and kill counts for every gun you've ever carried.
+- **The game HITS now** — crit kills freeze the world for a split second, explosions shake the screen (scaled to the blast), boss slams thump, the extraction chopper rattles the whole forecourt. One EFFECTS toggle (next to the sound switches) turns it all off if it's not your thing.
+
 ## v0.1.50 — No Two Shifts Alike (2026-07-05)
 
 The run itself finally rolls the dice:
