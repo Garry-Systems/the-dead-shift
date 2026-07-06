@@ -41,8 +41,3 @@ func add_coins(n: int) -> void:
 func add_coin_mult(pct: float) -> void:
 	coin_mult *= (1.0 + pct)
 
-## Night events (Pack A, Blood Moon): add a FLAT amount to coin_mult (not multiplicative like
-## the card above), so the event can remove EXACTLY the same amount on end regardless of what
-## add_coin_mult() has done before/after/during — composes with the card by pure addition.
-func adjust_coin_mult(delta: float) -> void:
-	coin_mult += delta

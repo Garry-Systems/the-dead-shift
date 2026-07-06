@@ -115,7 +115,12 @@ func _maybe_apply_elite(enemy) -> void:
 	if randf() >= chance:
 		return
 	const KINDS := ["armored", "volatile", "splitter", "alpha"]
-	enemy.apply_elite(KINDS[randi() % KINDS.size()])
+	var kind: String = KINDS[randi() % KINDS.size()]
+	# Exploders never roll Volatile: their own instant _detonate would stack with the fused
+	# volatile blast into an untelegraphed ~2.2x hit at the same spot — reroll deterministically.
+	if enemy is ExploderEnemy and kind == "volatile":
+		kind = "armored"
+	enemy.apply_elite(kind)
 
 func _spawn_boss(stats: Dictionary) -> void:
 	var entry := Bosses.pick(_last_boss_id)

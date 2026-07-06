@@ -55,7 +55,6 @@ func _start_event(kind: String) -> void:
 	match kind:
 		"blood_moon":
 			DifficultyManager.set_spawn_interval_mult(GameConfig.BLOOD_MOON_SPAWN_MULT)
-			RunStats.adjust_coin_mult(GameConfig.BLOOD_MOON_COIN_MULT_BONUS)
 			_set_tint(Color(1, 1, 1, 1).lerp(Hazards.BLOOD_RED, GameConfig.BLOOD_MOON_TINT_STRENGTH))
 		"fog_bank":
 			_set_tint(Color(1, 1, 1, 1).lerp(Color(0, 0, 0, 1), GameConfig.FOG_BANK_DIM))
@@ -70,7 +69,6 @@ func _end_event() -> void:
 	match active_kind:
 		"blood_moon":
 			DifficultyManager.set_spawn_interval_mult(1.0)
-			RunStats.adjust_coin_mult(-GameConfig.BLOOD_MOON_COIN_MULT_BONUS)
 	_set_tint(_NEUTRAL_TINT)
 	active_kind = KIND_NONE
 	_banner("ALL CLEAR")
@@ -100,6 +98,17 @@ static func _display_name(kind: String) -> String:
 ## Fog Bank: XP gem value multiplier (1.0 = normal). Read by Enemy._drop_gem via a plain group
 ## lookup, like every other cross-system read in this project (Spawner/boss/player/etc.) — no
 ## static-singleton pointer to keep in sync.
+## Blood Moon: flat bonus coins per kill while the moon is up. Paid at the kill site (next to
+## the elite bonus) so the promise is felt DURING the event — the old run-end coin_mult delta
+## only ever paid out if the run happened to END mid-event.
+static func blood_moon_coins(tree) -> int:
+	if tree == null:
+		return 0
+	var n: Node = tree.get_first_node_in_group("night_events")
+	if n == null or n.active_kind != KIND_BLOOD_MOON:
+		return 0
+	return GameConfig.BLOOD_MOON_COIN_PER_KILL
+
 static func gem_value_mult(tree) -> float:
 	if tree == null:
 		return 1.0

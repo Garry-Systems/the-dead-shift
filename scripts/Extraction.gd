@@ -47,7 +47,8 @@ func _start_surge() -> void:
 	_surge_time = GameConfig.FINAL_SURGE_SECONDS
 	DifficultyManager.set_surge_floor_forced(true)
 	DifficultyManager.set_elite_chance_mult(GameConfig.FINAL_SURGE_ELITE_MULT)
-	_banner("RESCUE INBOUND\nSURVIVE TO EXTRACT")
+	# Banner intentionally NOT fired here — Hud owns the dawn announcement (its reframed
+	# extraction banner + sting fire at the same clock crossing); doubling it stacked scrims.
 
 func _start_chopper() -> void:
 	_phase = Phase.CHOPPER

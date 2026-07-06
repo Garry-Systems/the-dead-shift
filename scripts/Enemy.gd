@@ -499,6 +499,9 @@ func take_damage(amount: float) -> void:
 		if is_elite:
 			RunStats.add_coins(GameConfig.ELITE_COIN_BONUS)
 			RunStats.add_elite_kill()
+		var moon_coins := NightEvents.blood_moon_coins(get_tree())
+		if moon_coins > 0:
+			RunStats.add_coins(moon_coins)
 		SoundManager.play("die_enemy")   # the one alive->dead transition, whatever damage source caused it
 		_drop_gem()
 		if elite_kind == "volatile":

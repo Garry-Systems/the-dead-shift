@@ -8,7 +8,7 @@ const ORANGE := Color(1.0, 0.55, 0.1)   # fire       — palette exception
 const GREEN  := Color(0.4, 1.0, 0.2)    # toxic      — palette exception
 const CYAN   := Color(0.2, 1.0, 1.0)    # electric   — palette exception (matches Lightning.COLOR)
 const GOLD   := Color(1.0, 0.843, 0.0)  # marks/crit — palette exception (matches Rarity's Armageddon "molten gold")
-# Blood/execute — newly sanctioned 2026-07-05 (Talent Overhaul design), player-sourced only;
+# Blood/execute — newly sanctioned 2026-07-05 (Talent Overhaul design), player-sourced tells + the Blood Moon world tint;
 # the enemy-projectile bright red (Color("ff3b3b")-family) stays a separate, distinct exception.
 const BLOOD_RED := Color(0.769, 0.118, 0.227)  # #C41E3A
 
