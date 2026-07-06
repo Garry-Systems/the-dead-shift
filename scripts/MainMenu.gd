@@ -160,9 +160,13 @@ func _build_hub() -> void:
 	var toggle_row := HBoxContainer.new()
 	toggle_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	toggle_row.add_theme_constant_override("separation", 10)
-	_sfx_btn = _make_button(_sfx_label(), _on_toggle_sfx, Vector2(360, 68), 18)
-	_music_btn = _make_button(_music_label(), _on_toggle_music, Vector2(360, 68), 18)
-	_effects_btn = _make_button(_effects_label(), _on_toggle_effects, Vector2(360, 68), 18)
+	# 320px per button: 3x320 + 2x10 separation = 980px row + 64px card content margins = 1044px
+	# card, inside the 1080px portrait viewport (3x360 would overflow at 1164px). The longest
+	# label ("EFFECTS: OFF") is ~180px at Silkscreen 18 vs the button's 280px text space (320
+	# minus 2x20 stylebox margins), so no button auto-grows past its minimum.
+	_sfx_btn = _make_button(_sfx_label(), _on_toggle_sfx, Vector2(320, 68), 18)
+	_music_btn = _make_button(_music_label(), _on_toggle_music, Vector2(320, 68), 18)
+	_effects_btn = _make_button(_effects_label(), _on_toggle_effects, Vector2(320, 68), 18)
 	toggle_row.add_child(_sfx_btn)
 	toggle_row.add_child(_music_btn)
 	toggle_row.add_child(_effects_btn)
@@ -603,6 +607,8 @@ func _populate_records() -> void:
 	_stat_row(list, "ELITES DEFEATED", "%d" % SaveManager.total_elites())
 	_stat_row(list, "COINS EARNED", "%d" % SaveManager.total_coins_earned())
 	_stat_row(list, "SHIFTS SURVIVED", "%d" % SaveManager.shifts_survived())
+	_stat_row(list, "BEST WAVE", "%d" % SaveManager.best_wave())
+	_stat_row(list, "BEST BOSSES", "%d" % SaveManager.best_bosses())
 	_stat_row(list, "BEST CLOCK-OUT", clockout_text)
 	_stat_row(list, "ARMAGEDDONS PULLED", "%d" % SaveManager.armageddons_pulled())
 	_stat_row(list, "DAILY STREAK", "%d" % SaveManager.daily_streak())

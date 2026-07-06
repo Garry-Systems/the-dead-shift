@@ -11,6 +11,12 @@ extends Camera2D
 ## Respects the save-level EFFECTS toggle (SaveManager.shake_on()): gated at add-time AND
 ## enforced every frame in _process, so toggling it off stops an in-flight shake dead instantly
 ## instead of waiting for the current trauma to decay out.
+##
+## PROCESS_MODE_ALWAYS so trauma keeps decaying while the tree is paused (a level-up menu right
+## after a blast is the common case) — the shake settles under the overlay instead of freezing at
+## full wobble and resuming stale when play continues. Safe: this script only ever writes
+## `offset` (never position/zoom/limits), the parent Player is paused so nothing else moves the
+## camera, and no other script in the project touches a Camera2D at all.
 
 static var instance: CameraShake = null
 
@@ -18,6 +24,7 @@ var _trauma := 0.0
 var _phase := 0.0   # per-instance phase offset so the two axes don't move in lockstep
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	instance = self
 	_phase = randf() * TAU
 

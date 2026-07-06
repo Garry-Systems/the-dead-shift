@@ -20,7 +20,9 @@ static var instance: Juice = null
 var _stop_token := 0   # bumped on every (re)arm; a stale timer's callback checks this before restoring
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_ALWAYS
+	# No process_mode override needed: this node has no _process/_physics_process, and the restore
+	# timer is a tree-level SceneTreeTimer whose pause immunity comes from its OWN process_always
+	# flag in create_timer() below — a node-level PROCESS_MODE_ALWAYS here would be dead weight.
 	instance = self
 
 func _exit_tree() -> void:
@@ -29,9 +31,11 @@ func _exit_tree() -> void:
 	Engine.time_scale = 1.0   # safety net: never leave the game frozen if this node goes away mid-stop
 
 ## Call when a single hit is BOTH a crit AND a kill (the alive->dead transition) — see the call
-## sites in Bullet.gd / Gun.gd / Shockwave.gd: `killed and bool(roll.get("crit", false))`. No-op
-## if the hard switch (GameConfig.JUICE_HITSTOP_ENABLED) or the save-level EFFECTS toggle
-## (SaveManager.shake_on()) is off, or before/after the run scene owns a live Juice node.
+## sites in Bullet.gd / Gun.gd (x3) / Shockwave.gd (`killed and bool(roll.get("crit", false))`)
+## plus TalentEngine._resolve_echo (a Double Tap echo kill counts: the echo only exists because
+## the original hit crit). No-op if the hard switch (GameConfig.JUICE_HITSTOP_ENABLED) or the
+## save-level EFFECTS toggle (SaveManager.shake_on()) is off, or before/after the run scene owns
+## a live Juice node.
 static func on_crit_kill() -> void:
 	if instance == null or not GameConfig.JUICE_HITSTOP_ENABLED or not SaveManager.shake_on():
 		return

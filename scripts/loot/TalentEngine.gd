@@ -400,21 +400,24 @@ static func _echo_hit(body, hit_pos: Vector2, dmg: float, tree) -> void:
 	tw.tween_callback(_resolve_echo.bind(body, hit_pos, dmg))
 
 ## The echo's actual hit, run after the delay above. Re-validates aliveness (something else may
-## have killed the target in the meantime) before dealing damage.
+## have killed the target in the meantime) before dealing damage — that early return IS the
+## was_alive gate (the take_damage below can only ever run on a live body), so the crit number
+## and the kill-transition check are was_alive-gated exactly like the 5 primary hit sites.
 static func _resolve_echo(body, hit_pos: Vector2, dmg: float) -> void:
 	if not is_instance_valid(body):
 		return
 	if not (body.has_method("health_fraction") and body.health_fraction() > 0.0):
 		return
 	body.take_damage(dmg)
-	if not is_instance_valid(body):
-		return
-	if body.has_method("flash_hit"):
+	var killed: bool = body.health_fraction() <= 0.0   # alive->dead transition (was_alive proven above)
+	if not killed and body.has_method("flash_hit"):
 		body.flash_hit()
 	# source_id 0 (the proximity fallback) + a Y offset past the crit ICD's dedupe radius, so
 	# this renders as a SECOND number "stacking under" the original crit instead of being
 	# suppressed as a same-enemy re-crit (see GameConfig.TALENT_ECHO_TEXT_OFFSET).
 	CombatText.crit(hit_pos + Vector2(0.0, GameConfig.TALENT_ECHO_TEXT_OFFSET), dmg, 0)
+	if killed:
+		Juice.on_crit_kill()   # crit-KILL hit-stop (Pack D, site 6 of 6): the echo only exists because the original hit crit
 
 ## Public area-damage helper (used by Gun reload-nova and freeze-shatter). Thin wrapper
 ## over _explode so callers don't need to build a ctx dict.

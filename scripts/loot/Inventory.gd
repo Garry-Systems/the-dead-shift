@@ -155,20 +155,21 @@ const _STARTER_BASE_IDS := ["pistol", "smg", "shotgun"]
 func grant_starter() -> void:
 	if count() > 0:
 		return
-	var list := weapons()
+	# Route each starter through add() — the single instance-granting chokepoint (cap-aware,
+	# saves, emits, counts Armageddon pulls) — instead of a raw set_weapons batch, so the
+	# "every path funnels through add()" invariant on add() stays literally true. A few extra
+	# save_game() calls don't matter on this once-ever fresh-save path.
 	var pistol_uid := ""
 	for base_id in _STARTER_BASE_IDS:
 		var inst := LootRoller.roll(1, base_id)
 		if base_id == "pistol":
 			pistol_uid = String(inst["uid"])
-		list.append(inst)
-	SaveManager.set_weapons(list)
-	SaveManager.set_equipped_weapon(pistol_uid)
+		add(inst)   # never full here (fresh save); auto-equips the first added if nothing is equipped
+	if equipped_uid() != pistol_uid:
+		equip(pistol_uid)   # normally a no-op: add() already auto-equipped the pistol (added first)
 	if coins() < 150:
 		SaveManager.add_coins(150 - coins())
 	SaveManager.save_game()
-	equipped_changed.emit(pistol_uid)
-	inventory_changed.emit()
 
 ## DEV (temporary): append one weapon of every rarity tier (1..MAX, random base each) so all
 ## tiers can be inspected/felt at once. Repeatable. Reuses add() (cap-aware, auto-equips the
