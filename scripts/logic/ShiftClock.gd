@@ -31,3 +31,16 @@ static func clock_string(run_time: float) -> String:
 static func _shift_duration_minutes() -> int:
 	var hours := (GameConfig.SHIFT_END_HOUR - GameConfig.SHIFT_START_HOUR + HOURS_PER_DAY) % HOURS_PER_DAY
 	return hours * MINUTES_PER_HOUR
+
+## run_time (seconds) at which the shift clock first reads `hour24` (0-23) — generalizes
+## dawn_run_time()'s "target = SHIFT_END_HOUR" case to an arbitrary hour (Pack C: the "reach
+## 2:00 AM" challenge reads this for hour24=2, via GameConfig.CHALLENGE_CLOCK_HOUR). Crosses
+## midnight the same way dawn_run_time() does. Left as a sibling of dawn_run_time() rather than
+## refactoring it to call this (they ARE algebraically equivalent for hour24=SHIFT_END_HOUR) —
+## no reason to risk the already-shipped dawn hook for a one-line dedupe.
+static func run_time_for_hour(hour24: int) -> float:
+	var start_minutes := GameConfig.SHIFT_START_HOUR * MINUTES_PER_HOUR
+	var target_minutes := hour24 * MINUTES_PER_HOUR
+	var day_minutes := HOURS_PER_DAY * MINUTES_PER_HOUR
+	var elapsed_minutes := ((target_minutes - start_minutes) % day_minutes + day_minutes) % day_minutes
+	return float(elapsed_minutes) * GameConfig.SHIFT_SECONDS_PER_MINUTE

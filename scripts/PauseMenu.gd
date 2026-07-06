@@ -207,6 +207,17 @@ func _abandon_run_payout() -> void:
 	# (QUIT_PAYOUT_FRAC) amount — the actual amount this quit just granted.
 	SaveManager.add_lifetime_run(RunStats.kills, bosses, RunStats.elites_killed, earned, DifficultyManager.run_time,
 		String(Inventory.equipped_instance().get("base", "")))
+	# Challenge board (Pack C): same guarded block, mirrors GameOver._finish_run's twin call.
+	# A quit/restart is never a win, so extraction_wins is always 0 here.
+	SaveManager.flush_challenge_counters({
+		"kills": RunStats.kills, "elite_kills": RunStats.elites_killed, "boss_kills": bosses,
+		"clock_seconds": DifficultyManager.run_time, "blood_moons_survived": RunStats.blood_moons_survived,
+		"power_surge_kills": RunStats.power_surge_kills, "extraction_wins": 0,
+		"fire_kills": RunStats.fire_kills, "electric_kills": RunStats.electric_kills,
+		"poison_kills": RunStats.poison_kills,
+	})
+	if RunConfig.daily:
+		SaveManager.record_daily_score(earned)
 	SaveManager.save_game()
 	Inventory.add_run_xp(RunStats.kills + wave * 10 + bosses * 50)
 

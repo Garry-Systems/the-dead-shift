@@ -8,6 +8,7 @@ extends CanvasLayer
 
 var _root: Control
 var _title: Label               # header label; text/color flip for a WIN (Pack A: Dawn Extraction)
+var _daily_header: Label        # "DAILY SHIFT — <date>" subheader, shown only when RunConfig.daily (Pack C)
 var _stub_vbox: VBoxContainer   # itemized pay-stub rows, (re)built once per finish
 var _player: Player
 
@@ -49,6 +50,14 @@ func _build_ui() -> void:
 	PixelTheme.style_title(_title, 40)
 	_title.add_theme_color_override("font_color", PixelTheme.DANGER)
 	vbox.add_child(_title)
+
+	# Pack C: Daily Shift subheader — built hidden, shown/labeled in _finish_run only when
+	# RunConfig.daily is true; a normal Endless/Boss Rush run never touches it.
+	_daily_header = Label.new()
+	_daily_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(_daily_header, 18, PixelTheme.SELECT)
+	_daily_header.visible = false
+	vbox.add_child(_daily_header)
 
 	vbox.add_child(_spacer(4))
 
@@ -146,6 +155,18 @@ func _finish_run(is_win: bool) -> void:
 	# actual amount just granted (already haircut on the quit path in PauseMenu's twin of this).
 	SaveManager.add_lifetime_run(kills, bosses, RunStats.elites_killed, earned, DifficultyManager.run_time,
 		String(Inventory.equipped_instance().get("base", "")))
+	# Challenge board (Pack C): same guarded block, same "flush exactly once" guarantee. Run-scoped
+	# counters only — crates_opened/fusions_done are bumped immediately at their own menu-action
+	# chokepoints (Inventory.commit_crate / Inventory.fuse), not here.
+	SaveManager.flush_challenge_counters({
+		"kills": kills, "elite_kills": RunStats.elites_killed, "boss_kills": bosses,
+		"clock_seconds": DifficultyManager.run_time, "blood_moons_survived": RunStats.blood_moons_survived,
+		"power_surge_kills": RunStats.power_surge_kills, "extraction_wins": (1 if is_win else 0),
+		"fire_kills": RunStats.fire_kills, "electric_kills": RunStats.electric_kills,
+		"poison_kills": RunStats.poison_kills,
+	})
+	if RunConfig.daily:
+		SaveManager.record_daily_score(earned)
 	SaveManager.save_game()
 
 	# Weapon-loot: award XP to the equipped weapon so its talents unlock over time, then read
@@ -158,6 +179,10 @@ func _finish_run(is_win: bool) -> void:
 	if is_win:
 		_title.text = "SHIFT SURVIVED\nCLOCKED OUT ALIVE"
 		_title.add_theme_color_override("font_color", PixelTheme.ACCENT)
+
+	_daily_header.visible = RunConfig.daily
+	if RunConfig.daily:
+		_daily_header.text = "DAILY SHIFT — %s" % SaveManager.today_string()
 
 	_populate_stub(wave, bosses, kills, bonus, mult, earned, is_new_best, inst, xp_amount, is_win)
 	_root.visible = true

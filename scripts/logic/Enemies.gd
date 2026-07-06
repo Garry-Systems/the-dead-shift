@@ -38,7 +38,10 @@ static func pick(wave: int) -> Dictionary:
 			total += int(e["weight"])
 	if pool.is_empty() or total <= 0:
 		return _LIST[0]
-	var roll := randi() % total
+	# Pack C (Daily Shift): RunConfig.rand_int() uses the date-seeded generator only while a
+	# Daily Shift run is active, falling back to the plain global randi() otherwise — so a normal
+	# run's enemy-type roll is byte-identical to before this pack.
+	var roll := RunConfig.rand_int() % total
 	for e in pool:
 		roll -= int(e["weight"])
 		if roll < 0:

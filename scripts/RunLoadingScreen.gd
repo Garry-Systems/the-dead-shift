@@ -55,6 +55,8 @@ func _ready() -> void:
 
 ## Human-readable label for the mode being started.
 func _mode_text() -> String:
+	if RunConfig.daily:   # Pack C: Daily Shift is endless underneath — label it distinctly anyway
+		return "DAILY SHIFT"
 	match RunConfig.mode:
 		"boss_rush": return "BOSS RUSH"
 		_: return "ENDLESS"

@@ -445,7 +445,13 @@ static func _chain(from_pos: Vector2, first, dmg: float, jumps: int, ctx: Dictio
 		var nxt := _nearest_excluding(pos, hit, 260.0, tree)
 		if nxt == null:
 			break
+		# Pack C challenge board: was_alive -> dead transition through THIS chain jump specifically
+		# attributes an "electric kill" (Live Wire/Arc Welder/Static Cling/Death Rattle all share
+		# this path — see the class doc comment above _chain).
+		var was_alive: bool = nxt.has_method("health_fraction") and nxt.health_fraction() > 0.0
 		nxt.take_damage(dmg)
+		if was_alive and nxt.has_method("health_fraction") and nxt.health_fraction() <= 0.0:
+			RunStats.add_electric_kill()
 		if is_instance_valid(nxt) and nxt.has_method("flash_hit"):
 			nxt.flash_hit()
 		hit.append(nxt)

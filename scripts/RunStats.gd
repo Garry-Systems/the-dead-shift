@@ -12,6 +12,15 @@ var paid_out := false    # this run's payout already granted (death OR quit) —
 var coin_mult := 1.0     # "Silver Tongue" level-up card: multiplies the WHOLE run payout (stacks); the
                          # one place GameOver + PauseMenu's quit path both read from — see CoinReward.final_payout
 
+# --- Pack C: challenge-board counters (v0.1.53) — all flushed at the paid_out-guarded payout
+# blocks alongside the existing kill/boss/elite counters. See Enemy.take_damage / TalentEngine._chain
+# / NightEvents for exactly where each is bumped.
+var fire_kills := 0             # kill transition happened while the enemy's incendiary burn was active
+var electric_kills := 0         # kill transition happened via TalentEngine._chain's lightning-arc damage
+var poison_kills := 0           # kill transition happened while the enemy's Venom DoT was active
+var blood_moons_survived := 0   # a Blood Moon event ran its full course (NightEvents._end_event) this run
+var power_surge_kills := 0      # kill transition happened while a Power Surge event was active
+
 ## Zero the counters for a fresh run.
 func reset() -> void:
 	kills = 0
@@ -20,6 +29,11 @@ func reset() -> void:
 	bonus_coins = 0
 	paid_out = false
 	coin_mult = 1.0
+	fire_kills = 0
+	electric_kills = 0
+	poison_kills = 0
+	blood_moons_survived = 0
+	power_surge_kills = 0
 
 ## A trash enemy was killed.
 func add_kill() -> void:
@@ -40,4 +54,21 @@ func add_coins(n: int) -> void:
 ## "Silver Tongue" level-up card: raises the run-payout multiplier (multiplicative, stacks).
 func add_coin_mult(pct: float) -> void:
 	coin_mult *= (1.0 + pct)
+
+# --- Pack C: challenge-board counter bumps (v0.1.53) ---
+
+func add_fire_kill() -> void:
+	fire_kills += 1
+
+func add_electric_kill() -> void:
+	electric_kills += 1
+
+func add_poison_kill() -> void:
+	poison_kills += 1
+
+func add_blood_moon_survived() -> void:
+	blood_moons_survived += 1
+
+func add_power_surge_kill() -> void:
+	power_surge_kills += 1
 

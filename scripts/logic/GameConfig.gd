@@ -479,3 +479,18 @@ const SHAKE_TRAUMA_BLAST_MAX := 0.8         # Shockwave.blast ceiling (a big rad
 const SHAKE_TRAUMA_BLAST_REF_RADIUS := 320.0  # blast radius at which trauma reaches SHAKE_TRAUMA_BLAST_MAX
 const SHAKE_TRAUMA_EXTRACTION := 0.85       # dawn-extraction chopper touchdown
 const SHAKE_TRAUMA_DAWN := 0.6              # dawn clock-crossing banner
+
+# --- Challenge board + Daily Shift (Pack C: v0.1.53) ---
+const CHALLENGE_ACTIVE_COUNT := 3          # active challenge slots shown at once (also the daily rotation draw size)
+const CHALLENGE_KILLS_TARGET := 60         # kill N zombies
+const CHALLENGE_ELITE_KILLS_TARGET := 8    # kill N elite zombies
+const CHALLENGE_BOSS_KILLS_TARGET := 3     # defeat N bosses
+const CHALLENGE_CLOCK_HOUR := 2            # "reach 2:00 AM" — target read live via ShiftClock.run_time_for_hour()
+const CHALLENGE_BLOOD_MOON_TARGET := 1     # survive N Blood Moons (event runs to completion, not interrupted by death)
+const CHALLENGE_POWER_SURGE_KILLS_TARGET := 15   # kill N enemies while a Power Surge is active
+const CHALLENGE_CRATES_TARGET := 3         # open N crates (menu action, bumped immediately — not a run-flush counter)
+const CHALLENGE_FUSIONS_TARGET := 2        # fuse N weapons (menu action, bumped immediately)
+const CHALLENGE_EXTRACTION_TARGET := 1     # win an extraction (Dawn Extraction chopper LZ)
+const CHALLENGE_FIRE_KILLS_TARGET := 20    # kill N enemies while they're burning (incendiary DoT active at the kill)
+const CHALLENGE_ELECTRIC_KILLS_TARGET := 20   # kill N enemies via TalentEngine._chain's lightning-arc damage
+const CHALLENGE_POISON_KILLS_TARGET := 20  # kill N enemies while Venom's poison DoT is active at the kill

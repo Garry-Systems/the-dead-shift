@@ -37,6 +37,13 @@ const DEFAULTS := {
 	"gun_kills": {},            # Pack D: base weapon id -> lifetime kill count (equipped-at-kill-time gun)
 	"shake_on": true,           # Pack D: EFFECTS toggle — screen shake + crit-kill hit-stop
 	"fusions": 0,               # Pack B: lifetime count of successful weapon-fusion feeds (Inventory.fuse)
+	"challenge_date": "",              # Pack C: date ("YYYY-MM-DD") the current 3-challenge rotation + its progress belongs to
+	"challenge_progress": {},          # Pack C: challenge_id -> accumulated counter value, valid only for challenge_date's rotation
+	"challenge_completed": [],         # Pack C: challenge ids already completed+claimed within challenge_date's rotation
+	"challenges_completed_total": 0,   # Pack C: lifetime completed-challenge count (RECORDS row)
+	"pending_challenge_rewards": [],   # Pack C: crate ids already granted by a completed challenge, awaiting reveal at the next menu entry
+	"last_daily_shift_date": "",       # Pack C: date of the last STARTED Daily Shift attempt (consumed on START, not completion)
+	"best_daily_score": 0,             # Pack C: highest coin payout ever earned from a Daily Shift run
 }
 
 var _data: Dictionary = {}
@@ -231,6 +238,81 @@ func fusions() -> int:
 ## Called once per successful Inventory.fuse() call. Caller saves.
 func add_fusion() -> void:
 	_data["fusions"] = fusions() + 1
+
+# --- Challenge board + Daily Shift (Pack C, v0.1.53) ---
+# Rotation/progress math is pure (scripts/logic/ChallengeProgress.gd, mirrors LifetimeRecords) —
+# these wrappers just read/write _data and persist, the same shape as add_lifetime_run() above.
+
+func challenge_date() -> String:
+	return String(_data.get("challenge_date", ""))
+
+func challenge_progress() -> Dictionary:
+	return _data.get("challenge_progress", {})
+
+func challenge_completed() -> Array:
+	return _data.get("challenge_completed", [])
+
+## Lifetime count of completed challenges (RECORDS row).
+func challenges_completed_total() -> int:
+	return int(_data.get("challenges_completed_total", 0))
+
+func pending_challenge_rewards() -> Array:
+	return _data.get("pending_challenge_rewards", [])
+
+## Pops every queued challenge-completion crate reward (already granted to the inventory — see
+## ChallengeProgress._grant_crate) for the caller to reveal. Memory only; caller saves.
+func take_pending_challenge_rewards() -> Array:
+	var out: Array = pending_challenge_rewards().duplicate()
+	_data["pending_challenge_rewards"] = []
+	return out
+
+## Run-scoped flush: call from GameOver._finish_run / PauseMenu._abandon_run_payout, inside the
+## SAME RunStats.paid_out guard that already protects the coin payout + Pack D's lifetime
+## records — see ChallengeProgress.apply_counters' doc comment for why that guard matters here
+## too. `counters` = { counter_key: this run's tally } — see Challenges.gd's row docs for keys.
+func flush_challenge_counters(counters: Dictionary) -> void:
+	_data = ChallengeProgress.apply_counters(_data, counters, today_string())
+
+## Immediate single-action bump (crate opened / weapon fused) — one-shot menu actions, not run
+## payouts, so callers hit this directly at their own chokepoint with no paid_out guard needed.
+func bump_challenge_counter(counter_key: String, amount: int = 1) -> void:
+	_data = ChallengeProgress.bump_counter(_data, counter_key, float(amount), today_string())
+
+## Today's active challenges, each row annotated with its live progress/completed state — for
+## the RECORDS view's "TODAY'S CHALLENGES" section. Read-only: rotation itself is a pure function
+## of the date (Challenges.active_ids_for), so this never needs to mutate _data — if today's
+## rotation hasn't been touched by a flush yet, progress simply reads as 0/not-completed (the
+## honest state), rather than showing yesterday's stale numbers.
+func active_challenges() -> Array:
+	var today := today_string()
+	var stale := challenge_date() != today
+	var progress: Dictionary = {} if stale else challenge_progress()
+	var completed: Array = [] if stale else challenge_completed()
+	var out: Array = []
+	for id in Challenges.active_ids_for(today):
+		var row: Dictionary = Challenges.by_id(id).duplicate()
+		if row.is_empty():
+			continue
+		row["progress"] = float(progress.get(id, 0.0))
+		row["completed"] = id in completed
+		out.append(row)
+	return out
+
+## Daily Shift: one attempt per calendar day, consumed the moment the run STARTS (not on
+## completion) — quitting or dying mid-shift does not refund the attempt (see MainMenu._on_daily_shift).
+func is_daily_shift_available() -> bool:
+	return String(_data.get("last_daily_shift_date", "")) != today_string()
+
+func mark_daily_shift_started() -> void:
+	_data["last_daily_shift_date"] = today_string()
+
+func best_daily_score() -> int:
+	return int(_data.get("best_daily_score", 0))
+
+## Called at the same paid_out-guarded flush as everything else, both exit paths, whenever
+## RunConfig.daily is true. Caller saves.
+func record_daily_score(score: int) -> void:
+	_data["best_daily_score"] = maxi(best_daily_score(), score)
 
 ## Flushes one run's lifetime-record deltas (memory only; caller saves). See the section header
 ## above for the exactly-once guarantee — this function itself is NOT idempotent.

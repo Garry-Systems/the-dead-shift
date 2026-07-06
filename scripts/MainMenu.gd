@@ -12,6 +12,7 @@ var _records_panel: Control
 var _records_vbox: VBoxContainer   # records list content (rebuilt by _populate_records)
 var _records_scroll: ScrollContainer   # current records list scroll (null when not shown)
 var _char_buttons := {}        # character id -> Button (to highlight the selected one)
+var _daily_btn: Button         # DAILY SHIFT button (mode panel) — refreshed on every show (Pack C)
 var _inv_vbox: VBoxContainer   # inventory card content (rebuilt by _populate_inventory)
 var _hub_coins: Label          # hub coin readout (refreshed when returning to hub)
 var _inv_from_play := false    # true when the inventory was opened by PLAY (no weapon equipped)
@@ -178,7 +179,14 @@ func _on_play() -> void:
 	if Inventory.equipped_instance().is_empty():
 		_show_inventory(true)
 	else:
-		_show_only(_mode_panel)
+		_show_mode_panel()
+
+## Shows the mode picker, first refreshing the DAILY SHIFT button's available/grayed state —
+## the calendar day can turn over while the app sits on another panel, so this can't just be
+## baked in once at _build_mode_panel() time.
+func _show_mode_panel() -> void:
+	_refresh_daily_button()
+	_show_only(_mode_panel)
 
 func _spacer(h: int) -> Control:
 	var s := Control.new()
@@ -217,6 +225,8 @@ func _build_mode_panel() -> void:
 	vbox.add_child(_spacer(4))
 	vbox.add_child(_make_button("ENDLESS", func(): _start_run("endless")))
 	vbox.add_child(_make_button("BOSS RUSH", func(): _start_run("boss_rush")))
+	_daily_btn = _make_button("DAILY SHIFT", _on_daily_shift)
+	vbox.add_child(_daily_btn)
 	var soon := Label.new()
 	soon.text = "more modes coming soon"
 	soon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -227,8 +237,33 @@ func _build_mode_panel() -> void:
 
 func _start_run(mode: String) -> void:
 	RunConfig.mode = mode
+	RunConfig.clear_daily()   # a normal mode pick can never inherit a stale Daily Shift seed
 	# Clock in for your shift: a short themed loading beat, then gameplay.
 	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
+
+## Pack C: Daily Shift — one attempt per calendar day, consumed the instant this fires (not on
+## completion): quitting or dying mid-shift never refunds it. Guarded defensively even though the
+## button is disabled while unavailable (_refresh_daily_button), in case this is ever wired
+## elsewhere. Always endless underneath, seeded from today's date for the NightEvents/elite/
+## enemy-type rolls only (see RunConfig.start_daily's doc comment) — loot/talents stay global RNG.
+func _on_daily_shift() -> void:
+	if not SaveManager.is_daily_shift_available():
+		return
+	RunConfig.mode = "endless"
+	RunConfig.start_daily(SaveManager.today_string())
+	SaveManager.mark_daily_shift_started()
+	SaveManager.save_game()
+	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
+
+## Refreshes the DAILY SHIFT button's text/enabled state to today's availability. Called every
+## time the mode panel is about to show (see _show_mode_panel) — a day boundary or a just-finished
+## Daily Shift run can change this between two mode-panel visits in the same app session.
+func _refresh_daily_button() -> void:
+	if _daily_btn == null:
+		return
+	var available := SaveManager.is_daily_shift_available()
+	_daily_btn.disabled = not available
+	_daily_btn.text = "DAILY SHIFT" if available else "DAILY SHIFT — TOMORROW"
 
 # --- character select ---
 func _build_char_panel() -> void:
@@ -413,7 +448,7 @@ func _on_equip(inst: Dictionary) -> void:
 	Inventory.equip(String(inst.get("uid", "")))
 	if _inv_from_play:
 		_inv_from_play = false
-		_show_only(_mode_panel)   # weapon chosen → continue to the mode picker
+		_show_mode_panel()   # weapon chosen → continue to the mode picker
 	else:
 		_populate_inventory()     # browsing → just refresh the EQUIPPED highlight
 
@@ -587,6 +622,52 @@ func _stat_row(parent: VBoxContainer, left: String, right: String) -> void:
 	line.add_child(val_l)
 	parent.add_child(line)
 
+## One "TODAY'S CHALLENGES" row (Pack C): reward-crate icon, desc (formatted with the target if
+## it has a "%d" placeholder — 3 of the 12 rows are pure booleans and have none), and a right-
+## aligned progress readout. Completed rows highlight in ACCENT/SELECT instead of TEXT/TEXT_DIM.
+func _challenge_row(parent: VBoxContainer, row: Dictionary) -> void:
+	var completed: bool = bool(row.get("completed", false))
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var icon := TextureRect.new()
+	icon.texture = Crates.icon(String(row.get("reward_crate_id", "")))
+	icon.custom_minimum_size = Vector2(40, 40)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	line.add_child(icon)
+
+	var desc_l := Label.new()
+	desc_l.text = _challenge_desc(row)
+	desc_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	desc_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	PixelTheme.style_label(desc_l, 18, PixelTheme.SELECT if completed else PixelTheme.TEXT)
+	line.add_child(desc_l)
+
+	var prog_l := Label.new()
+	prog_l.text = "DONE" if completed else _challenge_progress_text(row)
+	prog_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	PixelTheme.style_label(prog_l, 16, PixelTheme.ACCENT if completed else PixelTheme.TEXT_DIM)
+	line.add_child(prog_l)
+
+	parent.add_child(line)
+
+func _challenge_desc(row: Dictionary) -> String:
+	var desc := String(row.get("desc", ""))
+	if desc.find("%d") == -1:
+		return desc
+	return desc % int(row.get("target", 0))
+
+## "reach_2am" reads better as clock times than raw seconds; everything else is a plain count.
+func _challenge_progress_text(row: Dictionary) -> String:
+	var target: float = float(row.get("target", 0.0))
+	var progress: float = float(row.get("progress", 0.0))
+	if String(row.get("counter_key", "")) == "clock_seconds":
+		return "%s / %s" % [ShiftClock.clock_string(progress), ShiftClock.clock_string(target)]
+	return "%d / %d" % [int(progress), int(target)]
+
 func _populate_records() -> void:
 	for c in _records_vbox.get_children():
 		c.queue_free()
@@ -610,8 +691,19 @@ func _populate_records() -> void:
 	list.custom_minimum_size = Vector2(660, 0)
 	center_row.add_child(list)
 
+	# --- Pack C: TODAY'S CHALLENGES (3 rows: desc, progress text, reward-crate icon) ---
+	var challenge_header := Label.new()
+	challenge_header.text = "TODAY'S CHALLENGES"
+	challenge_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(challenge_header, 22, PixelTheme.ACCENT)
+	list.add_child(challenge_header)
+	for row in SaveManager.active_challenges():
+		_challenge_row(list, row)
+	list.add_child(_spacer(6))
+
 	var best_clockout := SaveManager.best_clockout_seconds()
 	var clockout_text := ShiftClock.clock_string(best_clockout) if best_clockout > 0.0 else "—"
+	var best_daily := SaveManager.best_daily_score()
 
 	_stat_row(list, "RUNS PLAYED", "%d" % SaveManager.games_played())
 	_stat_row(list, "TOTAL KILLS", "%d" % SaveManager.total_kills())
@@ -625,6 +717,8 @@ func _populate_records() -> void:
 	_stat_row(list, "ARMAGEDDONS PULLED", "%d" % SaveManager.armageddons_pulled())
 	_stat_row(list, "DAILY STREAK", "%d" % SaveManager.daily_streak())
 	_stat_row(list, "WEAPONS FUSED", "%d" % SaveManager.fusions())
+	_stat_row(list, "CHALLENGES COMPLETED", "%d" % SaveManager.challenges_completed_total())
+	_stat_row(list, "BEST DAILY SCORE", "%d" % best_daily if best_daily > 0 else "—")
 
 	list.add_child(_spacer(6))
 	var gun_header := Label.new()
@@ -840,6 +934,11 @@ func _check_free_rewards() -> void:
 	while SaveManager.pending_game_rewards() > 0:
 		_reward_queue.append({ "title": "10-GAME REWARD", "reward": _grant_reward(Rewards.roll_milestone()) })
 		SaveManager.mark_game_reward_given()
+	# Pack C: challenge-completion crate rewards — already granted (added to SaveManager.crates())
+	# at the run-end flush that completed them; this just queues the reveal, so no _grant_reward()
+	# call (that function ADDS the reward — doing so again here would double-grant the crate).
+	for crate_id in SaveManager.take_pending_challenge_rewards():
+		_reward_queue.append({ "title": "CHALLENGE COMPLETE", "reward": { "kind": "crate", "crate_id": String(crate_id) } })
 	SaveManager.save_game()
 	_show_next_reward()
 

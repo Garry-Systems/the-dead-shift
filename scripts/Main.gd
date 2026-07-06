@@ -8,6 +8,13 @@ func _ready() -> void:
 	SoundManager.music("run_loop")
 	DifficultyManager.reset()
 	RunStats.reset()
+	# Pack C: Daily Shift — re-arm a FRESH seeded generator every time this scene loads while
+	# RunConfig.daily is true (covers a mid-run "RESTART RUN" from PauseMenu, which reloads
+	# Main.tscn directly, bypassing MainMenu's mode picker entirely) so a restart replays the
+	# exact same deterministic event/elite/enemy-type sequence instead of continuing the old
+	# generator's already-advanced state. A no-op for every normal (non-daily) run.
+	if RunConfig.daily:
+		RunConfig.start_daily(SaveManager.today_string())
 
 	var player := get_tree().get_first_node_in_group("player") as Player
 	if player != null:

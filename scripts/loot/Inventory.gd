@@ -125,6 +125,11 @@ func commit_crate(crate_id: String, winner: Dictionary) -> bool:
 		return false
 	SaveManager.remove_crate(crate_id)
 	add(winner)   # appends, auto-equips if none, saves, emits
+	# Challenge board (Pack C): "open N crates" is a menu action, not a run-payout event — this is
+	# the one chokepoint every actual crate settle passes through, so it's bumped immediately
+	# (no paid_out guard needed; a settle here only ever happens once per real open).
+	SaveManager.bump_challenge_counter("crates_opened", 1)
+	SaveManager.save_game()
 	return true
 
 ## Awards XP to the equipped weapon (call at end of run). Levels up on the level*100 curve
@@ -196,6 +201,10 @@ func fuse(target_uid: String, sacrifice_uid: String) -> Dictionary:
 	var list := weapons().filter(func(w): return String(w.get("uid", "")) != sacrifice_uid)
 	SaveManager.set_weapons(list)   # persists both the sacrifice's removal AND target's mutation
 	SaveManager.add_fusion()
+	# Challenge board (Pack C): "fuse N weapons" is a menu action, not a run-payout event — bumped
+	# immediately at this one chokepoint (no paid_out guard needed; reaching here already means
+	# exactly one real fusion just succeeded).
+	SaveManager.bump_challenge_counter("fusions_done", 1)
 	SaveManager.save_game()
 	inventory_changed.emit()
 

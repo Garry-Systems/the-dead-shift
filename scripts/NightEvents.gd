@@ -41,8 +41,10 @@ func _process(delta: float) -> void:
 	_prev_wave = wave
 	if wave <= GameConfig.NIGHT_EVENT_MIN_WAVE:
 		return
-	if randf() < GameConfig.NIGHT_EVENT_CHANCE:
-		_start_event(_KINDS[randi() % _KINDS.size()])
+	# Pack C (Daily Shift): both rolls go through RunConfig.rand_float()/rand_int(), which only
+	# diverge from the plain global randf()/randi() while a Daily Shift run is active.
+	if RunConfig.rand_float() < GameConfig.NIGHT_EVENT_CHANCE:
+		_start_event(_KINDS[RunConfig.rand_int() % _KINDS.size()])
 
 func _start_event(kind: String) -> void:
 	active_kind = kind
@@ -69,6 +71,10 @@ func _end_event() -> void:
 	match active_kind:
 		"blood_moon":
 			DifficultyManager.set_spawn_interval_mult(1.0)
+			# Pack C challenge board: the event ran its full course (this is the natural-expiry
+			# path — a player death pauses the tree, so _process stops ticking and this is never
+			# reached mid-event on a death; only a lived-through Blood Moon counts as "survived").
+			RunStats.add_blood_moon_survived()
 	_set_tint(_NEUTRAL_TINT)
 	active_kind = KIND_NONE
 	_banner("ALL CLEAR")
@@ -127,3 +133,12 @@ static func chain_bonus(tree) -> int:
 	if n == null or n.active_kind != KIND_POWER_SURGE:
 		return 0
 	return GameConfig.POWER_SURGE_CHAIN_BONUS
+
+## Pack C challenge board: true while a Power Surge is active, read at the kill-transition site
+## (Enemy.take_damage) to attribute a "kill N during a Power Surge" challenge — same group-lookup
+## idiom as blood_moon_coins()/gem_value_mult() above.
+static func power_surge_active(tree) -> bool:
+	if tree == null:
+		return false
+	var n: Node = tree.get_first_node_in_group("night_events")
+	return n != null and n.active_kind == KIND_POWER_SURGE

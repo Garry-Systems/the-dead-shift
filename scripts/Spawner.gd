@@ -112,10 +112,12 @@ func _maybe_apply_elite(enemy) -> void:
 	if mode != "endless":
 		return
 	var chance := DifficultyCurve.elite_chance(DifficultyManager.wave) * DifficultyManager.elite_chance_mult()
-	if randf() >= chance:
+	# Pack C (Daily Shift): both rolls go through RunConfig.rand_float()/rand_int(), which only
+	# diverge from the plain global randf()/randi() while a Daily Shift run is active.
+	if RunConfig.rand_float() >= chance:
 		return
 	const KINDS := ["armored", "volatile", "splitter", "alpha"]
-	var kind: String = KINDS[randi() % KINDS.size()]
+	var kind: String = KINDS[RunConfig.rand_int() % KINDS.size()]
 	# Exploders never roll Volatile: their own instant _detonate would stack with the fused
 	# volatile blast into an untelegraphed ~2.2x hit at the same spot — reroll deterministically.
 	if enemy is ExploderEnemy and kind == "volatile":

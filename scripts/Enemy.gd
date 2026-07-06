@@ -499,6 +499,16 @@ func take_damage(amount: float) -> void:
 		if is_elite:
 			RunStats.add_coins(GameConfig.ELITE_COIN_BONUS)
 			RunStats.add_elite_kill()
+		# Pack C challenge board: "was it burning/poisoned/during a Power Surge at the moment it
+		# died" — cheap state checks at the one chokepoint every kill already passes through.
+		# _burn_dps/_dot_dps are only zeroed AFTER their tick's take_damage call (see
+		# _physics_process), so a kill landed by the DoT tick itself still reads >0 here.
+		if _burn_dps > 0.0:
+			RunStats.add_fire_kill()
+		if _dot_dps > 0.0:
+			RunStats.add_poison_kill()
+		if NightEvents.power_surge_active(get_tree()):
+			RunStats.add_power_surge_kill()
 		var moon_coins := NightEvents.blood_moon_coins(get_tree())
 		if moon_coins > 0:
 			RunStats.add_coins(moon_coins)
