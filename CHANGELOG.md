@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.56 — Molten (2026-07-06)
+
+- **ARMAGEDDON gold is alive now** — the top rarity breathes: a slow molten pulse with a sharp glint flashing across it every few seconds, like light catching the metal. On inventory tiles, the inspect screen, and the crate reel — you'll know the 1-in-72 the instant it lands.
+
 ## v0.1.55 — Faces of the Dead (2026-07-06)
 
 - **Every zombie has a face now** — all 7 enemy types get hand-built pixel sprites: the drooping shambler, the lunging runner, the hunched and gashed brute, the exploder with its splitting belly, the pod-backed hive, the long-necked spitter, and the claw-dragging mutant. Ragged, dead-eyed, and on-palette.
