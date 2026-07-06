@@ -35,6 +35,12 @@ static func player_cards(player: Player = null, hardcore: bool = false) -> Array
 	# under HARDCORE (Pack G): no cheat-death safety net.
 	if (player != null and player.has_second_wind) or hardcore:
 		cards = cards.filter(func(c): return String(c["id"]) != "second_wind")
+	# HARDCORE also drops Regeneration (Pack G fix round): the regen tick routes through
+	# Player.heal(), which no-ops under hardcore — offering the card would be a fully dead pick
+	# (a player trap), same mechanism as the Second Wind exclusion above. The Field Kit relic
+	# stays offerable by adjudication (gating boss-drop rerolls was accepted scope creep).
+	if hardcore:
+		cards = cards.filter(func(c): return String(c["id"]) != "regen")
 	return cards
 
 ## The full library of gun upgrade cards, keyed by id. Each weapon's "upgrades" list

@@ -368,8 +368,11 @@ func lifesteal_blip(color: Color) -> void:
 	tw.tween_property(_sprite, "modulate", Color(1, 1, 1, 1), 0.1)
 
 ## Relic hook: raise (or lower, when removed) max health. Reversible via a negative amount.
+## HARDCORE (Pack G fix round, adjudicated): max still grows but current does NOT rise with it —
+## "you can build a bigger tank; you can't refill it" — the add_max side of the same rule
+## Player.heal()'s no-op gate enforces, keyed off the same RunConfig.hardcore flag.
 func relic_add_max_health(amount: float) -> void:
-	_health.add_max(amount)
+	_health.add_max(amount, not RunConfig.hardcore)
 
 func _on_level_up() -> void:
 	leveled_up.emit()
@@ -378,7 +381,18 @@ func _on_level_up() -> void:
 func upgrade_move_speed(pct: float) -> void:
 	move_speed *= (1.0 + pct)
 
+## "Tough Hide" card. HARDCORE (Pack G fix round, adjudicated): max grows, current doesn't —
+## same rule as relic_add_max_health above.
 func upgrade_max_health(amount: float) -> void:
+	_health.add_max(amount, not RunConfig.hardcore)
+
+## Character baseline HP (Characters.apply_base, run start ONLY — e.g. Ryan's "Starts with
+## 150 HP"). Deliberately NOT hardcore-gated: it applies at spawn while current == max, before
+## any damage exists, so raising current with the new max is the STARTING tank size, not a
+## "refill" (the adjudicated rule's rationale). A strict gate here would spawn hardcore Ryan at
+## 100/150 with the missing 50 permanently unfillable — a fully dead perk, the same player-trap
+## class the hardcore regen-card exclusion removes (see Upgrades.player_cards).
+func grant_base_max_health(amount: float) -> void:
 	_health.add_max(amount)
 
 func upgrade_regen(amount: float) -> void:

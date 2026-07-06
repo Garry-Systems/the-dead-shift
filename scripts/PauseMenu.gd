@@ -223,10 +223,14 @@ func _abandon_run_payout() -> void:
 	SaveManager.add_lifetime_run(RunStats.kills, bosses, RunStats.elites_killed, earned, DifficultyManager.run_time,
 		String(Inventory.equipped_instance().get("base", "")), not RunConfig.overtime)
 	# Challenge board (Pack C): same guarded block, mirrors GameOver._finish_run's twin call.
-	# A quit/restart is never a win, so extraction_wins is always 0 here.
+	# A quit/restart is never a win, so extraction_wins is always 0 here. clock_seconds is zeroed
+	# on an OVERTIME run (Pack G fix round): the 240s preset already sits past the "reach 2:00 AM"
+	# challenge target, which would auto-complete it on an instant quit — clock challenges only
+	# count from real shifts, mirroring the best-clockout record freeze.
 	SaveManager.flush_challenge_counters({
 		"kills": RunStats.kills, "elite_kills": RunStats.elites_killed, "boss_kills": bosses,
-		"clock_seconds": DifficultyManager.run_time, "blood_moons_survived": RunStats.blood_moons_survived,
+		"clock_seconds": (0.0 if RunConfig.overtime else DifficultyManager.run_time),
+		"blood_moons_survived": RunStats.blood_moons_survived,
 		"power_surge_kills": RunStats.power_surge_kills, "extraction_wins": 0,
 		"fire_kills": RunStats.fire_kills, "electric_kills": RunStats.electric_kills,
 		"poison_kills": RunStats.poison_kills,

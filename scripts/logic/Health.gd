@@ -28,11 +28,18 @@ func heal(amount: float) -> void:
 
 ## Adds (or, with a negative amount, removes) maximum health, keeping current health
 ## within [1, maxhp]. Negative amounts are used when a relic is removed/swapped out.
-func add_max(amount: float) -> void:
+## `raise_current` (Pack G fix round, adjudicated ruling): HARDCORE callers pass false — max
+## health still grows ("you can build a bigger tank") but current does NOT rise with it ("you
+## can't refill it"); the [1, maxhp] clamps still apply either way, so a negative amount still
+## pulls an over-max current back down. A plain bool param (not a RunConfig read) keeps this
+## class pure/probeable — the hardcore flag is read at the Player call sites, the same
+## RunConfig.hardcore the heal() gate reads.
+func add_max(amount: float, raise_current: bool = true) -> void:
 	maxhp += amount
 	if maxhp < 1.0:
 		maxhp = 1.0
-	current += amount
+	if raise_current:
+		current += amount
 	if current > maxhp:
 		current = maxhp
 	if current < 1.0:

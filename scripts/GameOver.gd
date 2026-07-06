@@ -156,15 +156,21 @@ func _finish_run(is_win: bool) -> void:
 	if is_win:
 		earned = int(round(float(earned) * GameConfig.EXTRACT_PAY_MULT))
 
-	# NEW BEST must compare against what stood BEFORE this run — read it before record_run
-	# mutates best_wave/best_bosses (record_run takes maxi(existing, this run's value)). OVERTIME
-	# never participates (its preset headstart would inflate the comparison unfairly) — see the
-	# record-gating block below for the same reasoning applied to the actual record writes.
-	var prev_best_wave := SaveManager.best_wave()
-	var prev_best_bosses := SaveManager.best_bosses()
-	var is_new_best: bool = false
+	# NEW BEST must compare against what stood BEFORE this run — read each best before the record
+	# writes below mutate it (they take maxi(existing, this run's value)). Each mode compares
+	# against ITS OWN record track (fix round: horde previously compared against the shared
+	# endless best_wave, so a real horde record wouldn't banner and a horde run merely beating the
+	# endless best would false-flag). OVERTIME never participates (its preset headstart would
+	# inflate the comparison unfairly) — see the record-gating block below for the same reasoning
+	# applied to the actual record writes.
+	var is_new_best := false
 	if not RunConfig.overtime:
-		is_new_best = (bosses > prev_best_bosses) if RunConfig.mode == "boss_rush" else (wave > prev_best_wave)
+		if RunConfig.mode == "boss_rush":
+			is_new_best = bosses > SaveManager.best_bosses()
+		elif RunConfig.mode == "horde":
+			is_new_best = wave > SaveManager.horde_best_wave()
+		else:
+			is_new_best = wave > SaveManager.best_wave()
 
 	# Rank XP (Pack G): the ACTUAL earned payout, added from the rank held BEFORE this flush so a
 	# threshold crossing can be detected for the pay-stub's PROMOTED line + confetti below.
@@ -200,10 +206,14 @@ func _finish_run(is_win: bool) -> void:
 		String(Inventory.equipped_instance().get("base", "")), not RunConfig.overtime)
 	# Challenge board (Pack C): same guarded block, same "flush exactly once" guarantee. Run-scoped
 	# counters only — crates_opened/fusions_done are bumped immediately at their own menu-action
-	# chokepoints (Inventory.commit_crate / Inventory.fuse), not here.
+	# chokepoints (Inventory.commit_crate / Inventory.fuse, not here). clock_seconds is zeroed on
+	# an OVERTIME run (Pack G fix round): its 240s preset already sits past the "reach 2:00 AM"
+	# challenge target, which would auto-complete it on an instant quit — clock challenges only
+	# count from real shifts, mirroring the best-clockout record freeze.
 	SaveManager.flush_challenge_counters({
 		"kills": kills, "elite_kills": RunStats.elites_killed, "boss_kills": bosses,
-		"clock_seconds": DifficultyManager.run_time, "blood_moons_survived": RunStats.blood_moons_survived,
+		"clock_seconds": (0.0 if RunConfig.overtime else DifficultyManager.run_time),
+		"blood_moons_survived": RunStats.blood_moons_survived,
 		"power_surge_kills": RunStats.power_surge_kills, "extraction_wins": (1 if is_win else 0),
 		"fire_kills": RunStats.fire_kills, "electric_kills": RunStats.electric_kills,
 		"poison_kills": RunStats.poison_kills,

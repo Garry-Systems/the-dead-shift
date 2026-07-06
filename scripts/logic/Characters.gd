@@ -54,7 +54,11 @@ static func apply_base(player: Player, id: String) -> void:
 		return
 	match id:
 		"ryan":
-			player.upgrade_max_health(GameConfig.CHAR_RYAN_HP_BONUS)
+			# Via the spawn-baseline hook, NOT the upgrade-card hook: under HARDCORE the card
+			# path stops raising current with max (adjudicated "no refill" rule), but a spawn
+			# baseline applied at full health is starting tank size, not a refill — see
+			# Player.grant_base_max_health's doc comment.
+			player.grant_base_max_health(GameConfig.CHAR_RYAN_HP_BONUS)
 		"jimbo":
 			player.upgrade_move_speed(GameConfig.CHAR_JIMBO_SPEED_PCT)
 		"bob":
