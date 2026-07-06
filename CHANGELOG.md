@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.57 — You Can Die Again (2026-07-06)
+
+- **HOTFIX: dying no longer freezes the game.** A one-line bug in the death screen's confetti code (shipped back in v0.1.49) silently broke the entire game-over script — so on death the game paused forever with no screen. Dying now correctly shows your SHIFT'S OVER pay stub, pays out, and gets you back to the menu. Extraction wins were affected too — both work now.
+
 ## v0.1.56 — Molten (2026-07-06)
 
 - **ARMAGEDDON gold is alive now** — the top rarity breathes: a slow molten pulse with a sharp glint flashing across it every few seconds, like light catching the metal. On inventory tiles, the inspect screen, and the crate reel — you'll know the 1-in-72 the instant it lands.
