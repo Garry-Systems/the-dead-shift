@@ -44,6 +44,7 @@ func _detonate() -> void:
 	if player != null and is_instance_valid(player):
 		if global_position.distance_to((player as Node2D).global_position) <= _radius:
 			player.take_damage(_dmg)
+			CameraShake.add_trauma(CameraShake.trauma_for_radius(_radius))   # Pack D
 	_spawn_blast_fx()
 	queue_free()
 

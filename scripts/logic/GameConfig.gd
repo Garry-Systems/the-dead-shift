@@ -459,3 +459,20 @@ const EXTRACTION_LZ_POS := Vector2(0.0, 460.0)  # apron spot near the forecourt,
 const EXTRACTION_LZ_RADIUS := 130.0
 const EXTRACTION_CHOPPER_DESCEND_TIME := 3.0    # seconds the chopper's visual takes to settle onto the LZ (cosmetic only)
 const EXTRACTION_CHOPPER_ROTOR_HZ := 6.0
+
+# --- Juice: crit-kill hit-stop (Pack D: Stats + juice, v0.1.51) ---
+const JUICE_HITSTOP_ENABLED := true    # hard switch, independent of the save-level EFFECTS toggle
+const JUICE_HITSTOP_SCALE := 0.05      # Engine.time_scale during the freeze
+const JUICE_HITSTOP_DURATION := 0.05   # REAL seconds the freeze lasts (SceneTreeTimer ignores time_scale + pause)
+
+# --- Juice: trauma-based screen shake (Pack D: Stats + juice, v0.1.51) ---
+const SHAKE_MAX_OFFSET := 18.0         # px cap on the camera's visible shake offset at full (1.0) trauma
+const SHAKE_DECAY := 2.5               # trauma drained per second (1.0 -> 0 in ~0.4s)
+const SHAKE_FREQ := 26.0               # noise oscillation rate (Hz-ish)
+const SHAKE_TRAUMA_PLAYER_HURT := 0.14      # any damaging hit on the player
+const SHAKE_TRAUMA_BOSS_SLAM := 0.55        # ExpandingRing (boss ground slam) connecting
+const SHAKE_TRAUMA_BLAST_MIN := 0.22        # Shockwave.blast floor (small blasts, e.g. a barrel burst)
+const SHAKE_TRAUMA_BLAST_MAX := 0.8         # Shockwave.blast ceiling (a big radius blast)
+const SHAKE_TRAUMA_BLAST_REF_RADIUS := 320.0  # blast radius at which trauma reaches SHAKE_TRAUMA_BLAST_MAX
+const SHAKE_TRAUMA_EXTRACTION := 0.85       # dawn-extraction chopper touchdown
+const SHAKE_TRAUMA_DAWN := 0.6              # dawn clock-crossing banner

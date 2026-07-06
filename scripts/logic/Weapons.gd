@@ -173,3 +173,11 @@ static func upgrades_for(id: String) -> Array:
 		if def["id"] == id:
 			return def["upgrades"]
 	return []
+
+## Display name for `id` (used by the RECORDS view's per-gun kill list), or `id` itself if not
+## found (mirrors Bosses.name_for's shape).
+static func name_for(id: String) -> String:
+	for def in all():
+		if String(def["id"]) == id:
+			return String(def.get("name", id))
+	return id

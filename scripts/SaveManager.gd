@@ -28,6 +28,14 @@ const DEFAULTS := {
 	"sfx_on": true,           # SoundManager: SFX bus enabled?
 	"music_on": true,         # SoundManager: Music bus enabled?
 	"shifts_survived": 0,     # Pack A: runs that WON via the Dawn Extraction chopper LZ (not just reaching dawn)
+	"total_kills": 0,           # Pack D: lifetime kills, flushed at payout (see LifetimeRecords.merge_run)
+	"total_bosses": 0,          # Pack D: lifetime boss kills
+	"total_elites": 0,          # Pack D: lifetime elite-modifier kills
+	"total_coins_earned": 0,    # Pack D: lifetime coins actually earned (post-haircut on the quit path)
+	"best_clockout_seconds": 0.0,  # Pack D: highest run_time (seconds) ever reached at payout
+	"armageddons_pulled": 0,    # Pack D: rarity-9 (Armageddon) instances added to the inventory
+	"gun_kills": {},            # Pack D: base weapon id -> lifetime kill count (equipped-at-kill-time gun)
+	"shake_on": true,           # Pack D: EFFECTS toggle — screen shake + crit-kill hit-stop
 }
 
 var _data: Dictionary = {}
@@ -174,6 +182,59 @@ func shifts_survived() -> int:
 ## Called once from GameOver.trigger_win(). Caller saves.
 func add_shift_survived() -> void:
 	_data["shifts_survived"] = shifts_survived() + 1
+
+# --- Lifetime records (Pack D: Stats + juice, v0.1.51) ---
+# Flushed exactly once per run, from GameOver._finish_run (death/win) or PauseMenu's
+# _abandon_run_payout (quit/restart) — both already gate their ENTIRE payout block behind
+# RunStats.paid_out, so add_lifetime_run() below rides that same once-per-run guarantee (it has
+# no guard of its own — see LifetimeRecords.merge_run's doc comment). "runs played" and "shifts
+# survived" are deliberately NOT duplicated here — games_played()/shifts_survived() above already
+# track those; the RECORDS view reads them directly instead of a redundant counter that could drift.
+
+func total_kills() -> int:
+	return int(_data.get("total_kills", 0))
+
+func total_bosses() -> int:
+	return int(_data.get("total_bosses", 0))
+
+func total_elites() -> int:
+	return int(_data.get("total_elites", 0))
+
+func total_coins_earned() -> int:
+	return int(_data.get("total_coins_earned", 0))
+
+## Highest run_time (seconds) ever reached at payout, 0.0 if no run has ever paid out yet.
+## Display via ShiftClock.clock_string(best_clockout_seconds()).
+func best_clockout_seconds() -> float:
+	return float(_data.get("best_clockout_seconds", 0.0))
+
+func armageddons_pulled() -> int:
+	return int(_data.get("armageddons_pulled", 0))
+
+## Adds a rarity-9 (Armageddon) pull. Called from the single Inventory.add() chokepoint, so every
+## path that can hand the player a weapon instance (crate opens, daily/milestone gun rewards, DEV
+## grants, and any future path — e.g. Pack B's weapon fusion — that ends up calling Inventory.add)
+## is covered automatically. Caller saves.
+func add_armageddon_pulled() -> void:
+	_data["armageddons_pulled"] = armageddons_pulled() + 1
+
+## Base weapon id -> lifetime kill count, for the equipped-at-kill-time gun (see RunStats.kills /
+## LifetimeRecords.merge_run doc comments for why a single run-wide counter is enough).
+func gun_kills() -> Dictionary:
+	return _data.get("gun_kills", {})
+
+## Flushes one run's lifetime-record deltas (memory only; caller saves). See the section header
+## above for the exactly-once guarantee — this function itself is NOT idempotent.
+func add_lifetime_run(kills: int, bosses: int, elites: int, coins_earned: int, run_time: float, weapon_base_id: String) -> void:
+	_data = LifetimeRecords.merge_run(_data, kills, bosses, elites, coins_earned, run_time, weapon_base_id)
+
+## EFFECTS toggle: screen shake + crit-kill hit-stop (Juice.gd / CameraShake.gd both read this
+## directly — no manager autoload needed for two settings this small).
+func shake_on() -> bool:
+	return bool(_data.get("shake_on", true))
+
+func set_shake_on(on: bool) -> void:
+	_data["shake_on"] = on
 
 # --- Owned crates (unopened) ---
 

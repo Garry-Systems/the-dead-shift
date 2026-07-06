@@ -203,6 +203,7 @@ func _process(_delta: float) -> void:
 			_dawn_fired = true
 			RunStats.add_coins(GameConfig.DAWN_BONUS_COINS)
 			SoundManager.play("dawn_sting")
+			CameraShake.add_trauma(GameConfig.SHAKE_TRAUMA_DAWN)   # Pack D
 			_show_dawn_banner()
 
 	var boss := get_tree().get_first_node_in_group("boss")

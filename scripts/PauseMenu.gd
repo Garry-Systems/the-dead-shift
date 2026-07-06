@@ -9,6 +9,7 @@ var _pause_btn: Button
 var _relics_box: VBoxContainer
 var _sfx_btn: Button      # SFX ON/OFF toggle (text refreshed on press + every time the overlay opens)
 var _music_btn: Button    # MUSIC ON/OFF toggle
+var _effects_btn: Button  # EFFECTS ON/OFF toggle — screen shake + crit-kill hit-stop (Pack D)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -80,6 +81,8 @@ func _build_overlay() -> void:
 	vbox.add_child(_sfx_btn)
 	_music_btn = _menu_button(_music_label(), _on_toggle_music)
 	vbox.add_child(_music_btn)
+	_effects_btn = _menu_button(_effects_label(), _on_toggle_effects)
+	vbox.add_child(_effects_btn)
 
 func _spacer(h: int) -> Control:
 	var s := Control.new()
@@ -107,6 +110,15 @@ func _on_toggle_sfx() -> void:
 func _on_toggle_music() -> void:
 	SoundManager.set_music_on(not SoundManager.music_on())
 	_music_btn.text = _music_label()
+
+# --- EFFECTS toggle (Pack D): gates screen shake AND crit-kill hit-stop together ---
+func _effects_label() -> String:
+	return "EFFECTS: ON" if SaveManager.shake_on() else "EFFECTS: OFF"
+
+func _on_toggle_effects() -> void:
+	SaveManager.set_shake_on(not SaveManager.shake_on())
+	SaveManager.save_game()
+	_effects_btn.text = _effects_label()
 
 ## Rebuilds the held-relic list: each relic's name + what it does + a REMOVE button.
 ## Refreshed every time the pause overlay opens (relics change during the run).
@@ -165,6 +177,7 @@ func _on_pause_pressed() -> void:
 	_populate_relics()
 	_sfx_btn.text = _sfx_label()
 	_music_btn.text = _music_label()
+	_effects_btn.text = _effects_label()
 	get_tree().paused = true
 	_overlay.visible = true
 	_pause_btn.visible = false
@@ -189,6 +202,11 @@ func _abandon_run_payout() -> void:
 	SaveManager.add_coins(earned)
 	SaveManager.record_run(wave, bosses)
 	SaveManager.add_game_played()
+	# Lifetime records (Pack D): flushed exactly once per run via the RunStats.paid_out guard
+	# above (mirrors GameOver._finish_run's twin call). `earned` is the ALREADY-haircut
+	# (QUIT_PAYOUT_FRAC) amount — the actual amount this quit just granted.
+	SaveManager.add_lifetime_run(RunStats.kills, bosses, RunStats.elites_killed, earned, DifficultyManager.run_time,
+		String(Inventory.equipped_instance().get("base", "")))
 	SaveManager.save_game()
 	Inventory.add_run_xp(RunStats.kills + wave * 10 + bosses * 50)
 

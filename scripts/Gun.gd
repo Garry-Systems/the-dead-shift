@@ -559,6 +559,8 @@ func _fire_lightning(dir: Vector2) -> bool:
 			e.flash_hit(TalentEngine.cc_flash_tint(hampered))
 		if was_alive and bool(roll.get("crit", false)):
 			CombatText.crit(hit_pos, float(roll["damage"]), e.get_instance_id())
+			if killed:
+				Juice.on_crit_kill()   # crit-KILL hit-stop (Pack D)
 		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, dmg, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
@@ -599,6 +601,8 @@ func _fire_beam(dir: Vector2) -> bool:
 				e.ignite(burn_dps, burn_duration)
 		if was_alive and bool(roll.get("crit", false)):
 			CombatText.crit(hit_pos, float(roll["damage"]), e.get_instance_id())
+			if killed:
+				Juice.on_crit_kill()   # crit-KILL hit-stop (Pack D)
 		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
@@ -644,6 +648,8 @@ func _fire_cone(dir: Vector2) -> bool:
 				e.ignite(bdps, btime)
 		if was_alive and bool(roll.get("crit", false)):
 			CombatText.crit(hit_pos, float(roll["damage"]), e.get_instance_id())
+			if killed:
+				Juice.on_crit_kill()   # crit-KILL hit-stop (Pack D)
 		if was_alive and not talent_payload.is_empty():
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),

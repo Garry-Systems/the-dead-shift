@@ -247,6 +247,8 @@ func take_damage(amount: float, attacker = null, is_contact: bool = false) -> vo
 
 	_health.take_damage(amount)
 	_hurt_flash()
+	if amount > 0.0:
+		CameraShake.add_trauma(GameConfig.SHAKE_TRAUMA_PLAYER_HURT)   # Pack D
 
 	# Dead Man's Switch (onhurt_nova): retaliation blast after damage lands. Gun-held ICD; a
 	# no-op on a weapon without the talent (try_hurt_nova checks talent_payload itself).

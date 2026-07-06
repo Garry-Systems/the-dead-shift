@@ -32,6 +32,7 @@ func _check_hit() -> void:
 	if dist <= _radius and dist >= _radius - BAND_THICKNESS:
 		_hit_player = true
 		player.take_damage(_damage)
+		CameraShake.add_trauma(GameConfig.SHAKE_TRAUMA_BOSS_SLAM)   # Pack D
 
 func _draw() -> void:
 	if _windup > 0.0:

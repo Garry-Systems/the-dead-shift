@@ -58,12 +58,18 @@ func equipped_instance() -> Dictionary:
 
 # --- mutations ---
 ## Adds a rolled instance. Auto-equips it if nothing is equipped yet. Returns false if full.
+## The single chokepoint every weapon-granting path funnels through (crate opens via
+## commit_crate, daily/milestone gun rewards, DEV grants, and any future path — e.g. Pack B's
+## weapon fusion, if it ever mints a fresh instance) — so it's also where a rarity-9 (Armageddon)
+## pull is counted for the lifetime records (Pack D).
 func add(inst: Dictionary) -> bool:
 	if is_full():
 		return false
 	var list := weapons()
 	list.append(inst)
 	SaveManager.set_weapons(list)
+	if int(inst.get("rarity", 1)) == Rarity.MAX_ID:
+		SaveManager.add_armageddon_pulled()
 	if equipped_uid() == "":
 		SaveManager.set_equipped_weapon(String(inst.get("uid", "")))
 		equipped_changed.emit(equipped_uid())

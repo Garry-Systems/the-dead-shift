@@ -141,6 +141,11 @@ func _finish_run(is_win: bool) -> void:
 	SaveManager.add_game_played()   # counts toward the every-10-games free reward (granted at the menu)
 	if is_win:
 		SaveManager.add_shift_survived()
+	# Lifetime records (Pack D): flushed exactly once per run — this whole block only runs past
+	# the RunStats.paid_out guard above, the same guard the coin payout relies on. `earned` is the
+	# actual amount just granted (already haircut on the quit path in PauseMenu's twin of this).
+	SaveManager.add_lifetime_run(kills, bosses, RunStats.elites_killed, earned, DifficultyManager.run_time,
+		String(Inventory.equipped_instance().get("base", "")))
 	SaveManager.save_game()
 
 	# Weapon-loot: award XP to the equipped weapon so its talents unlock over time, then read

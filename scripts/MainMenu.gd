@@ -8,16 +8,19 @@ var _hub: Control
 var _mode_panel: Control
 var _char_panel: Control
 var _inv_panel: Control
+var _records_panel: Control
+var _records_vbox: VBoxContainer   # records list content (rebuilt by _populate_records)
+var _records_scroll: ScrollContainer   # current records list scroll (null when not shown)
 var _char_buttons := {}        # character id -> Button (to highlight the selected one)
 var _inv_vbox: VBoxContainer   # inventory card content (rebuilt by _populate_inventory)
 var _hub_coins: Label          # hub coin readout (refreshed when returning to hub)
 var _inv_from_play := false    # true when the inventory was opened by PLAY (no weapon equipped)
 var _detail_popup: WeaponDetailPopup   # reused modal shown when a tile is tapped
 
-# Drag-anywhere scrolling for the inventory grid AND the store list: a drag that starts
-# ANYWHERE on the screen (even on a tile/button) scrolls; a plain tap still selects. Driven
-# from _input so the gesture is caught before the GUI consumes it. State is shared — only one
-# of these lists is visible at a time.
+# Drag-anywhere scrolling for the inventory grid, the store list, AND the records list: a drag
+# that starts ANYWHERE on the screen (even on a tile/button) scrolls; a plain tap still selects.
+# Driven from _input so the gesture is caught before the GUI consumes it. State is shared — only
+# one of these lists is visible at a time.
 var _inv_scroll: ScrollContainer       # current inventory grid scroll (null when grid is empty / not shown)
 var _store_scroll: ScrollContainer     # current store list scroll (null when not shown)
 var _inv_touch_id := -1
@@ -44,6 +47,7 @@ var _reward_flow_active := false       # true while a reward-claimed crate is sp
 
 var _sfx_btn: Button      # hub SFX ON/OFF toggle (text refreshed on press)
 var _music_btn: Button    # hub MUSIC ON/OFF toggle
+var _effects_btn: Button  # hub EFFECTS ON/OFF toggle — screen shake + crit-kill hit-stop (Pack D)
 
 func _ready() -> void:
 	SoundManager.music("menu_loop")
@@ -54,6 +58,7 @@ func _ready() -> void:
 	_build_mode_panel()
 	_build_char_panel()
 	_build_inventory_panel()
+	_build_records_panel()
 	_build_store_panel()
 	_build_reward_popup()
 	_ensure_valid_character()
@@ -123,6 +128,7 @@ func _show_only(panel: Control) -> void:
 	_mode_panel.visible = panel == _mode_panel
 	_char_panel.visible = panel == _char_panel
 	_inv_panel.visible = panel == _inv_panel
+	_records_panel.visible = panel == _records_panel
 	_store_panel.visible = panel == _store_panel
 	if panel == _hub and _hub_coins != null:
 		_hub_coins.text = "COINS: %d" % SaveManager.coins()
@@ -149,14 +155,17 @@ func _build_hub() -> void:
 	vbox.add_child(_make_button("STORE", func(): _show_store()))
 	vbox.add_child(_make_button("CHARACTERS", func(): _show_characters()))
 	vbox.add_child(_make_button("INVENTORY", func(): _show_inventory(false)))
+	vbox.add_child(_make_button("RECORDS", func(): _show_records()))
 	vbox.add_child(_spacer(4))
 	var toggle_row := HBoxContainer.new()
 	toggle_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	toggle_row.add_theme_constant_override("separation", 10)
 	_sfx_btn = _make_button(_sfx_label(), _on_toggle_sfx, Vector2(360, 68), 18)
 	_music_btn = _make_button(_music_label(), _on_toggle_music, Vector2(360, 68), 18)
+	_effects_btn = _make_button(_effects_label(), _on_toggle_effects, Vector2(360, 68), 18)
 	toggle_row.add_child(_sfx_btn)
 	toggle_row.add_child(_music_btn)
+	toggle_row.add_child(_effects_btn)
 	vbox.add_child(toggle_row)
 
 ## PLAY: only proceed to the mode picker if a weapon is equipped; otherwise force the
@@ -186,6 +195,15 @@ func _on_toggle_sfx() -> void:
 func _on_toggle_music() -> void:
 	SoundManager.set_music_on(not SoundManager.music_on())
 	_music_btn.text = _music_label()
+
+# --- EFFECTS toggle (Pack D): gates screen shake AND crit-kill hit-stop together ---
+func _effects_label() -> String:
+	return "EFFECTS: ON" if SaveManager.shake_on() else "EFFECTS: OFF"
+
+func _on_toggle_effects() -> void:
+	SaveManager.set_shake_on(not SaveManager.shake_on())
+	SaveManager.save_game()
+	_effects_btn.text = _effects_label()
 
 # --- mode picker ---
 func _build_mode_panel() -> void:
@@ -405,6 +423,8 @@ func _input(event: InputEvent) -> void:
 		sc = _inv_scroll
 	elif _store_panel.visible and _store_scroll != null:
 		sc = _store_scroll
+	elif _records_panel.visible and _records_scroll != null:
+		sc = _records_scroll
 	if sc == null:
 		return
 	if event is InputEventScreenTouch:
@@ -513,6 +533,105 @@ func _on_scrap(inst: Dictionary) -> void:
 	Inventory.deconstruct(String(inst.get("uid", "")))
 	_last_unbox = ""   # a slot just freed — drop a stale "Inventory full" prompt before re-render
 	_populate_inventory()
+
+# --- records: lifetime stats (view-only), same card/scroll shape as the store/inventory ---
+func _build_records_panel() -> void:
+	_records_panel = _make_panel()
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		margin.add_theme_constant_override(side, 24)
+	_records_panel.add_child(margin)
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	margin.add_child(card)
+	_records_vbox = VBoxContainer.new()
+	_records_vbox.add_theme_constant_override("separation", 10)
+	card.add_child(_records_vbox)
+	# Contents are (re)built on every show by _populate_records().
+
+func _show_records() -> void:
+	_populate_records()
+	_show_only(_records_panel)
+
+## A left label (expands) + a right, right-aligned value — mirrors GameOver._row's pay-stub shape.
+func _stat_row(parent: VBoxContainer, left: String, right: String) -> void:
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 12)
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var name_l := Label.new()
+	name_l.text = left
+	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	PixelTheme.style_label(name_l, 20, PixelTheme.TEXT_DIM)
+	line.add_child(name_l)
+	var val_l := Label.new()
+	val_l.text = right
+	val_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	PixelTheme.style_label(val_l, 20, PixelTheme.TEXT)
+	line.add_child(val_l)
+	parent.add_child(line)
+
+func _populate_records() -> void:
+	for c in _records_vbox.get_children():
+		c.queue_free()
+	_records_scroll = null   # cleared each rebuild; re-set below
+
+	_make_title(_records_vbox, "RECORDS", 44)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE   # built-in touch scroll off; driven from _input like the store/inventory
+	_records_scroll = scroll
+	_records_vbox.add_child(scroll)
+	var center_row := HBoxContainer.new()
+	center_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	center_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(center_row)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 8)
+	list.custom_minimum_size = Vector2(660, 0)
+	center_row.add_child(list)
+
+	var best_clockout := SaveManager.best_clockout_seconds()
+	var clockout_text := ShiftClock.clock_string(best_clockout) if best_clockout > 0.0 else "—"
+
+	_stat_row(list, "RUNS PLAYED", "%d" % SaveManager.games_played())
+	_stat_row(list, "TOTAL KILLS", "%d" % SaveManager.total_kills())
+	_stat_row(list, "BOSSES DEFEATED", "%d" % SaveManager.total_bosses())
+	_stat_row(list, "ELITES DEFEATED", "%d" % SaveManager.total_elites())
+	_stat_row(list, "COINS EARNED", "%d" % SaveManager.total_coins_earned())
+	_stat_row(list, "SHIFTS SURVIVED", "%d" % SaveManager.shifts_survived())
+	_stat_row(list, "BEST CLOCK-OUT", clockout_text)
+	_stat_row(list, "ARMAGEDDONS PULLED", "%d" % SaveManager.armageddons_pulled())
+	_stat_row(list, "DAILY STREAK", "%d" % SaveManager.daily_streak())
+
+	list.add_child(_spacer(6))
+	var gun_header := Label.new()
+	gun_header.text = "KILLS BY WEAPON"
+	gun_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(gun_header, 22, PixelTheme.ACCENT)
+	list.add_child(gun_header)
+
+	var gk := SaveManager.gun_kills()
+	if gk.is_empty():
+		var none := Label.new()
+		none.text = "No kills recorded yet."
+		none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		PixelTheme.style_label(none, 18, PixelTheme.TEXT_DIM)
+		list.add_child(none)
+	else:
+		var entries: Array = []
+		for id in gk:
+			entries.append([String(id), int(gk[id])])
+		entries.sort_custom(func(a, b): return int(a[1]) > int(b[1]))
+		for e in entries:
+			_stat_row(list, String(Weapons.name_for(String(e[0]))).to_upper(), "%d" % int(e[1]))
+
+	var back := _make_button("BACK", _guarded(func(): _show_only(_hub)))
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_records_vbox.add_child(back)
 
 # --- store: spend coins to unlock characters + buy crates ---
 func _build_store_panel() -> void:

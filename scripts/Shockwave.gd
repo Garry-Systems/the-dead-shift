@@ -26,6 +26,7 @@ func blast(radius: float, damage: float, force: float, gun, player, hit_destruct
 	_radius = radius
 	z_index = 50
 	SoundManager.play("explosion")
+	CameraShake.add_trauma(CameraShake.trauma_for_radius(radius))   # Pack D: every blast shakes, scaled by radius
 	var payload: Dictionary = {}
 	if gun != null and is_instance_valid(gun):
 		payload = gun.talent_payload
@@ -52,6 +53,8 @@ func blast(radius: float, damage: float, force: float, gun, player, hit_destruct
 		var killed: bool = was_alive and e.health_fraction() <= 0.0   # alive->dead transition; corpse hits are non-events
 		if was_alive and bool(roll.get("crit", false)):
 			CombatText.crit(enemy_pos, float(roll["damage"]), e.get_instance_id())
+			if killed:
+				Juice.on_crit_kill()   # crit-KILL hit-stop (Pack D)
 		if was_alive and not payload.is_empty():
 			TalentEngine.process_hit(e, enemy_pos, damage, killed, payload, {
 				"player": player,

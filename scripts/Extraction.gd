@@ -20,6 +20,7 @@ var _wait_time := 0.0
 var _descend_t := 0.0
 var _rotor_angle := 0.0
 var _player: Node2D
+var _landed := false   # one-shot: the chopper's descent has finished — fires the touchdown shake once
 
 func _ready() -> void:
 	add_to_group("extraction")
@@ -38,6 +39,9 @@ func _process(delta: float) -> void:
 				_start_chopper()
 		Phase.CHOPPER:
 			_descend_t = minf(_descend_t + delta, GameConfig.EXTRACTION_CHOPPER_DESCEND_TIME)
+			if not _landed and _descend_t >= GameConfig.EXTRACTION_CHOPPER_DESCEND_TIME:
+				_landed = true
+				CameraShake.add_trauma(GameConfig.SHAKE_TRAUMA_EXTRACTION)   # Pack D: touchdown
 			_rotor_angle += delta * GameConfig.EXTRACTION_CHOPPER_ROTOR_HZ * TAU
 			_tick_chopper(delta)
 			queue_redraw()

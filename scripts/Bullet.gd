@@ -106,6 +106,8 @@ func _on_body_entered(body) -> void:
 	# get_instance_id() keys the per-enemy ICD (safe on a just-killed body — queue_free is deferred).
 	if was_alive and bool(roll.get("crit", false)):
 		CombatText.crit(hit_pos, float(roll["damage"]), body.get_instance_id())
+		if killed:
+			Juice.on_crit_kill()   # crit-KILL hit-stop (Pack D)
 
 	# Fire talent procs: on-hit statuses, lifesteal, chain, on-kill explode/frenzy.
 	if was_alive and not talent_payload.is_empty():

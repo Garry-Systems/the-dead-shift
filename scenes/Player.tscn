@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" uid="uid://tsgkxd5n13jq" path="res://scripts/Player.gd" id="1_player"]
 [ext_resource type="Texture2D" path="res://art/ryan/south.png" id="2_tex"]
 [ext_resource type="Script" uid="uid://dbwn6sgo7yndd" path="res://scripts/Gun.gd" id="3_gun"]
 [ext_resource type="PackedScene" path="res://scenes/Bullet.tscn" id="4_bullet"]
+[ext_resource type="Script" path="res://scripts/CameraShake.gd" id="5_camerashake"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_ply"]
 radius = 24.0
@@ -16,6 +17,7 @@ scale = Vector2(1.5, 1.5)
 texture = ExtResource("2_tex")
 
 [node name="Camera2D" type="Camera2D" parent="."]
+script = ExtResource("5_camerashake")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_ply")
