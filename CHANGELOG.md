@@ -4,6 +4,14 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.50 — No Two Shifts Alike (2026-07-05)
+
+The run itself finally rolls the dice:
+
+- **ELITE ZOMBIES** — from wave 6, any zombie can spawn elite: **Armored** (shrugs off 30% of damage), **Volatile** (green ring — its death blast is telegraphed, and aimed at YOU), **Splitter** (halves into runners), **Alpha** (a gold-ringed pack leader buffing everything around it). Elites carry 2.5× health, triple XP, and bonus coins.
+- **NIGHT SHIFT EVENTS** — random events crash the shift: **BLOOD MOON** (spawns double, every kill pays bonus coins), **FOG BANK** (can't see far, gems worth double), **POWER SURGE** (all your electricity chains 2 extra targets), **RUSH HOUR** (a convoy of wrecks rolls in as fresh cover).
+- **DAWN EXTRACTION** — 6:00 AM is a real ending now: the radio crackles RESCUE INBOUND, a 90-second mega-surge hits, and a chopper sets down at the gas station. Make it to the LZ and you **WIN the shift** — 1.5× pay, a survivor's stub, and a new "shifts survived" record. Or ignore the ride and keep working. Your call, clerk.
+
 ## v0.1.49 — The Talent Tree Grows Teeth (2026-07-05)
 
 **29 new talents — the pool nearly doubles to 60**, and 16 of them are mechanics the game has never had:
