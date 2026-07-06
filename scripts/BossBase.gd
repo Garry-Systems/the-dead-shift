@@ -31,6 +31,12 @@ var _flash_mat: ShaderMaterial
 var _dead := false     # set by _die() before queue_free (which is deferred) so a same-frame
 						# post-mortem _physics_process (e.g. from the boss's own burn tick) bails
 
+## Pack F (v0.1.55): true once this boss's real art/bosses/<boss_id()>.png sprite is loaded.
+## Manager/NightStocker/Fryer/Courier's _draw() overlays (tie, cap+boxes, basket, helmet+
+## satchel) check this and skip themselves once true — those props are baked into the real
+## sprite art instead, so drawing both would double them up.
+var _sprite_loaded := false
+
 # --- Phase / pattern engine ---
 var phases: Array = []     # built by _build_phases(); phases[0].at must be 1.0
 var _phase_idx := -1
@@ -77,9 +83,29 @@ func _ready() -> void:
 	_target = get_tree().get_first_node_in_group("player") as Player
 	if _health == null:
 		_health = Health.new(max_health)
+	_setup_sprite()
 	_setup_flash()
 	phases = _build_phases()
 	_enter_phase(0)
+
+## Pack F (v0.1.55, staged rollout): swaps in art/bosses/<boss_id()>.png if it exists, scaling
+## the Sprite2D down by SPRITE_ENEMY_PX/SPRITE_BOSS_PX so the bigger 48px canvas reads at the
+## SAME on-screen size the .tscn's hand-tuned scale already achieves with the old shared 32px
+## enemy.png. If the sprite doesn't exist, the Sprite2D is left exactly as the .tscn baked it —
+## the already-shipped shared texture — so a boss without art renders identically to before.
+func _setup_sprite() -> void:
+	var id := boss_id()
+	if id == "":
+		return
+	var path := "res://art/bosses/%s.png" % id
+	if not ResourceLoader.exists(path):
+		return
+	var spr := get_node_or_null("Sprite2D") as Sprite2D
+	if spr == null:
+		return
+	spr.texture = load(path)
+	spr.scale *= GameConfig.SPRITE_ENEMY_PX / GameConfig.SPRITE_BOSS_PX
+	_sprite_loaded = true
 
 func _enter_phase(i: int) -> void:
 	if i < 0 or i >= phases.size():

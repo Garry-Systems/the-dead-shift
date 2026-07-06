@@ -511,3 +511,7 @@ const CHALLENGE_EXTRACTION_TARGET := 1     # win an extraction (Dawn Extraction 
 const CHALLENGE_FIRE_KILLS_TARGET := 20    # kill N enemies while they're burning (incendiary DoT active at the kill)
 const CHALLENGE_ELECTRIC_KILLS_TARGET := 20   # kill N enemies via TalentEngine._chain's lightning-arc damage
 const CHALLENGE_POISON_KILLS_TARGET := 20  # kill N enemies while Venom's poison DoT is active at the kill
+
+# --- Sprites (Pack F: v0.1.55) ---
+const SPRITE_ENEMY_PX := 32.0   # native canvas size of art/enemies/<id>.png (matches the old shared enemy.png/ranged_enemy.png, so trash-type Sprite2D scales need no change on swap)
+const SPRITE_BOSS_PX := 48.0    # native canvas size of art/bosses/<id>.png — bigger canvas than the old shared enemy.png, so BossBase scales its Sprite2D by SPRITE_ENEMY_PX/SPRITE_BOSS_PX on swap to keep the same on-screen size

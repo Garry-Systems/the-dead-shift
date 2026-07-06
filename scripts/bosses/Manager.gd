@@ -45,8 +45,12 @@ func _build_phases() -> Array:
 	]
 
 ## Regalia drawn OVER the shared enemy sprite (its Sprite2D sits at z_index -1 in the scene) —
-## a dark necktie wedge + a lavender ID badge, palette C1/C4 only.
+## a dark necktie wedge + a lavender ID badge, palette C1/C4 only. Pack F (v0.1.55): skipped once
+## the real art/bosses/manager.png sprite loads (it bakes the same tie+badge into the art itself,
+## so drawing this too would double them up) — the staged-rollout fallback for a boss with no art.
 func _draw() -> void:
+	if _sprite_loaded:
+		return
 	var tie := PackedVector2Array([Vector2(-6, -30), Vector2(6, -30), Vector2(0, 26)])
 	draw_colored_polygon(tie, PixelTheme.DARK)
 	draw_polyline(PackedVector2Array([Vector2(-6, -30), Vector2(0, 26), Vector2(6, -30)]), PixelTheme.ACCENT, 2.0)

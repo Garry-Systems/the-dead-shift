@@ -46,8 +46,12 @@ func _build_phases() -> Array:
 	]
 
 ## Regalia drawn OVER the shared enemy sprite (its Sprite2D sits at z_index -1 in the scene) —
-## a delivery helmet + a diagonal satchel strap with a pouch, palette C1/C2/C4 only.
+## a delivery helmet + a diagonal satchel strap with a pouch, palette C1/C2/C4 only. Pack F
+## (v0.1.55): skipped once the real art/bosses/courier.png sprite loads (it bakes the same
+## helmet+satchel into the art itself) — the staged-rollout fallback for a boss with no art.
 func _draw() -> void:
+	if _sprite_loaded:
+		return
 	draw_circle(Vector2(0, -34), 18.0, PixelTheme.ACCENT_DIM)
 	draw_arc(Vector2(0, -34), 18.0, 0.0, TAU, 24, PixelTheme.ACCENT, 2.0)
 	var strap := PackedVector2Array([Vector2(-16, -28), Vector2(-6, -28), Vector2(18, 30), Vector2(8, 30)])

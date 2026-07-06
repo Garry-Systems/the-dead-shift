@@ -43,8 +43,12 @@ func _build_phases() -> Array:
 	]
 
 ## Regalia drawn OVER the shared enemy sprite (its Sprite2D sits at z_index -1 in the scene) —
-## a wire fry basket held out front + its handle, palette C2/C4 only.
+## a wire fry basket held out front + its handle, palette C2/C4 only. Pack F (v0.1.55): skipped
+## once the real art/bosses/fryer.png sprite loads (it bakes the same basket into the art itself)
+## — the staged-rollout fallback for a boss with no art.
 func _draw() -> void:
+	if _sprite_loaded:
+		return
 	var basket := PackedVector2Array([Vector2(-14, 8), Vector2(14, 8), Vector2(10, 32), Vector2(-10, 32), Vector2(-14, 8)])
 	draw_polyline(basket, PixelTheme.ACCENT, 2.0)
 	for x in [-10.0, 0.0, 10.0]:

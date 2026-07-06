@@ -34,6 +34,12 @@ const FLASH_CD := 0.15           # min seconds between hit-flashes. A continuous
 
 @export var xp_gem_scene: PackedScene
 
+## Pack F (v0.1.55): matches this scene's row id in Enemies.gd (e.g. "shambler", "runner") — the
+## six Enemy-family scenes all share this ONE script, so a per-scene export is how each tells
+## _setup_sprite() which art/enemies/<id>.png to look for. "" (the default) means "no per-type
+## sprite" and is itself a valid, permanent choice, not just an unset placeholder.
+@export var sprite_id: String = ""
+
 # Baked per-enemy stats (set by configure(); fall back to base config if spawned raw).
 var max_health := GameConfig.ENEMY_MAX_HEALTH
 var move_speed := GameConfig.ENEMY_MOVE_SPEED
@@ -181,11 +187,27 @@ func _ready() -> void:
 	_target = get_tree().get_first_node_in_group("player") as Player
 	if _health == null:                       # spawned without configure() -> base stats
 		_health = Health.new(max_health)
+	_setup_sprite()
 	_setup_flash()
 	_health_bar = EnemyHealthBar.new()
 	_health_bar.position = Vector2(0, -28)
 	_health_bar.z_index = 1
 	add_child(_health_bar)
+
+## Pack F (v0.1.55, staged rollout): swaps in this type's art/enemies/<sprite_id>.png if it
+## exists; otherwise leaves the Sprite2D exactly as the .tscn baked it — the already-shipped
+## shared enemy.png/ranged_enemy.png — so an enemy without art keeps rendering identically to
+## before this pack. Native canvas size (GameConfig.SPRITE_ENEMY_PX) matches the old shared
+## texture's, so no scale change is needed on swap (unlike BossBase's bigger 48px canvas).
+func _setup_sprite() -> void:
+	if sprite_id == "":
+		return
+	var path := "res://art/enemies/%s.png" % sprite_id
+	if not ResourceLoader.exists(path):
+		return
+	var spr := get_node_or_null("Sprite2D") as Sprite2D
+	if spr != null:
+		spr.texture = load(path)
 
 ## Gives this sprite its own flash material so a hit flashes only this enemy.
 func _setup_flash() -> void:

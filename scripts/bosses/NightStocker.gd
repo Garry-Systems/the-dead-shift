@@ -43,8 +43,12 @@ func _build_phases() -> Array:
 	]
 
 ## Regalia drawn OVER the shared enemy sprite (its Sprite2D sits at z_index -1 in the scene) —
-## a stockroom cap + a pair of carried boxes, palette C1/C2/C4 only.
+## a stockroom cap + a pair of carried boxes, palette C1/C2/C4 only. Pack F (v0.1.55): skipped
+## once the real art/bosses/night_stocker.png sprite loads (it bakes the same cap+boxes into the
+## art itself) — the staged-rollout fallback for a boss with no art.
 func _draw() -> void:
+	if _sprite_loaded:
+		return
 	draw_rect(Rect2(Vector2(-16, -44), Vector2(32, 8)), PixelTheme.ACCENT_DIM)   # cap brim
 	draw_arc(Vector2(0, -44), 16.0, PI, TAU, 16, PixelTheme.ACCENT_DIM, 8.0)     # cap crown
 	var box_a := Rect2(Vector2(22, -6), Vector2(16, 16))
