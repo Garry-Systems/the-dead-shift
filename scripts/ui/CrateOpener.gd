@@ -34,7 +34,7 @@ var _last_tick_y := 0.0
 var _tick_cd := 0.0
 var _tap_count := 0           # taps landed inside the current TRIPLE_TAP_WINDOW
 var _tap_window := 0.0        # seconds left to land the next tap of a triple
-var _rainbow_tiles: Array = []   # StyleBoxFlat borders of any reel tile at the rainbow (Apocalypse) rarity — repainted every frame while spinning
+var _rainbow_tiles: Array = []   # {sb, rarity} for reel tiles at an ANIMATED rarity (rainbow/gold) — repainted every frame while spinning
 
 var _mask: Control
 var _reel: Control
@@ -144,8 +144,9 @@ func _reel_tile(inst: Dictionary) -> Control:
 	sb.set_corner_radius_all(0)
 	sb.anti_aliasing = false
 	p.add_theme_stylebox_override("panel", sb)
-	if int(inst.get("rarity", 1)) == Rarity.RAINBOW_ID:
-		_rainbow_tiles.append(sb)   # repainted every frame while the reel spins — see _update_rainbow_tiles()
+	if Rarity.is_animated(int(inst.get("rarity", 1))):
+		# repainted every frame while the reel spins — see _update_rainbow_tiles()
+		_rainbow_tiles.append({ "sb": sb, "rarity": int(inst.get("rarity", 1)) })
 	var icon := TextureRect.new()
 	icon.texture = WeaponInstance.icon(inst)
 	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -237,9 +238,8 @@ func _process(delta: float) -> void:
 func _update_rainbow_tiles() -> void:
 	if _rainbow_tiles.is_empty():
 		return
-	var col := Rarity.display_color(Rarity.RAINBOW_ID)
-	for sb in _rainbow_tiles:
-		(sb as StyleBoxFlat).border_color = col
+	for entry in _rainbow_tiles:
+		(entry["sb"] as StyleBoxFlat).border_color = Rarity.display_color(int(entry["rarity"]))
 
 func _play_tick() -> void:
 	if _tick_player.stream != null:

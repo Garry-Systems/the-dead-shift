@@ -99,7 +99,7 @@ func _rebuild() -> void:
 ## rest of the card is a static snapshot taken at _rebuild() time (rebuilding the whole card
 ## every 0.1s would be wasteful); only the title color animates while the popup is on screen.
 func _process(delta: float) -> void:
-	if not visible or int(_inst.get("rarity", 1)) != Rarity.RAINBOW_ID:
+	if not visible or not Rarity.is_animated(int(_inst.get("rarity", 1))):
 		return
 	_rainbow_accum += delta
 	if _rainbow_accum < RAINBOW_REFRESH:

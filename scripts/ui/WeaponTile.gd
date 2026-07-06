@@ -13,7 +13,7 @@ const RAINBOW_REFRESH := 0.1   # seconds between repaints for an Apocalypse-rari
 
 var _inst: Dictionary
 var _rarity_lbl: Label
-var _rainbow := false          # true when this instance's rarity is the animated Apocalypse tier
+var _rainbow := false          # true when this instance's rarity animates (Apocalypse rainbow / Armageddon gold)
 var _rainbow_accum := 0.0
 
 ## Builds the tile for an instance. Call once right after instancing.
@@ -23,7 +23,7 @@ func setup(inst: Dictionary, is_equipped: bool) -> void:
 	clip_contents = true
 	text = ""
 	PixelTheme.style_tile(self, WeaponInstance.color(inst))
-	_rainbow = int(inst.get("rarity", 1)) == Rarity.RAINBOW_ID
+	_rainbow = Rarity.is_animated(int(inst.get("rarity", 1)))
 	# Only rainbow tiles pay a per-frame callback — up to 120 tiles exist at once (MAX_WEAPONS).
 	set_process(_rainbow)
 	pressed.connect(func(): tile_pressed.emit(_inst))

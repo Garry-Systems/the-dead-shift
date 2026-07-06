@@ -16,7 +16,7 @@ class_name Rarity
 ## Pack 9 (2026-07, Larry's approved decisions): tiers 6/7 swapped name+color — id 6 is now
 ## "Carnage" (red), id 7 is now "Merciless" (orange); weight/scrap/talents stayed put on the
 ## ids, only the name+color moved. Tier 9 "Armageddon" (molten gold) added as the new ceiling.
-## Gold is STATIC, unlike Apocalypse (8) — see display_color() for the one animated tier. The
+## Gold ANIMATES too (molten pulse + glint), like the Apocalypse rainbow — see display_color(). The
 ## strict 4-color palette already carries an exception for rarity colors; gold (9) and the
 ## animated rainbow (8) both join it under that same exception.
 const TIERS := [
@@ -33,8 +33,14 @@ const TIERS := [
 
 const MAX_ID := 9
 
-## The one rarity id whose DISPLAY color animates instead of being fixed — see display_color().
+## Rarity ids whose DISPLAY color animates instead of being fixed — see display_color().
 const RAINBOW_ID := 8
+const GOLD_ID := 9
+
+## True for the tiers whose display color is time-animated (Apocalypse rainbow, Armageddon
+## molten gold). UI that pays a per-frame refresh should gate on this, not on RAINBOW_ID.
+static func is_animated(id: int) -> bool:
+	return id == RAINBOW_ID or id == GOLD_ID
 
 ## Returns the tier dict for a rarity id (clamped to valid range).
 static func tier(id: int) -> Dictionary:
@@ -57,6 +63,17 @@ static func color(id: int) -> Color:
 static func display_color(id: int) -> Color:
 	if id == RAINBOW_ID:
 		return Color.from_hsv(fposmod(Time.get_ticks_msec() / 3000.0, 1.0), 0.8, 1.0)
+	if id == GOLD_ID:
+		# Molten gold: a slow 1.8s breathing pulse toward white-gold, plus a sharp ~0.25s
+		# GLINT to near-white every 2.8s — light catching the metal. Pure time function.
+		var t := Time.get_ticks_msec() / 1000.0
+		var pulse := 0.5 + 0.5 * sin(t * TAU / 1.8)
+		var gold := Color("ffd700").lerp(Color("fff2a8"), 0.35 * pulse)
+		var phase := fposmod(t, 2.8)
+		if phase < 0.25:
+			var glint := 1.0 - absf(phase / 0.25 * 2.0 - 1.0)
+			gold = gold.lerp(Color(1, 1, 1), 0.85 * glint)
+		return gold
 	return color(id)
 
 ## The fixed number of talent slots a weapon of this rarity always rolls (see TIERS).
