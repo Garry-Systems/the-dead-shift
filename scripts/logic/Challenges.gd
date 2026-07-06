@@ -23,6 +23,12 @@ class_name Challenges
 ## active_ids_for()'s doc comment and ChallengeProgress's "simplest honest model" writeup for why
 ## nothing about *which* ids are active is ever persisted.
 
+##
+## MODE POLICY (deliberate, adjudicated 2026-07-06): kills are kills — kill/boss/clock/
+## damage-family counters progress in BOSS RUSH too (grinding it to finish a challenge is
+## legitimate play). Elite/event/extraction rows can only progress in endless because their
+## source systems are endless-gated; the daily rotation may deal endless-only rows — fine,
+## both modes are one tap away.
 static func all() -> Array:
 	return [
 		{ "id": "kill_zombies", "desc": "Kill %d zombies", "counter_key": "kills", "agg": "sum",
