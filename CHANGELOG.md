@@ -4,6 +4,10 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.59 — Employee of the Month (2026-07-06)
+
+- **THE COMMENDATIONS WALL** — 18 lifetime badges on your RECORDS page, from FIRST DAY (finish a run) to GENOCIDE SHIFT (25,000 kills), GOLDEN TICKET (pull an Armageddon), EMPLOYEE OF THE MONTH (7-day streak), DAWN PATROL (survive an extraction) and CAREER CLERK (100 runs). Every badge pays **Rank XP and a crate** the moment you earn it — the crate spins open right there. Progress counters show on everything you haven't earned yet, so there's always a next thing on the wall.
+
 ## v0.1.58 — Climb the Ladder (2026-07-06)
 
 You work here now. Time to get promoted:
