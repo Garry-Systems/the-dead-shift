@@ -144,9 +144,9 @@ func scrap() -> int:
 func add_scrap(amount: int) -> void:
 	_data["scrap"] = scrap() + maxi(amount, 0)
 
-## False (and no mutation) when the wallet is short.
+## False (and no mutation) when the wallet is short or the amount is not positive.
 func spend_scrap(amount: int) -> bool:
-	if amount > scrap():
+	if amount <= 0 or amount > scrap():
 		return false
 	_data["scrap"] = scrap() - amount
 	return true
