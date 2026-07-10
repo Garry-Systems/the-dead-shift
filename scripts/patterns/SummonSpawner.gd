@@ -11,6 +11,7 @@ const ENEMY_SCENE := preload("res://scenes/Enemy.tscn")
 var _count := 3
 var _decoy := false
 var _hp_mult := 1.0
+var _elite_kind := ""    # optional promotion of every summoned add (Karen's MANAGER ON DUTY)
 var _spots: Array[Vector2] = []
 
 func setup(b: Node2D, p: Node2D, cfg: Dictionary) -> void:
@@ -18,7 +19,15 @@ func setup(b: Node2D, p: Node2D, cfg: Dictionary) -> void:
 	_count = int(cfg.get("count", 3))
 	_decoy = bool(cfg.get("decoy", false))
 	_hp_mult = float(cfg.get("hp_mult", 1.0))
+	_elite_kind = String(cfg.get("elite_kind", ""))
 	_compute_spots()
+
+## Elite promotion for a freshly-configured summon. DELIBERATELY bypasses the Spawner's
+## endless/horde ambient-elite gate — a boss move must work in every mode the boss fights in
+## (Boss Rush included). Static + guard-heavy so a headless probe can drive it directly.
+static func promote(e: Node, kind: String) -> void:
+	if kind != "" and e.has_method("apply_elite"):
+		e.apply_elite(kind)
 
 func _compute_spots() -> void:
 	_spots.clear()
@@ -34,6 +43,7 @@ func _on_telegraph_end() -> void:
 		stats["max_health"] = float(stats["max_health"]) * _hp_mult
 		var e = ENEMY_SCENE.instantiate()
 		e.configure(stats)
+		SummonSpawner.promote(e, _elite_kind)
 		get_tree().current_scene.add_child(e)
 		e.global_position = spot
 	queue_free()
