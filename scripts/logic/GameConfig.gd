@@ -634,3 +634,7 @@ const BASEMENT_CRATE_FLOOR_WAVES := 5
 const BASEMENT_CRATE_FLOOR_MAX := 7     # apex floor (red) — never guarantees the animated tiers
 const BASEMENT_PICKUP_WINDOW := 8.0     # seconds to grab the crate before auto-ascend
 const BASEMENT_DOOR_RING := 90.0        # standing-distance radius that counts as "on the door"
+const BASEMENT_WALL_SEGMENTS := 24      # rubble segments forming the walled gauntlet ring
+const BASEMENT_RIM_INSET := 100.0       # gauntlet spawns land this far inside BASEMENT_RADIUS
+const BASEMENT_ELITE_INTERVAL := 10.0   # seconds between each forced-elite gauntlet spawn
+const BASEMENT_STRAGGLER_RADIUS := 2000.0  # ascend cleanup: enemies past this dist from the surface point are gauntlet stragglers, freed on sight

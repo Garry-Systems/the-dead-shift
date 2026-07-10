@@ -34,3 +34,8 @@ static func roll(rand01: float) -> bool:
 ## at the apex floor (never guarantees the animated tiers).
 static func crate_floor(wave: int) -> int:
 	return mini(GameConfig.BASEMENT_CRATE_FLOOR_BASE + wave / GameConfig.BASEMENT_CRATE_FLOOR_WAVES, GameConfig.BASEMENT_CRATE_FLOOR_MAX)
+
+## Guaranteed elite count for a gauntlet run on the given wave: the base count (BASEMENT_ELITES),
+## +1 past wave 10 — a later, harder gauntlet forces one more forced elite into its spawn cadence.
+static func elite_count(wave: int) -> int:
+	return GameConfig.BASEMENT_ELITES + (1 if wave > 10 else 0)
