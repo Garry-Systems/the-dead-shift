@@ -27,6 +27,7 @@ var _has_moved := false          # true after the first move input (gates spawn 
 var _last_tap_time := -999.0
 var _last_input_time := -999.0   # de-dupes the same-frame emulated touch/mouse pair
 var _is_dead := false
+var _shove_velocity := Vector2.ZERO   # external knockback (Karen's ScreamRing); decays via shove_step, never permanent
 
 ## Set by the VirtualJoystick. Vector2.ZERO means "no joystick input, use keyboard".
 var joystick_direction := Vector2.ZERO
@@ -113,6 +114,13 @@ func _physics_process(delta: float) -> void:
 	var move_dir := _last_move_dir if _dash.is_dashing() else dir
 
 	velocity = move_dir * speed
+
+	# External shove rides on top of input; while it's live, velocity != ZERO also holds fire
+	# via the stop-to-shoot gate below — a scream knocking you out of your firing stance is
+	# the intended disruption, not a bug.
+	if _shove_velocity != Vector2.ZERO:
+		velocity += _shove_velocity
+		_shove_velocity = shove_step(_shove_velocity, GameConfig.PLAYER_SHOVE_DECAY, delta)
 
 	# Drive the gun: fire in our faced direction, but hold fire while moving
 	# (stop-to-shoot) and until the player has given a first move input (so we
@@ -438,6 +446,19 @@ func apply_fire_lock(duration: float) -> void:
 ## can't inherit a stronger source's multiplier (or vice versa) — see _current_slow_factor.
 func apply_slow(factor: float, duration: float) -> void:
 	_slow_stacks.append({ "factor": clampf(1.0 - factor, 0.1, 1.0), "remaining": duration })
+
+## Pure decay step for the shove impulse, split out so a headless probe can prove it always
+## dies out (same probe-ability idiom as ShiftClock/Ranks).
+static func shove_step(v: Vector2, decay: float, delta: float) -> Vector2:
+	return v.move_toward(Vector2.ZERO, decay * delta)
+
+## Knock the player away at `impulse` px/sec, decaying to zero. Ignored mid-dash (the player's
+## committed dash beats the boss's shove). REPLACES any live shove — overlapping screams must
+## not compound into a cross-arena launch.
+func apply_shove(impulse: Vector2) -> void:
+	if _dash.is_dashing():
+		return
+	_shove_velocity = impulse
 
 ## Decrements every live slow-stack entry's remaining time and drops expired ones (remaining <= 0).
 func _tick_slow_stacks(delta: float) -> void:

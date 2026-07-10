@@ -6,6 +6,7 @@ class_name GameConfig
 const PLAYER_MOVE_SPEED := 220.0      # px/sec
 const PLAYER_MAX_HEALTH := 100.0
 const PLAYER_HEALTH_REGEN := 0.0      # HP/sec at start (upgrades raise this)
+const PLAYER_SHOVE_DECAY := 1200.0     # px/sec^2 linear decay of an external shove impulse (Karen's scream) — 600 px/s dies in 0.5s ≈ 150px total
 
 # --- Dash ---
 const DASH_SPEED := 700.0             # px/sec while dashing
