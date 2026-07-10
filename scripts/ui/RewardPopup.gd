@@ -13,6 +13,7 @@ var _free_label: Label   # "FREE REWARD!" — hidden for a PROMOTED reveal (Pack
 var _icon: TextureRect
 var _name: Label
 var _sub: Label
+var _memo: Label   # STAFF MEMO line (Pack 0 lore flavor) — daily-login reward only
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -74,6 +75,16 @@ func _ready() -> void:
 	PixelTheme.style_label(_sub, 20, PixelTheme.TEXT_DIM)
 	vbox.add_child(_sub)
 
+	# STAFF MEMO (Pack 0 lore flavor): dim, small, bottom of the popup content — only shown for
+	# the daily-login reward (open() gates it on reward.has("streak"), the same discriminator
+	# the streak line above already uses, since that key is only ever set on the daily reward).
+	_memo = Label.new()
+	_memo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_memo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	PixelTheme.style_label(_memo, 14, PixelTheme.TEXT_DIM)
+	_memo.visible = false
+	vbox.add_child(_memo)
+
 	vbox.add_child(_spacer(4))
 
 	var btn := Button.new()
@@ -85,16 +96,22 @@ func _ready() -> void:
 
 ## Reveal one already-granted reward. `title` = the source ("DAILY REWARD" / "10-GAME REWARD" /
 ## "PROMOTED!" / "COMMENDATION EARNED"). reward = { kind:"crate", crate_id } or { kind:"gun", inst }
-## or (Pack G) { kind:"rank", rank, unlocked: Array[String] } or (Pack H) { kind:"commendation",
-## id } — optionally with a "streak" int (Pack 4, daily reward only) that shows a "STREAK: DAY N"
-## line under the title.
+## or (Pack G) { kind:"rank", rank, unlocked: Array[String], blurb: String } or (Pack H)
+## { kind:"commendation", id } — optionally with a "streak" int (Pack 4, daily reward only) that
+## shows a "STREAK: DAY N" line under the title. That same "streak" key doubles (Pack 0 lore
+## flavor) as the discriminator for the STAFF MEMO line — it's the one field only ever set on the
+## daily-login reward's descriptor (see MainMenu._check_free_rewards), so gating on it there is
+## exactly gating on "is this the daily popup" without needing a new dedicated field.
 func open(title: String, reward: Dictionary) -> void:
 	_title.text = title
 	if reward.has("streak"):
 		_streak.text = "STREAK: DAY %d" % int(reward["streak"])
 		_streak.visible = true
+		_memo.text = Flavor.staff_memo()
+		_memo.visible = true
 	else:
 		_streak.visible = false
+		_memo.visible = false
 	_free_label.visible = true
 	_icon.visible = true
 	match String(reward.get("kind", "")):
@@ -126,6 +143,12 @@ func open(title: String, reward: Dictionary) -> void:
 				for id in unlocked:
 					names.append(Ranks.mode_display_name(String(id)))
 				_sub.text = "Unlocked: %s" % ", ".join(names)
+			# Promotion blurb (Pack 0 lore flavor) — descriptor already carries it (built by
+			# MainMenu._promotion_reward()); appended as a second line under whatever "Keep
+			# grinding.../Unlocked: ..." text is already in _sub, guarded on non-empty.
+			var rank_blurb := String(reward.get("blurb", ""))
+			if rank_blurb != "":
+				_sub.text += "\n" + rank_blurb
 		"commendation":
 			# Commendations wall (Pack H) — reads as an achievement badge, not a "free reward":
 			# the FREE REWARD! label is hidden (mirrors the "rank" kind above) but the icon stays

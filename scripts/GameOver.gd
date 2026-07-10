@@ -304,6 +304,9 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 	if promoted:
 		_stub_vbox.add_child(_spacer(4))
 		_centered_line(_stub_vbox, "★ PROMOTED: %s ★" % Ranks.name_for(rank_after), PixelTheme.ACCENT, 28)
+		var promo_blurb := Flavor.rank_blurb(rank_after)
+		if promo_blurb != "":
+			_centered_line(_stub_vbox, promo_blurb, PixelTheme.ACCENT_DIM, 16)
 
 	if not inst.is_empty():
 		_stub_vbox.add_child(_spacer(4))

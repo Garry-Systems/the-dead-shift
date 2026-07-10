@@ -30,7 +30,8 @@ const DEATH_QUIPS := [
 	"the register doesn't count itself. well. it does now.",
 ]
 
-## Indexed by rank (0 = TRAINEE ... 9 = FRANCHISE OWNER) — size must match the Ranks ladder.
+## Indexed by rank (index 0 = rank 1 TRAINEE ... index 9 = rank 10 FRANCHISE OWNER) — size must
+## match the Ranks ladder.
 const RANK_BLURBS := [
 	"you get a vest. the vest does nothing.",
 	"you may now run the register unsupervised. congratulations?",
@@ -67,10 +68,11 @@ static func boss_line(id: String) -> String:
 static func death_quip() -> String:
 	return DEATH_QUIPS[randi() % DEATH_QUIPS.size()]
 
+## rank is 1-indexed (1 = TRAINEE ... RANK_COUNT = FRANCHISE OWNER), matching Ranks.rank_for().
 static func rank_blurb(rank: int) -> String:
-	if rank < 0 or rank >= RANK_BLURBS.size():
+	if rank < 1 or rank > RANK_BLURBS.size():
 		return ""
-	return RANK_BLURBS[rank]
+	return RANK_BLURBS[rank - 1]
 
 static func staff_memo() -> String:
 	return STAFF_MEMOS[randi() % STAFF_MEMOS.size()]

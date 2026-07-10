@@ -1138,7 +1138,7 @@ func _promotion_reward() -> Dictionary:
 		var need := int(Ranks.UNLOCKS[mode_id])
 		if need > from_rank and need <= to_rank:
 			unlocked.append(String(mode_id))
-	return { "kind": "rank", "rank": to_rank, "unlocked": unlocked }
+	return { "kind": "rank", "rank": to_rank, "unlocked": unlocked, "blurb": Flavor.rank_blurb(to_rank) }
 
 ## Adds the reward to the player's stuff and returns the (possibly converted) descriptor to reveal.
 func _grant_reward(reward: Dictionary) -> Dictionary:
