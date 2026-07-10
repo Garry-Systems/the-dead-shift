@@ -247,10 +247,14 @@ func _abandon_run_payout() -> void:
 	# exactly-once contract, called before this block's own save_game() below.
 	SaveManager.check_and_grant_commendations()
 	SaveManager.save_game()
-	# HARDCORE doubles weapon XP at the flush (Pack G) — mirrors GameOver._finish_run's twin call.
+	# HARDCORE doubles weapon XP at the flush (Pack G) — mirrors GameOver._finish_run's twin call
+	# — including RunStats.weapon_xp_mult (punch_card); keep in lockstep. Both mults compose into
+	# one float and round ONCE (CoinReward.final_payout's single-round idiom), same as the twin.
 	var xp_amount := RunStats.kills + wave * 10 + bosses * 50
+	var xp_mult := RunStats.weapon_xp_mult
 	if RunConfig.hardcore:
-		xp_amount *= GameConfig.HARDCORE_WEAPON_XP_MULT
+		xp_mult *= GameConfig.HARDCORE_WEAPON_XP_MULT
+	xp_amount = int(round(float(xp_amount) * xp_mult))
 	Inventory.add_run_xp(xp_amount)
 
 func _on_restart() -> void:

@@ -619,7 +619,7 @@ const BENEFIT_SCRAP_PER_LVL := 0.10      # PACK RAT: extra scrap from deconstruc
 const HORDE_SPAWN_MULT := 0.5      # HORDE NIGHT: spawn interval x this (reuses the Blood-Moon spawn-interval-mult mechanism)
 
 const HARDCORE_COIN_MULT := 3.0       # HARDCORE: RunStats.coin_mult x this at run start (composes with the "Silver Tongue" card — same accumulator)
-const HARDCORE_WEAPON_XP_MULT := 2    # HARDCORE: weapon XP x this at the end-of-run flush (the one Inventory.add_run_xp chokepoint)
+const HARDCORE_WEAPON_XP_MULT := 2    # HARDCORE: weapon XP x this at the end-of-run flush — TWIN call sites feeding Inventory.add_run_xp (GameOver._finish_run + PauseMenu._abandon_run_payout); both also compose RunStats.weapon_xp_mult (punch_card) — keep in lockstep
 
 const OVERTIME_START_SECONDS := 240.0 # OVERTIME: DifficultyManager.run_time preset at run start (2:00 AM, ~wave 9)
 # Enough raw XP for ~8 level-ups at run start. xp_mult IS guaranteed 1.0 there (fixed, final-review
