@@ -21,9 +21,11 @@ var overtime := false
 # --- Daily Shift (Pack C, v0.1.53) ---
 ## True only for a Daily Shift run (always mode == "endless" underneath). `daily_rng` is seeded
 ## from the date string's hash and consumed ONLY by NightEvents' event/kind rolls, Spawner's
-## elite chance/kind rolls, and Enemies.pick()'s enemy-type roll — via rand_float()/rand_int()
-## below. Loot rolls, talent procs, and everything else stay on the engine's global RNG
-## (documented partial determinism, per spec: a full deterministic replay isn't attempted).
+## elite chance/kind rolls, Enemies.pick()'s enemy-type roll, THE BASEMENT's cellar-door roll
+## (Basement._on_wave_edge -> _roll_door), its gauntlet's forced-elite kind picks, and its
+## gauntlet's own Enemies.pick() call (Basement._spawn_gauntlet_enemy) — via rand_float()/
+## rand_int() below. Loot rolls, talent procs, and everything else stay on the engine's global
+## RNG (documented partial determinism, per spec: a full deterministic replay isn't attempted).
 var daily := false
 var daily_rng: RandomNumberGenerator = null
 

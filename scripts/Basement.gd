@@ -28,7 +28,7 @@ var in_basement := false
 
 var _door: BasementDoor
 var _player: Node2D
-var _prev_wave := 1
+var _prev_wave := -1   # -1 = not yet synced; see the frame-1 guard in _process
 
 # --- Task 4: gauntlet lifecycle state ---
 var _phase := Phase.NONE
@@ -43,7 +43,6 @@ var _crate: BasementCratePickup
 func _ready() -> void:
 	add_to_group("basement")
 	_player = get_tree().get_first_node_in_group("player") as Node2D
-	_prev_wave = DifficultyManager.wave
 
 func _process(delta: float) -> void:
 	# Defensive: a player that goes invalid mid-gauntlet (dev kill, future respawn flow, etc.)
@@ -56,7 +55,15 @@ func _process(delta: float) -> void:
 		return
 	if in_basement:
 		_process_gauntlet(delta)
+	_check_extraction_door_free()
 	var wave := DifficultyManager.wave
+	if _prev_wave == -1:
+		# Children ready() before Main applies its wave preset, so _ready() would have snapshotted
+		# a stale wave=1 here (NightEvents._prev_wave shares this ordering weakness — left alone
+		# there per the brief). The first _process frame only synchronizes to the real starting
+		# wave; it must never roll a spurious wave-edge event off that stale snapshot.
+		_prev_wave = wave
+		return
 	if wave == _prev_wave:
 		return
 	_prev_wave = wave
@@ -66,10 +73,35 @@ func _process(delta: float) -> void:
 ## _roll_door so the gate (deterministic, state-driven) and the roll (chance-driven) are each
 ## independently probe-able.
 func _on_wave_edge() -> void:
+	# THE BASEMENT must never roll a door that could straddle the dawn extraction sequence (surge
+	# + chopper ≈ FINAL_SURGE_SECONDS + EXTRACT_WINDOW = up to 110s): a door's own lifetime/hold/
+	# gauntlet/pickup timers can run well past that on their own. Gated to endless only — Horde
+	# and Boss Rush never run Extraction (Extraction.gd:30).
+	if RunConfig.mode == "endless" and absf(DifficultyManager.run_time - ShiftClock.dawn_run_time()) < GameConfig.BASEMENT_DAWN_LOCKOUT:
+		return
 	var door_alive := _door != null and is_instance_valid(_door)
 	if not BasementLogic.can_roll(DifficultyManager.wave, RunConfig.mode, doors_spawned, door_alive, in_basement):
 		return
 	_roll_door(RunConfig.rand_float())
+
+## Reactive half of the dawn-window guard: _on_wave_edge's pre-roll lockout stops NEW doors from
+## spawning close to dawn, but a door that was already alive when the surge hook fires would still
+## sit there eating the window with its own lifetime. Once Extraction leaves Phase.WAITING (the
+## surge has started), any live un-entered door is freed outright. `.get("_phase")` mirrors
+## Spawner._player_level's dynamic-field idiom (Spawner.gd:78) since get_first_node_in_group
+## returns a plain Node — Extraction.Phase is reachable directly via its class_name.
+func _check_extraction_door_free() -> void:
+	if in_basement:
+		return
+	if _door == null or not is_instance_valid(_door):
+		return
+	var extraction := get_tree().get_first_node_in_group("extraction")
+	if extraction == null:
+		return
+	if int(extraction.get("_phase")) == Extraction.Phase.WAITING:
+		return
+	_door.queue_free()
+	_door = null
 
 ## Internal — takes the already-rolled float (Task 3 brief) so this is probe-able with a
 ## stubbed rand instead of depending on live RNG. Does NOT re-check the gate; callers
@@ -242,6 +274,7 @@ func _ascend() -> void:
 	get_tree().current_scene.add_child(ScreenFlash.new())
 	_free_wall()
 	_free_stragglers()
+	_free_stranded_gems()
 	if _crate != null and is_instance_valid(_crate):
 		_crate.queue_free()
 	_crate = null
@@ -266,8 +299,29 @@ func _free_stragglers() -> void:
 	for e in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(e):
 			continue
+		if e.is_in_group("boss"):
+			# BossBase chases continuously (45px/s, no cull) and is tagged "enemies" too — left
+			# unhandled it's always past BASEMENT_STRAGGLER_RADIUS by the time even a bare-minimum
+			# gauntlet ends (68s @ 45px/s = 3060px), and queue_free below would evaporate the
+			# encounter with no _die/_reward. Snap it back to a normal spawn-ring distance from the
+			# surface point instead (Spawner._pick_spawn_pos's ring idiom, Spawner.gd:89-100) so the
+			# fight resumes on ascend rather than vanishing.
+			var ang := randf_range(0.0, TAU)
+			(e as Node2D).global_position = _surface_pos + Vector2(cos(ang), sin(ang)) * GameConfig.SPAWN_RADIUS
+			continue
 		if (e as Node2D).global_position.distance_to(_surface_pos) > GameConfig.BASEMENT_STRAGGLER_RADIUS:
 			e.queue_free()
+
+## Uncollected gauntlet XP gems (dropped by kills at the fixed BASEMENT_OFFSET arena) have no
+## despawn timer of their own — left alone they'd sit at +24000,+24000 forever. Swept the same
+## distance-from-surface idiom as _free_stragglers, via XpGem's "xp_gems" group (XpGem._ready)
+## rather than walking every current_scene child.
+func _free_stranded_gems() -> void:
+	for g in get_tree().get_nodes_in_group("xp_gems"):
+		if not is_instance_valid(g):
+			continue
+		if (g as Node2D).global_position.distance_to(_surface_pos) > GameConfig.BASEMENT_STRAGGLER_RADIUS:
+			g.queue_free()
 
 func _set_suspended(v: bool) -> void:
 	var spawner := get_tree().get_first_node_in_group("spawner")

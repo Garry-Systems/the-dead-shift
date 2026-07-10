@@ -183,12 +183,16 @@ func _physics_process(delta: float) -> void:
 			# Thorns is bite-only (a per-frame reflect on this continuous touch would shred bosses).
 			_target.take_damage(touch_damage * delta, null, true)
 
-	# Cast the next pattern when the clock runs out.
-	_pat_clock -= delta
-	if _pat_clock <= 0.0:
-		_cast_next_pattern()
-		var ph: Dictionary = phases[_phase_idx]
-		_pat_clock = float(ph.get("cadence", 4.0))
+	# Cast the next pattern when the clock runs out — held entirely while the target is beyond
+	# BOSS_CAST_RANGE (a surface boss that wandered toward THE BASEMENT's fixed +24k offset must
+	# never fire/slow/decoy-spawn a player who's actually underground). The clock isn't consumed
+	# while held, so casting resumes normally the instant the target is back in range.
+	if global_position.distance_to(_target.global_position) <= GameConfig.BOSS_CAST_RANGE:
+		_pat_clock -= delta
+		if _pat_clock <= 0.0:
+			_cast_next_pattern()
+			var ph: Dictionary = phases[_phase_idx]
+			_pat_clock = float(ph.get("cadence", 4.0))
 
 func _cast_next_pattern() -> void:
 	if _phase_idx < 0 or _phase_idx >= phases.size():

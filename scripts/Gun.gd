@@ -530,8 +530,13 @@ func _fire_lightning(dir: Vector2) -> bool:
 	var enemies := LineOfSight.filter_visible(global_position, near_enemies, get_world_2d().direct_space_state)
 	# Barrels/props conduct too — the bolt can target and arc through destructibles (raw damage,
 	# no talents), so a torched barrel bursts via its own _die. Appended without LoS, like the cone.
+	# Indestructible fixtures (hp < 0.0 — Forecourt's store cover, THE BASEMENT's rubble wall) are
+	# skipped: they can never actually take the chain's damage, so including them just dead-ends a
+	# hop that could otherwise reach a real conductor beyond them.
 	var conductors: Array = enemies.duplicate()
-	conductors.append_array(get_tree().get_nodes_in_group("destructibles"))
+	for d in get_tree().get_nodes_in_group("destructibles"):
+		if is_instance_valid(d) and float(d.hp) >= 0.0:
+			conductors.append(d)
 	var first := _nearest_enemy(global_position, gun_range, conductors)  # gun_range governs initial target acquisition only; chain hops use jump_radius
 	if first == null:
 		return false

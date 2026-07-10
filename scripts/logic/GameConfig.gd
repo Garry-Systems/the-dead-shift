@@ -149,6 +149,7 @@ const QUIT_PAYOUT_FRAC := 0.75  # quit/restart from pause pays this fraction of 
 
 # --- Boss framework v1 ---
 const BOSS_FIRST_CAST_DELAY := 1.0     # seconds before a boss's first pattern after spawn/phase-enter
+const BOSS_CAST_RANGE := 2400.0        # beyond this the boss holds its patterns — prevents surface bosses reaching into the basement
 const PATTERN_WINDUP_MIN := 0.5        # telegraph readability clamp (min seconds)
 const PATTERN_WINDUP_MAX := 1.2        # telegraph readability clamp (max seconds)
 const AIMED_BAND_THICKNESS := 26.0     # px half-width of an AimedBand's damaging segment
@@ -619,6 +620,7 @@ const COMMENDATION_TIER_HARD_CRATE := "titan_crate"
 # --- THE BASEMENT (roadmap-4 Pack E, v0.1.63) ---
 const BASEMENT_MIN_WAVE := 3            # first wave a cellar door can roll
 const BASEMENT_DOOR_CHANCE := 0.25      # per wave-edge roll (via RunConfig.rand_float — Daily stays seeded)
+const BASEMENT_DAWN_LOCKOUT := 140.0    # door+gauntlet must never eat the extraction window
 const BASEMENT_MAX_PER_RUN := 2         # doors per run
 const BASEMENT_DOOR_LIFETIME := 45.0    # seconds an unentered door lingers
 const BASEMENT_DESCEND_HOLD := 1.2      # seconds standing in the ring to descend

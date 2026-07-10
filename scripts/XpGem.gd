@@ -6,6 +6,10 @@ var value := GameConfig.XP_GEM_VALUE
 var _player: Player
 
 func _ready() -> void:
+	# THE BASEMENT (Pack E): _ascend sweeps stranded gauntlet gems by group — the same
+	# get_tree().get_nodes_in_group idiom every other cross-node lookup in this codebase already
+	# uses — rather than walking every child of current_scene and type-checking each one.
+	add_to_group("xp_gems")
 	_player = get_tree().get_first_node_in_group("player") as Player
 
 func _process(delta: float) -> void:

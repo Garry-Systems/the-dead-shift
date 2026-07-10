@@ -82,6 +82,8 @@ func _spawn_at(pos: Vector2, row: Dictionary = {}) -> void:
 ## managed destructibles afterward (no special flag), so they're normal, cullable obstacles —
 ## exactly like an ambient or wave-cluster drop, just front-loaded.
 func rush_hour_scatter(count: int) -> void:
+	if suspended:
+		return
 	if _player == null or not is_instance_valid(_player):
 		return
 	var dir := Vector2.RIGHT.rotated(randf_range(0.0, TAU))
