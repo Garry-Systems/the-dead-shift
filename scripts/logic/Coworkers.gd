@@ -133,7 +133,62 @@ static func scrap_value(rarity: int) -> Array:
 		maxi(int(band[1]) / 2, 5),
 	]
 
+## A single coin payout for scrapping a coworker of this rarity — one fresh roll inside
+## scrap_value()'s (already-halved) band. Pure (no autoload dependency), so MainMenu's SCRAP
+## flow and a headless probe can both call the exact same code path — the Pack-A scrap
+## byproduct (maxi(1, payout/10) * Benefits.scrap_mult()) is computed by the caller, not
+## here, since Benefits pulls SaveManager transitively and this file stays autoload-free.
+static func roll_scrap_payout(rarity: int) -> int:
+	var band := scrap_value(rarity)
+	return randi_range(int(band[0]), int(band[1]))
+
+## EQUIP/UNEQUIP toggle: given the currently-equipped uid and the uid just tapped, returns
+## the NEW equipped_coworker value. Re-tapping the already-equipped uid clears it ("") —
+## coworkers, unlike weapons, support being fully unequipped (Companion.gd only spawns when
+## equipped_coworker resolves to a live instance). Pure so MainMenu's EQUIP flow and a
+## headless probe can both call the exact same code path.
+static func toggle_equip(current_equipped: String, uid: String) -> String:
+	return "" if current_equipped == uid else uid
+
 ## Unique-enough-for-local-single-player uid, mirroring LootRoller._uid()'s time+randi()
 ## idiom (a "cw_" prefix keeps coworker uids visually distinct from weapon uids at a glance).
 static func _uid() -> String:
 	return "cw_%d_%d" % [Time.get_ticks_usec(), randi()]
+
+## The type's art icon, if it exists (res://art/coworkers/<type>.png — not shipped until
+## Task 5). Mirrors WeaponInstance.icon()'s existence-check idiom, but returns null instead
+## of a shared placeholder texture: there is no "_placeholder.png" for coworkers yet, so the
+## caller (CoworkerTile / CoworkerDetailPopup) falls back to a drawn glyph — see
+## glyph_letter/glyph_color below — instead of a placeholder image.
+static func icon(type: String) -> Texture2D:
+	var path := "res://art/coworkers/%s.png" % type
+	if ResourceLoader.exists(path):
+		return load(path)
+	return null
+
+## Pre-art fallback glyph: a single letter for the type, used by CoworkerTile /
+## CoworkerDetailPopup when icon() returns null.
+static func glyph_letter(type: String) -> String:
+	match type:
+		"cat":
+			return "C"
+		"drone":
+			return "D"
+		"mannequin":
+			return "M"
+		_:
+			return "?"
+
+## Pre-art fallback glyph color: mirrors Companion.gd's own runtime-sprite palette
+## (CAT_COLOR gray-tan / DRONE_COLOR lavender / MANNEQUIN_COLOR indigo) so the placeholder
+## glyph and the in-run companion sprite read as the same "thing" even with zero art.
+static func glyph_color(type: String) -> Color:
+	match type:
+		"cat":
+			return Color(0.549, 0.522, 0.451)     # C3 gray-tan
+		"drone":
+			return Color(0.878, 0.898, 1.0)       # C4 lavender
+		"mannequin":
+			return Color(0.239, 0.0, 0.6)         # C2 indigo
+		_:
+			return Color(1, 1, 1)

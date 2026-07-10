@@ -25,6 +25,7 @@ var _inv_vbox: VBoxContainer   # inventory card content (rebuilt by _populate_in
 var _hub_coins: Label          # hub coin readout (refreshed when returning to hub)
 var _inv_from_play := false    # true when the inventory was opened by PLAY (no weapon equipped)
 var _detail_popup: WeaponDetailPopup   # reused modal shown when a tile is tapped
+var _coworker_popup: CoworkerDetailPopup   # reused modal for a STAFF tile / STAFF FILE reveal (Task 4)
 
 # Drag-anywhere scrolling for the inventory grid, the store list, the records list, AND the
 # benefits list: a drag that starts ANYWHERE on the screen (even on a tile/button) scrolls; a
@@ -463,6 +464,16 @@ func _build_inventory_panel() -> void:
 	_crate_opener.closed.connect(_on_crate_opener_closed)
 	_crate_opener.weapon_revealed.connect(_on_crate_weapon_revealed)
 
+	# STAFF (Pack C / Task 4): reused modal for both a STAFF tile tap AND the STAFF FILE
+	# purchase reveal — see _reveal_coworker. A child of _inv_panel (same as the weapon
+	# popup/crate opener above) so _celebrate's confetti and this popup only ever render
+	# while the inventory panel is the visible one.
+	_coworker_popup = CoworkerDetailPopup.new()
+	_inv_panel.add_child(_coworker_popup)
+	_coworker_popup.equip_requested.connect(_on_equip_coworker)
+	_coworker_popup.scrap_confirmed.connect(_on_scrap_coworker)
+	_coworker_popup.closed.connect(_on_coworker_popup_closed)
+
 ## Opens the inventory. from_play=true means PLAY sent us here with no weapon equipped:
 ## picking a weapon then proceeds to the mode picker, and the bottom button reads CANCEL.
 func _show_inventory(from_play: bool) -> void:
@@ -498,7 +509,12 @@ func _populate_inventory() -> void:
 	var equipped_uid := Inventory.equipped_uid()
 	var owned_crates: Dictionary = SaveManager.crates()
 
-	if owned.is_empty() and owned_crates.is_empty():
+	# STAFF (Pack C / Task 4): owned coworkers, best rarity first — mirrors the weapon sort.
+	var owned_coworkers: Array = SaveManager.coworkers().duplicate()
+	owned_coworkers.sort_custom(func(a, b): return int(a.get("rarity", 1)) > int(b.get("rarity", 1)))
+	var equipped_coworker_uid := SaveManager.equipped_coworker()
+
+	if owned.is_empty() and owned_crates.is_empty() and owned_coworkers.is_empty():
 		var none := Label.new()
 		none.text = "No weapons yet — buy a crate in the Store."
 		none.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -506,7 +522,11 @@ func _populate_inventory() -> void:
 		_inv_vbox.add_child(none)
 	else:
 		# Scroll fills the remaining card height (so the grid never overflows the
-		# screen), scrolls vertically only; the 3-column block is centered.
+		# screen), scrolls vertically only. Both the crates/weapons grid AND the STAFF
+		# section below it live inside ONE `sections` VBox inside this single scroll, so
+		# the existing drag-anywhere _input branch (keyed on _inv_scroll) already covers
+		# STAFF too — no separate scroll registration needed (verified: a 5th
+		# _benefits_scroll-style branch would be redundant here).
 		var scroll := ScrollContainer.new()
 		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -514,25 +534,53 @@ func _populate_inventory() -> void:
 		scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE   # built-in touch scroll off; we drive it from _input so a drag anywhere (even on a tile) scrolls
 		_inv_scroll = scroll
 		_inv_vbox.add_child(scroll)
-		var grid_center := HBoxContainer.new()
-		grid_center.alignment = BoxContainer.ALIGNMENT_CENTER
-		grid_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		scroll.add_child(grid_center)
-		var grid := GridContainer.new()
-		grid.columns = 3
-		grid.add_theme_constant_override("h_separation", 12)
-		grid.add_theme_constant_override("v_separation", 12)
-		grid_center.add_child(grid)
-		for crate_id in owned_crates:
-			var ct := CrateTile.new()
-			grid.add_child(ct)
-			ct.setup(Crates.get_crate(String(crate_id)), int(owned_crates[crate_id]))
-			ct.crate_pressed.connect(_on_crate_tile_pressed)
-		for inst in owned:
-			var tile := WeaponTile.new()
-			grid.add_child(tile)
-			tile.setup(inst, String(inst.get("uid", "")) == equipped_uid)
-			tile.tile_pressed.connect(_on_tile_pressed)
+		var sections := VBoxContainer.new()
+		sections.add_theme_constant_override("separation", 16)
+		sections.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.add_child(sections)
+
+		if not owned.is_empty() or not owned_crates.is_empty():
+			var grid_center := HBoxContainer.new()
+			grid_center.alignment = BoxContainer.ALIGNMENT_CENTER
+			grid_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			sections.add_child(grid_center)
+			var grid := GridContainer.new()
+			grid.columns = 3
+			grid.add_theme_constant_override("h_separation", 12)
+			grid.add_theme_constant_override("v_separation", 12)
+			grid_center.add_child(grid)
+			for crate_id in owned_crates:
+				var ct := CrateTile.new()
+				grid.add_child(ct)
+				ct.setup(Crates.get_crate(String(crate_id)), int(owned_crates[crate_id]))
+				ct.crate_pressed.connect(_on_crate_tile_pressed)
+			for inst in owned:
+				var tile := WeaponTile.new()
+				grid.add_child(tile)
+				tile.setup(inst, String(inst.get("uid", "")) == equipped_uid)
+				tile.tile_pressed.connect(_on_tile_pressed)
+
+		# STAFF section (Pack C / Task 4): coworker tiles, below the crates/weapons grid.
+		if not owned_coworkers.is_empty():
+			var staff_header := Label.new()
+			staff_header.text = "STAFF"
+			staff_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			PixelTheme.style_label(staff_header, 22, PixelTheme.ACCENT)
+			sections.add_child(staff_header)
+			var staff_center := HBoxContainer.new()
+			staff_center.alignment = BoxContainer.ALIGNMENT_CENTER
+			staff_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			sections.add_child(staff_center)
+			var staff_grid := GridContainer.new()
+			staff_grid.columns = 3
+			staff_grid.add_theme_constant_override("h_separation", 12)
+			staff_grid.add_theme_constant_override("v_separation", 12)
+			staff_center.add_child(staff_grid)
+			for cw in owned_coworkers:
+				var ctile := CoworkerTile.new()
+				staff_grid.add_child(ctile)
+				ctile.setup(cw, String(cw.get("uid", "")) == equipped_coworker_uid)
+				ctile.tile_pressed.connect(_on_coworker_tile_pressed)
 
 	_inv_result = Label.new()
 	_inv_result.text = _last_unbox
@@ -615,6 +663,15 @@ func _on_crate_tile_pressed(crate_id: String) -> void:
 		_last_unbox_color = PixelTheme.TEXT_DIM
 		_populate_inventory()
 
+## STAFF tile tapped (Task 4) → open the coworker detail popup for that instance. Mirrors
+## _on_tile_pressed exactly, off SaveManager.equipped_coworker() instead of Inventory.
+func _on_coworker_tile_pressed(inst: Dictionary) -> void:
+	if _inv_suppress_tap:
+		_inv_suppress_tap = false
+		return                                  # this "tap" was the end of a scroll drag
+	var is_eq: bool = String(inst.get("uid", "")) == SaveManager.equipped_coworker()
+	_coworker_popup.open(inst, is_eq)
+
 ## Switches to the inventory panel (the CrateOpener and the WeaponDetailPopup that follows a
 ## win are both children of _inv_panel, so they only actually render while it's the visible
 ## panel) and starts the reel for `crate_id`. Shared by the store buy-path and the free-reward
@@ -677,6 +734,43 @@ func _celebrate(rarity_color: Color) -> void:
 func _on_scrap(inst: Dictionary) -> void:
 	Inventory.deconstruct(String(inst.get("uid", "")))
 	_last_unbox = ""   # a slot just freed — drop a stale "Inventory full" prompt before re-render
+	_populate_inventory()
+
+## EQUIP/UNEQUIP toggle for a coworker (Task 4). Coworkers use the raw SaveManager
+## accessors directly (no Inventory.gd wrapper — coworkers aren't weapons; see
+## SaveManager.gd's "no Inventory.gd wrapper" comment above its coworker accessor block).
+## The toggle math itself lives in Coworkers.toggle_equip (pure, probe-covered) so this stays
+## a one-line call, mirroring _on_scrap below routing its payout roll through Coworkers too.
+func _on_equip_coworker(inst: Dictionary) -> void:
+	var uid := String(inst.get("uid", ""))
+	SaveManager.set_equipped_coworker(Coworkers.toggle_equip(SaveManager.equipped_coworker(), uid))
+	SaveManager.save_game()
+	_populate_inventory()
+
+## Scrap confirmed in the coworker popup → pays Coworkers.roll_scrap_payout(rarity) coins
+## (a roll inside the halved Coworkers.scrap_value band) + the Pack-A scrap byproduct, via
+## the SAME formula Inventory.deconstruct uses (maxi(1, payout/10) * Benefits.scrap_mult())
+## but NOT routed through Inventory.deconstruct itself — coworkers aren't weapons and don't
+## share its weapon-cap/fusion chokepoints. Scrapping the equipped coworker unequips it first
+## (guard, not just a UI note).
+func _on_scrap_coworker(inst: Dictionary) -> void:
+	var uid := String(inst.get("uid", ""))
+	var payout := Coworkers.roll_scrap_payout(int(inst.get("rarity", 1)))
+	if SaveManager.equipped_coworker() == uid:
+		SaveManager.set_equipped_coworker("")
+	var list: Array = SaveManager.coworkers()
+	list = list.filter(func(c): return String(c.get("uid", "")) != uid)
+	SaveManager.set_coworkers(list)
+	SaveManager.add_coins(payout)
+	SaveManager.add_scrap(roundi(maxi(1, payout / 10) * Benefits.scrap_mult()))
+	SaveManager.save_game()
+	_last_unbox = ""   # mirrors _on_scrap's stale-message clear
+	_populate_inventory()
+
+## The coworker popup closed (browsing a STAFF tile OR the post-buy reveal). Refresh the
+## grid — mirrors _on_detail_popup_closed, minus the reward-queue hook (STAFF FILE isn't a
+## reward-queue kind; see _grant_reward's "crate"/"gun" match).
+func _on_coworker_popup_closed() -> void:
 	_populate_inventory()
 
 ## FEED confirmed in the popup (Pack B: weapon fusion) → perform the Inventory.fuse()
@@ -1132,6 +1226,26 @@ func _populate_store() -> void:
 		cb.pressed.connect(_guarded(_on_buy_crate.bind(String(crate["id"]))))
 		list.add_child(cb)
 
+	# STAFF (Pack C / Task 4): one row — buys and immediately rolls a coworker (no crate,
+	# no reel; see _on_buy_coworker's reveal popup).
+	_store_header(list, "STAFF")
+	var staff_row := VBoxContainer.new()
+	staff_row.add_theme_constant_override("separation", 2)
+	var staff_btn := Button.new()
+	staff_btn.text = "STAFF FILE — %d" % GameConfig.COWORKER_CRATE_PRICE
+	PixelTheme.style_button(staff_btn, Vector2(660, 88), 22)
+	staff_btn.disabled = SaveManager.coins() < GameConfig.COWORKER_CRATE_PRICE
+	staff_btn.pressed.connect(_guarded(_on_buy_coworker))
+	staff_row.add_child(staff_btn)
+	var staff_desc := Label.new()
+	staff_desc.text = "personnel are a renewable resource. hire someone."
+	staff_desc.custom_minimum_size = Vector2(660, 0)
+	staff_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	staff_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(staff_desc, 18, PixelTheme.TEXT_DIM)
+	staff_row.add_child(staff_desc)
+	list.add_child(staff_row)
+
 	# DEV (temporary): instantly stock one weapon of every rarity for inspect/feel testing.
 	# REMOVE before release (with the 10k-coin grant_dev_bonus in _ready).
 	var dev := Button.new()
@@ -1184,6 +1298,42 @@ func _on_buy_crate(crate_id: String) -> void:
 		_last_unbox = "Inventory full — scrap a weapon first."
 		_last_unbox_color = PixelTheme.TEXT_DIM
 		_populate_inventory()
+
+## STAFF FILE (Pack C / Task 4): mirrors _on_buy_crate's spend-then-reveal shape (spend
+## coins, play the same "coin" purchase sound), but there's no cap check (coworkers have no
+## inventory-full guard, unlike weapons) and no CrateOpener reel — a coworker has no
+## multi-stage reel tease, so it goes straight to _reveal_coworker's popup (sanctioned
+## divergence from the crate-buy flow, per the brief). Rarity rolls via the exact same
+## generic-crate default LootRoller._crate_rarity() falls through to for a crate with no
+## `special` flag: Rarity.roll(floor, ceil) with no bias (floor 1, ceil MAX_ID) — this isn't
+## a premium crate, so no floor/ceil override.
+func _on_buy_coworker() -> void:
+	if not SaveManager.spend_coins(GameConfig.COWORKER_CRATE_PRICE):
+		_last_unbox = "Not enough coins."
+		_last_unbox_color = PixelTheme.TEXT_DIM
+		_populate_store()
+		return
+	SoundManager.play("coin")
+	var inst := Coworkers.roll(Rarity.roll(1, Rarity.MAX_ID))
+	var list: Array = SaveManager.coworkers()
+	list.append(inst)
+	SaveManager.set_coworkers(list)
+	SaveManager.save_game()
+	_last_unbox = ""
+	_populate_inventory()
+	_show_only(_inv_panel)
+	_reveal_coworker(inst)
+
+## Reveal popup for a freshly-rolled coworker: crate_win sting (there's no reel to play it
+## for us here, unlike a weapon crate — see CrateOpener.gd:255) + the existing confetti
+## idiom for a rare-enough pull (mirrors _on_crate_weapon_revealed's own threshold/tint).
+func _reveal_coworker(inst: Dictionary) -> void:
+	SoundManager.play("crate_win")
+	var is_eq: bool = String(inst.get("uid", "")) == SaveManager.equipped_coworker()
+	_coworker_popup.open(inst, is_eq)
+	var rarity := int(inst.get("rarity", 1))
+	if rarity >= CONFETTI_MIN_RARITY:
+		_celebrate(Rarity.display_color(rarity))
 
 func _on_dev_grant_all() -> void:
 	var n := Inventory.grant_all_rarities()
