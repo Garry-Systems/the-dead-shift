@@ -346,6 +346,12 @@ const COURIER_SLOW_DURATION := 3.0     # slow-aura debuff length
 const COURIER_SLOW_FACTOR := 0.4       # slow-aura move-speed cut
 
 # --- THE KAREN (boss #8, v0.1.60) ---
+const KAREN_HP := 1600.0               # above Courier (1400), well under Manager (3000) — kit is the pressure, not the tank
+const KAREN_SPEED_MULT := 0.85         # persistent chase-speed multiplier — quick for a boss
+const KAREN_REVIEW_SLOW_FACTOR := 0.55 # "LEAVING A REVIEW" move-speed factor on the player
+const KAREN_REVIEW_SLOW_DURATION := 2.5  # seconds the review slow lasts
+const KAREN_DECOY_COUNT := 3           # decoy adds per cast (auto-aim steal, BroodMother idiom)
+const KAREN_MANAGER_HP_MULT := 6.0     # MANAGER ON DUTY summon hp_mult — STACKS with apply_elite's ELITE_HP_MULT 2.5 → effective ~15x a wave-current trash zombie
 const KAREN_SCREAM_RADIUS := 240.0     # scream nova max radius (slightly wider than SLAM_RADIUS)
 const KAREN_SCREAM_DAMAGE := 30.0      # damage if the leading band catches the player (once per scream)
 const KAREN_SCREAM_SHOVE_SPEED := 600.0  # px/sec initial shove; with PLAYER_SHOVE_DECAY 1200 ≈ 150px knockback
