@@ -345,6 +345,11 @@ const COURIER_RING_COUNT := 10         # radial burst projectile count
 const COURIER_SLOW_DURATION := 3.0     # slow-aura debuff length
 const COURIER_SLOW_FACTOR := 0.4       # slow-aura move-speed cut
 
+# --- THE KAREN (boss #8, v0.1.60) ---
+const KAREN_SCREAM_RADIUS := 240.0     # scream nova max radius (slightly wider than SLAM_RADIUS)
+const KAREN_SCREAM_DAMAGE := 30.0      # damage if the leading band catches the player (once per scream)
+const KAREN_SCREAM_SHOVE_SPEED := 600.0  # px/sec initial shove; with PLAYER_SHOVE_DECAY 1200 ≈ 150px knockback
+
 # SHIFT CHANGE toast debounce: the Hud edge-detects "no boss -> boss" each frame, which in Boss
 # Rush can flicker on a same-frame boss-death + refill depending on Spawner/Hud process order.
 const SHIFT_TOAST_COOLDOWN := 8.0      # min seconds between SHIFT CHANGE toasts
