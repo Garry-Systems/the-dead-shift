@@ -360,6 +360,15 @@ const KAREN_SCREAM_SHOVE_SPEED := 600.0  # px/sec initial shove; with PLAYER_SHO
 # Rush can flicker on a same-frame boss-death + refill depending on Spawner/Hud process order.
 const SHIFT_TOAST_COOLDOWN := 8.0      # min seconds between SHIFT CHANGE toasts
 
+# --- THE TANKER (boss #9, v0.1.60) ---
+const TANKER_TRAIL_SPACING := 90.0       # px of dash travel between fuel pool drops
+const TANKER_TRAIL_MAX := 14             # live fuel pools cap — drop-oldest (cap_player_pools idiom, own group)
+const TANKER_POOL_DPS := 20.0            # fuel-fire pool dps (scaled by the boss's special_mult; HazardZone's ENEMY_/PLAYER_ mults apply on top)
+const TANKER_POOL_RADIUS := 70.0         # px pool radius
+const TANKER_POOL_DURATION := 4.0        # seconds a pool burns after igniting
+const TANKER_IGNITE_DELAY := 0.9         # puddle→ignite windup: cross the wet fuel early or lose the lane
+const TANKER_JACKKNIFE_RETELEGRAPH := 0.4  # pause between the two JACKKNIFE dashes (re-aims at the player)
+
 # --- Talent VFX overhaul, Phase 1 (make every existing proc visible) ---
 # CombatText: one pooled Node2D (see scripts/ui/CombatText.gd) — gold crit numbers + headline
 # callout words. Caps are LOAD-BEARING (Risks #1): a Label-per-proc tanks horde frames.
