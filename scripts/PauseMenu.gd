@@ -120,8 +120,15 @@ func _on_toggle_effects() -> void:
 	SaveManager.save_game()
 	_effects_btn.text = _effects_label()
 
-## Rebuilds the held-relic list: each relic's name + what it does + a REMOVE button.
+## Rebuilds the held-relic list: each relic's name + what it does + a SCRAP button.
 ## Refreshed every time the pause overlay opens (relics change during the run).
+##
+## Relics Overhaul (Task 4): the free no-payout REMOVE button is gone — every mid-run relic
+## removal now pays out (RELIC_SCRAP_COINS / RELIC_CURSED_SCRAP_COINS by family), routed through
+## `RelicBar.scrap()`, the SAME shared entry point RelicChoice's full-bar swap-flow scrap cards
+## use (Task 3) — a slot can never be freed here without paying, or vice versa. The payout shown
+## on the button comes from `RelicBar.scrap_value(id)`, the exact function `scrap()` itself calls
+## to decide the payout, so the number on the button can never drift from what tapping it pays.
 func _populate_relics() -> void:
 	if _relics_box == null:
 		return
@@ -154,21 +161,26 @@ func _populate_relics() -> void:
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		PixelTheme.style_label(desc, 14, PixelTheme.TEXT_DIM)
 		row.add_child(desc)
-		var rm := Button.new()
-		rm.text = "REMOVE"
-		PixelTheme.style_button(rm, Vector2(220, 52), 16)
-		rm.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		rm.add_theme_color_override("font_color", PixelTheme.DANGER)
+		var sc := Button.new()
+		var value: int = int(bar.call("scrap_value", String(id))) if bar != null else 0
+		sc.text = "SCRAP (+%d COINS)" % value       # mirrors RelicChoice's "SKIP (+%d COINS)" idiom
+		PixelTheme.style_button(sc, Vector2(220, 52), 16)
+		sc.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		sc.add_theme_color_override("font_color", PixelTheme.TEXT)   # run-coin color idiom (GameOver TIPS row / RelicChoice's SCRAP label both use TEXT)
 		var rid := String(id)
-		rm.pressed.connect(func(): _on_remove_relic(rid))
-		row.add_child(rm)
+		sc.pressed.connect(func(): _on_scrap_relic(rid))
+		row.add_child(sc)
 		_relics_box.add_child(row)
 
-## Removes a held relic (the RelicBar reverses its stat effect), then refreshes the list.
-func _on_remove_relic(id: String) -> void:
+## Scraps a held relic — RelicBar reverses its effect AND pays coins by family via the shared
+## RelicBar.scrap() entry point — then refreshes the list. Sounds mirror the store's
+## purchase/deny idiom (MainMenu._on_buy_benefit): "purchase" on a successful scrap, "ui_tap"
+## (deny) on the defensive no-op path (no relic bar in the scene, or `id` already left `_held`
+## between opening the menu and this tap — scrap() returns 0 coins in both cases).
+func _on_scrap_relic(id: String) -> void:
 	var bar := get_tree().get_first_node_in_group("relic_bar")
-	if bar != null:
-		bar.call("remove_relic", id)
+	var paid: int = int(bar.call("scrap", id)) if bar != null else 0
+	SoundManager.play("purchase" if paid > 0 else "ui_tap")
 	_populate_relics()
 
 func _on_pause_pressed() -> void:

@@ -1,16 +1,22 @@
 extends CanvasLayer
-## Top-center 4-slot relic bar. Owns the run's relic state (held relics) and renders the
-## held slots. Found via the "relic_bar" group. Process mode ALWAYS so RelicChoice/PauseMenu
-## can mutate it while the tree is paused.
+## Top-center relic bar (4 slots normally, 6 while Overstocked is held). Owns the run's relic
+## state (held relics) and renders the held slots. Found via the "relic_bar" group. Process mode
+## ALWAYS so RelicChoice/PauseMenu can mutate it while the tree is paused.
 ##
-## Relics Overhaul (Task 3): the bar is now the ONE place a relic's effect gets turned on/off,
-## routed by family so every caller (RelicChoice's take/swap flow, PauseMenu's REMOVE, a future
-## SCRAP button) can just call take()/remove_relic()/scrap() with an id and never care whether
-## it's STANDARD (Relics.apply/remove — reversible delta/ratio) or PROTOTYPE/CURSED
-## (RelicEffects.equip/unequip — hook owns its own reversal state). See _apply_held/_reverse_held.
+## Relics Overhaul (Task 3): the bar is the ONE place a relic's effect gets turned on/off, routed
+## by family so every caller (RelicChoice's take/swap flow, PauseMenu's SCRAP button) can just
+## call take()/remove_relic()/scrap() with an id and never care whether it's STANDARD
+## (Relics.apply/remove — reversible delta/ratio) or PROTOTYPE/CURSED (RelicEffects.equip/unequip
+## — hook owns its own reversal state). See _apply_held/_reverse_held.
+##
+## Task 4: rendering is now slot-count-driven (_rebuild_slots(), called from _build_ui() and
+## again from set_slot_count() on a real capacity change) instead of a fixed
+## GameConfig.MAX_RELIC_SLOTS loop — see _rebuild_slots()/_refresh() below for the overstocked
+## 6-slot draw and the over-capacity render-clamp.
 
 var _player: Player
 var _labels: Array[Label] = []
+var _hbox: HBoxContainer
 
 # Run state.
 var _held: Array = []          # each entry: {"id": String, "delta": float} (delta unused/0.0 for hook-mode ids)
@@ -31,14 +37,29 @@ func _build_ui() -> void:
 	center.offset_bottom = 80
 	add_child(center)
 
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 8)
-	center.add_child(hbox)
+	_hbox = HBoxContainer.new()
+	_hbox.add_theme_constant_override("separation", 8)
+	center.add_child(_hbox)
 
-	for i in GameConfig.MAX_RELIC_SLOTS:
+	_rebuild_slots()
+
+## Slot-count-driven (Task 4): tears down and redraws the Panel/Label row for the CURRENT
+## `_slot_count` (4 normally, 6 while Overstocked is held). Called once from _build_ui() and
+## again from set_slot_count() whenever the count actually changes, so equipping/unequipping
+## Overstocked mid-run grows/shrinks the bar cleanly instead of the old fixed 4-slot loop.
+## `queue_free()`-then-immediately-repopulate mirrors this codebase's existing rebuild idiom
+## (PauseMenu._populate_relics / RelicChoice._clear_vbox) — a stale label may still be in the
+## tree for the remainder of this frame, but _labels is already repointed at the new ones.
+func _rebuild_slots() -> void:
+	if _hbox == null:
+		return
+	for c in _hbox.get_children():
+		c.queue_free()
+	_labels.clear()
+	for i in _slot_count:
 		var slot := Panel.new()
 		slot.custom_minimum_size = Vector2(40, 40)
-		hbox.add_child(slot)
+		_hbox.add_child(slot)
 		var lbl := Label.new()
 		lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -46,8 +67,16 @@ func _build_ui() -> void:
 		slot.add_child(lbl)
 		_labels.append(lbl)
 
+## Iterates `_labels.size()` (the CURRENT slot count), never a fixed constant, and never reads
+## `_held[i]` past `_held.size()`. This is also the over-capacity safety valve: if `_held.size()`
+## is ever momentarily greater than `_slot_count` (e.g. mid-scrap of Overstocked itself — its
+## `RelicEffects.unequip` -> `set_slot_count(4)` call lands before that same scrap() call has
+## removed the id from `_held`), the loop simply stops at the last real slot and the extra held
+## relic(s) just don't get an icon this frame — a visual clamp, not a crash. Their effects stay
+## fully active regardless; T3's swap flow is what actually prevents the bar from being LEFT in
+## that state (see RelicChoice._scrap_candidates/_on_scrap).
 func _refresh() -> void:
-	for i in GameConfig.MAX_RELIC_SLOTS:
+	for i in _labels.size():
 		if i < _held.size():
 			var id: String = _held[i]["id"]
 			var r := Relics.get_relic(id)
@@ -106,11 +135,18 @@ func scrap(id: String) -> int:
 			_reverse_held(_held[i])
 			_held.remove_at(i)
 			_refresh()
-			var cursed := Relics.family_of(id) == "cursed"
-			var coins := GameConfig.RELIC_CURSED_SCRAP_COINS if cursed else GameConfig.RELIC_SCRAP_COINS
+			var coins := scrap_value(id)
 			RunStats.add_coins(coins)
 			return coins
 	return 0
+
+## Coins scrap() will pay for `id`, by family (RELIC_CURSED_SCRAP_COINS for CURSED,
+## RELIC_SCRAP_COINS otherwise). Pure lookup — `id` doesn't need to be currently held, so this
+## also doubles as the label source for a not-yet-tapped SCRAP button. scrap() itself calls this
+## SAME function (see above), so the pause-menu SCRAP button (Task 4) can read the exact number
+## scrap() is about to pay and the two can never drift apart.
+func scrap_value(id: String) -> int:
+	return GameConfig.RELIC_CURSED_SCRAP_COINS if Relics.family_of(id) == "cursed" else GameConfig.RELIC_SCRAP_COINS
 
 ## Takes a relic; if the bar is full, replaces the oldest held one. No-op if already owned.
 ## Superseded by RelicChoice's player-driven "pick one to scrap" swap flow (Task 3) — kept only
@@ -138,14 +174,19 @@ func roll_drop() -> String:
 	return candidates[0]
 
 ## Updates the bar's held-relic capacity (Overstocked: MAX_RELIC_SLOTS -> +RELIC_OVERSTOCK_SLOTS,
-## reversed back on unequip). Bookkeeping only: is_full()/the swap-flow gate read this
-## immediately, but the bar's on-screen slot rendering (_build_ui/_refresh's fixed
-## GameConfig.MAX_RELIC_SLOTS loop) is UNCHANGED here — that visual piece is Task 4's job per the
-## plan ("verify the bar's draw is slot-count-driven or fix it to be"). A 5th/6th held relic's
-## effect is fully active even before its slot icon renders. Called by RelicEffects
-## (has_method-guarded) when Overstocked is equipped/unequipped.
+## reversed back on unequip). is_full()/the swap-flow gate read `_slot_count` immediately.
+## Task 4: now ALSO drives the on-screen slot row — a real capacity change (n != current)
+## triggers `_rebuild_slots()` (redraws the Panel/Label row for the new count) + `_refresh()`
+## (repaints held icons into it), so growing to 6 or shrinking back to 4 redraws cleanly with no
+## leftover/missing slots. No-ops if `n` matches the current count (avoids a pointless rebuild on
+## a redundant call). Called by RelicEffects (has_method-guarded) when Overstocked is
+## equipped/unequipped.
 func set_slot_count(n: int) -> void:
+	if n == _slot_count:
+		return
 	_slot_count = n
+	_rebuild_slots()
+	_refresh()
 
 # --- family routing (STANDARD -> Relics.apply/remove; PROTOTYPE/CURSED -> RelicEffects.equip/
 # unequip) — the one place take()/remove_relic()/reset()/scrap() decide which path to use, so
