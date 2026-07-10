@@ -8,6 +8,10 @@ var _spawn_t := 0.0
 var _cull_t := 0.0
 var _prev_wave := 1
 var suspended := false   # THE BASEMENT (Pack E): controller pauses surface spawning/scatter while below
+var location_obstacle_mults: Dictionary = {}   # TRANSFER STORES (Task 2): set once by Main.gd
+# from the run's Locations row; passed straight through to Obstacles.pick(). {} (forecourt/
+# default) is byte-identical to before this pack — see Obstacles._weight's mults.is_empty()
+# short-circuit.
 
 func _ready() -> void:
 	add_to_group("obstacle_field")
@@ -72,7 +76,9 @@ func _spawn_at(pos: Vector2, row: Dictionary = {}) -> void:
 	if pos.distance_squared_to(Vector2.ZERO) < GameConfig.FORECOURT_KEEPOUT_RADIUS * GameConfig.FORECOURT_KEEPOUT_RADIUS:
 		return   # never scatter into the forecourt (Pack 5) — it's a fixed structure, not ambient clutter
 	var d := Destructible.new()
-	d.configure(row if not row.is_empty() else Obstacles.pick(DifficultyManager.wave))
+	# TRANSFER STORES (Task 2): location_obstacle_mults biases the ambient roll ({} = untouched
+	# default); Rush Hour's forced `row` above bypasses Obstacles.pick entirely, so it's unaffected.
+	d.configure(row if not row.is_empty() else Obstacles.pick(DifficultyManager.wave, location_obstacle_mults))
 	get_tree().current_scene.add_child(d)
 	d.global_position = pos
 

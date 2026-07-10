@@ -7,6 +7,16 @@ extends Node2D
 func _ready() -> void:
 	SoundManager.music("run_loop")
 	DifficultyManager.reset()
+	# TRANSFER STORES (Task 2): resolve the run's location ONCE, up front — the ground swap,
+	# run-start banner, and Spawner/ObstacleField/Basement spawn-weight bias below all key off
+	# this single row (Locations.gd's own doc comment: "consumers read the CURRENT location row
+	# once at run start"). `by_id` returns {} on an unknown id (fail-closed contract) — guarded
+	# here rather than trusted, even though RunConfig.location defaults to "forecourt" (T1) so a
+	# normal menu path never hits it.
+	var loc := Locations.by_id(RunConfig.location)
+	if loc.is_empty():
+		loc = Locations.by_id("forecourt")
+	_apply_location(loc)
 	# OVERTIME (Pack G): preset run_time AND the derived wave BEFORE any wave-reading system's
 	# first tick (Spawner's boss/elite gates, NightEvents' wave-diff check) — set explicitly here
 	# rather than waiting a frame for DifficultyManager's own _process to recompute wave, so
@@ -62,6 +72,51 @@ func _ready() -> void:
 	var spawner := get_tree().get_first_node_in_group("spawner")
 	if spawner != null:
 		spawner.mode = RunConfig.mode
+
+## TRANSFER STORES (Task 2): applies the resolved location row for the whole run.
+## - Ground: swaps the Ground/Sprite2D texture to `loc.ground`, skipped entirely for forecourt
+##   (leaves the .tscn-baked art/ground.png alone — the pack's #1 regression risk is any change
+##   to forecourt's byte-identical behavior). `art/ground_mart.png`/`art/ground_garage.png` don't
+##   exist yet (Task 6) — ResourceLoader.exists gates the load so a non-forecourt run before T6
+##   ships boots clean with a push_warning instead of an error, keeping the baked texture.
+## - Banner: `TONIGHT'S SHIFT: <name>` via Hud's Pack-0 `_show_banner(text, sub)` idiom (same
+##   private-method-via-call() route Basement.gd already uses), skipped for forecourt (today's
+##   silent start stays silent). No sequencing needed against OVERTIME: OVERTIME's only run-start
+##   effect is presetting DifficultyManager.run_time to OVERTIME_START_SECONDS (240s, "2:00 AM")
+##   — well short of ShiftClock.dawn_run_time() (480s), the sole other banner trigger in this
+##   codebase (Hud's DAWN banner / Extraction's CHOPPER INBOUND, both gated on that same crossing
+##   and un-fireable on frame 1 even under OVERTIME's headstart). No existing code shows any
+##   banner at run start, so this location banner never collides with anything.
+## - Bias: hands the row's spawn_mults/obstacle_mults dicts to the three Enemies.pick/
+##   Obstacles.pick call sites (Spawner, ObstacleField, Basement — verified exhaustively, see
+##   Locations.gd's field doc). forecourt's mults are {} in the registry already, so setting the
+##   fields unconditionally below is a no-op there (Enemies/Obstacles._weight's `mults.is_empty()`
+##   short-circuit keeps the byte-identical path).
+func _apply_location(loc: Dictionary) -> void:
+	if loc.is_empty():
+		return
+	if String(loc.get("id", "forecourt")) != "forecourt":
+		var ground_path := String(loc.get("ground", ""))
+		if ground_path != "" and ResourceLoader.exists(ground_path):
+			var ground_sprite := get_node_or_null("Ground/Sprite2D") as Sprite2D
+			if ground_sprite != null:
+				ground_sprite.texture = load(ground_path)
+		else:
+			push_warning("Locations: ground texture missing for '%s' (%s) — Task 6 not shipped yet, keeping the baked forecourt ground" % [String(loc.get("id", "")), ground_path])
+		var hud := get_tree().get_first_node_in_group("hud")
+		if hud != null:
+			hud.call("_show_banner", "TONIGHT'S SHIFT: %s" % String(loc.get("name", "")), String(loc.get("banner_sub", "")))
+	var spawn_mults: Dictionary = loc.get("spawn_mults", {})
+	var obstacle_mults: Dictionary = loc.get("obstacle_mults", {})
+	var spawner := get_tree().get_first_node_in_group("spawner")
+	if spawner != null:
+		spawner.location_spawn_mults = spawn_mults
+	var obstacle_field := get_tree().get_first_node_in_group("obstacle_field")
+	if obstacle_field != null:
+		obstacle_field.location_obstacle_mults = obstacle_mults
+	var basement := get_tree().get_first_node_in_group("basement")
+	if basement != null:
+		basement.location_spawn_mults = spawn_mults
 
 ## Configures the gun from the player's equipped loot weapon, then applies the character's
 ## weapon-specific perk (this is what the old weapon-select StartUI used to do). The menu

@@ -25,6 +25,9 @@ enum Phase { NONE, GAUNTLET, REWARD }
 
 var doors_spawned := 0
 var in_basement := false
+var location_spawn_mults: Dictionary = {}   # TRANSFER STORES (Task 2): set once by Main.gd from
+# the run's Locations row; passed straight through to the gauntlet's own Enemies.pick() call
+# below. {} (forecourt/default) is byte-identical to before this pack.
 
 var _door: BasementDoor
 var _player: Node2D
@@ -221,7 +224,8 @@ func _process_gauntlet(delta: float) -> void:
 ## after configure(), before add_child" — it scales max_health while current==max, which assumes
 ## the enemy hasn't taken a hit or entered the tree yet).
 func _spawn_gauntlet_enemy() -> void:
-	var entry := Enemies.pick(DifficultyManager.wave)
+	# TRANSFER STORES (Task 2): location_spawn_mults biases the gauntlet roll ({} = untouched default).
+	var entry := Enemies.pick(DifficultyManager.wave, location_spawn_mults)
 	var enemy = (entry["scene"] as PackedScene).instantiate()
 	enemy.configure(Enemies.stats_for(entry, DifficultyManager.wave))
 	if _elites_spawned < _elites_target and _gauntlet_t >= float(_elites_spawned + 1) * GameConfig.BASEMENT_ELITE_INTERVAL:

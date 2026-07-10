@@ -8,6 +8,9 @@ extends Node2D
 var mode := "endless"
 var boss_rush_count := 0      # bosses spawned so far in boss_rush (drives scaling + HUD)
 var suspended := false   # THE BASEMENT (Pack E): controller pauses surface spawning/scatter while below
+var location_spawn_mults: Dictionary = {}   # TRANSFER STORES (Task 2): set once by Main.gd from
+# the run's Locations row; passed straight through to Enemies.pick(). {} (forecourt/default) is
+# byte-identical to before this pack — see Enemies._weight's mults.is_empty() short-circuit.
 
 var _player: Node2D
 var _timer := 0.0
@@ -101,7 +104,8 @@ func _pick_spawn_pos() -> Vector2:
 
 func _spawn_enemy() -> void:
 	# Pick a trash enemy type from the registry (wave-gated + weighted) and bake its scaled stats.
-	var entry := Enemies.pick(DifficultyManager.wave)
+	# TRANSFER STORES (Task 2): location_spawn_mults biases the roll ({} = untouched default).
+	var entry := Enemies.pick(DifficultyManager.wave, location_spawn_mults)
 	var enemy = (entry["scene"] as PackedScene).instantiate()
 	enemy.configure(Enemies.stats_for(entry, DifficultyManager.wave))
 	_maybe_apply_elite(enemy)
