@@ -4,6 +4,14 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.64 — New Hires (Night Crew) (2026-07-10)
+
+You're not working alone anymore. Technically.
+- **NEW: COWORKERS** — pull a STAFF FILE (800c) from the store to hire the night crew: **THE STORE CAT** (pounces, pins, answers to no one), **THE DELIVERY DRONE** (orbits you, shoots things, order still 6 minutes away), or **THE FLOOR MANNEQUIN** (drops a decoy the horde can't resist swinging at).
+- Coworkers roll rarities like everything else, and purple-or-better staff come with a **trait** — and every trait actually does something for who rolled it. No dead hires.
+- New **STAFF** section in your inventory: equip one at a time, scrap the rest for coins and scrap.
+- They follow you everywhere. Including the basement. Especially the basement.
+
 ## v0.1.63 — Check the Walk-In (2026-07-10)
 
 Someone has to.
