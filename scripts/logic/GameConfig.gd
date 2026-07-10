@@ -657,3 +657,20 @@ const COWORKER_MANNEQUIN_CD := 12.0             # seconds between mannequin deco
 const COWORKER_MANNEQUIN_HP := 150.0            # mannequin decoy base HP
 const COWORKER_MANNEQUIN_TAUNT_RADIUS := 400.0  # px radius the decoy taunts enemies within
 const COWORKER_MANNEQUIN_TAUNT_TIME := 4.0      # seconds each taunt tick lasts
+const COWORKER_FOLLOW_DIST := 120.0             # px hover-follow offset from the player (cat/mannequin idle stance)
+const COWORKER_FOLLOW_SPEED := 260.0            # px/sec the companion closes the gap to its hover-follow point
+const COWORKER_CAT_LUNGE_TIME := 0.3            # seconds for each leg of the pounce (dash out AND the snap back)
+const COWORKER_DRONE_ORBIT_SPEED := 1.4         # rad/sec the drone circles the player at COWORKER_DRONE_ORBIT
+
+# --- Coworker traits (roadmap-4 Pack C, Task 3, review-mandated): one magnitude const per
+# trait (Coworkers.trait_desc()'s displayed percentages are derived from these, never a
+# separate hardcoded number — see Companion.gd/CompanionBullet.gd, the only readers). ---
+const COWORKER_TRAIT_SHARP := 0.25              # +% cat/drone damage
+const COWORKER_TRAIT_WIRED := 0.20              # +% cat/drone attack rate
+const COWORKER_TRAIT_WIDE := 0.25               # +% cat/drone acquire range & mannequin taunt radius
+const COWORKER_TRAIT_STEADY := 0.30             # +% mannequin HP & taunt duration (mannequin only)
+const COWORKER_TRAIT_CHILLING_SLOW := 0.25      # cat/drone hit rider: slow factor applied on hit
+const COWORKER_TRAIT_CHILLING_DUR := 1.5        # cat/drone hit rider: seconds the chilling slow lasts
+const COWORKER_TRAIT_PINNING_CHANCE := 0.15     # cat/drone hit rider: chance to also apply_pin (duration reuses COWORKER_CAT_PIN)
+const COWORKER_TRAIT_MAGNETIC := 0.40           # +% player pickup radius, granted once at Companion spawn (Delivery Girl's own mechanism)
+const COWORKER_TRAIT_STUDIOUS := 0.10           # +% player xp_mult, granted once at Companion spawn

@@ -57,6 +57,7 @@ func _ready() -> void:
 		RunStats.coins_per_kill = Characters.coin_per_kill_bonus(RunConfig.character_id)   # Pack E: the Janitor's passive
 		player.set_dash_ability(Characters.dash_ability(RunConfig.character_id))
 		_equip_loadout(player)
+		_spawn_companion(player)
 
 	var spawner := get_tree().get_first_node_in_group("spawner")
 	if spawner != null:
@@ -83,3 +84,23 @@ func _equip_loadout(player: Player) -> void:
 			player.gun.configure(base)
 			player.gun.apply_loot(inst)
 	Characters.apply_weapon(player, RunConfig.character_id)
+
+## Coworkers (T3): spawns the player's equipped coworker, if any. `equipped_coworker()` is a
+## uid — resolve it against the live `coworkers()` list (a save can go stale if the coworker
+## was later deconstructed while still equipped) rather than trusting the uid alone.
+func _spawn_companion(player: Player) -> void:
+	var uid := SaveManager.equipped_coworker()
+	if uid == "":
+		return
+	var inst := {}
+	for c in SaveManager.coworkers():
+		if String(c.get("uid", "")) == uid:
+			inst = c
+			break
+	if inst.is_empty():
+		return
+	var companion := Companion.new()
+	companion.player = player
+	get_tree().current_scene.add_child(companion)
+	companion.global_position = player.global_position
+	companion.configure(inst)
