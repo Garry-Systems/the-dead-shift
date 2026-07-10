@@ -661,6 +661,7 @@ const COWORKER_FOLLOW_DIST := 120.0             # px hover-follow offset from th
 const COWORKER_FOLLOW_SPEED := 260.0            # px/sec the companion closes the gap to its hover-follow point
 const COWORKER_CAT_LUNGE_TIME := 0.3            # seconds for each leg of the pounce (dash out AND the snap back)
 const COWORKER_DRONE_ORBIT_SPEED := 1.4         # rad/sec the drone circles the player at COWORKER_DRONE_ORBIT
+const COWORKER_LEASH_SNAP := 1500.0             # px: any teleport source (basement descend/ascend) beyond this snaps the companion straight to its hover point instead of walking back at COWORKER_FOLLOW_SPEED
 
 # --- Coworker traits (roadmap-4 Pack C, Task 3, review-mandated): one magnitude const per
 # trait (Coworkers.trait_desc()'s displayed percentages are derived from these, never a

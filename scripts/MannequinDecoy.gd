@@ -28,6 +28,10 @@ var _tick := 0.0
 var _dying := false
 var _shatter_t := 0.0
 
+# --- Sprite (art wave): Coworkers.icon("mannequin"), if it exists, replaces the drawn circle ---
+var _sprite: Sprite2D = null
+var _sprite_loaded := false
+
 ## Spawns a decoy at `pos`. Cap 1 alive: any existing decoy is freed FIRST (mirrors Mine.gd's
 ## evict-oldest idiom, cap size 1 instead of MAX_PLAYER_MINES). Caller does NOT add_child
 ## first — spawn() owns placement, like Mine.spawn()/LeechMote.spawn().
@@ -39,9 +43,27 @@ static func spawn(pos: Vector2, hp: float, radius: float, taunt_dur: float, tree
 	d.taunt_radius = radius
 	d.taunt_time = taunt_dur
 	d._health = Health.new(hp)
+	d._setup_sprite()
 	d.add_to_group(GROUP)
 	tree.current_scene.add_child(d)
 	d.global_position = pos
+
+## Art wave: swaps in the 32px res://art/coworkers/mannequin.png (same texture Companion.gd's
+## own mannequin dot uses) as a child Sprite2D if it exists, scaled 1.375x (44px) to match
+## RADIUS_PX*2's previously-drawn circle footprint exactly. `_sprite_loaded` then tells _draw()
+## to skip the idle-state fallback circle+outline below — the shatter-crack death animation is a
+## separate effect (not an "art missing" fallback) and always draws regardless; _die() hides the
+## sprite so it doesn't sit underneath those cracks.
+func _setup_sprite() -> void:
+	var tex := Coworkers.icon("mannequin")
+	if tex == null:
+		return
+	_sprite = Sprite2D.new()
+	_sprite.texture = tex
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.scale = Vector2.ONE * (RADIUS_PX * 2.0 / 32.0)
+	add_child(_sprite)
+	_sprite_loaded = true
 
 static func _evict_existing(tree) -> void:
 	for n in tree.get_nodes_in_group(GROUP):
@@ -84,6 +106,8 @@ func _die() -> void:
 	_dying = true
 	_shatter_t = SHATTER_TIME
 	remove_from_group(GROUP)
+	if _sprite_loaded:
+		_sprite.visible = false
 	queue_redraw()
 
 func _draw() -> void:
@@ -95,6 +119,8 @@ func _draw() -> void:
 			var ang := TAU * float(i) / 6.0
 			var reach := RADIUS_PX * (1.0 + (1.0 - a) * 1.5)
 			draw_line(Vector2.ZERO, Vector2.RIGHT.rotated(ang) * reach, col, 2.0)
+		return
+	if _sprite_loaded:
 		return
 	draw_circle(Vector2.ZERO, RADIUS_PX, COLOR)
 	draw_arc(Vector2.ZERO, RADIUS_PX, 0.0, TAU, 20, PixelTheme.DARK, 2.0)

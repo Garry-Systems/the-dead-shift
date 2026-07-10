@@ -275,6 +275,7 @@ func _ascend() -> void:
 	_free_wall()
 	_free_stragglers()
 	_free_stranded_gems()
+	_free_stranded_decoys()
 	if _crate != null and is_instance_valid(_crate):
 		_crate.queue_free()
 	_crate = null
@@ -322,6 +323,17 @@ func _free_stranded_gems() -> void:
 			continue
 		if (g as Node2D).global_position.distance_to(_surface_pos) > GameConfig.BASEMENT_STRAGGLER_RADIUS:
 			g.queue_free()
+
+## Uncollected gauntlet-side coworker decoys (MannequinDecoy, "coworker_decoys" group) have no
+## despawn timer of their own either — same fixed-arena stranding as xp_gems above. Only one can
+## ever exist at a time (MannequinDecoy.spawn's own evict-existing cap), but it's still stranded
+## at +24000,+24000 on ascend if the equipped mannequin placed it during the gauntlet.
+func _free_stranded_decoys() -> void:
+	for d in get_tree().get_nodes_in_group("coworker_decoys"):
+		if not is_instance_valid(d):
+			continue
+		if (d as Node2D).global_position.distance_to(_surface_pos) > GameConfig.BASEMENT_STRAGGLER_RADIUS:
+			d.queue_free()
 
 func _set_suspended(v: bool) -> void:
 	var spawner := get_tree().get_first_node_in_group("spawner")

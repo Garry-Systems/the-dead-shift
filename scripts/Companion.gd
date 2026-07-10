@@ -59,6 +59,10 @@ var _mannequin_radius := GameConfig.COWORKER_MANNEQUIN_TAUNT_RADIUS
 var _mannequin_taunt_time := GameConfig.COWORKER_MANNEQUIN_TAUNT_TIME
 var _mannequin_cd := 0.0
 
+# --- Sprite (art wave): Coworkers.icon(type), if it exists, replaces the drawn circles below ---
+var _sprite: Sprite2D = null
+var _sprite_loaded := false
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_INHERIT
 	_follow_angle = randf() * TAU
@@ -107,9 +111,51 @@ func configure(inst: Dictionary) -> void:
 		elif trait_id == "studious":
 			player.upgrade_xp_gain(GameConfig.COWORKER_TRAIT_STUDIOUS)         # "Fast Learner" card's exact mechanism (Player.gd)
 
+	_setup_sprite()
+
+## Art wave: swaps in the 32px res://art/coworkers/<type>.png as a child Sprite2D if it exists,
+## scaled to match this type's previously-drawn circle footprint exactly (cat 1.0x == 32px ==
+## CAT_RADIUS_PX*2; drone 0.75x == 24px == DRONE_RADIUS_PX*2; mannequin 0.875x == 28px ==
+## MANNEQUIN_RADIUS_PX*2) — texture_filter is set explicitly even though NEAREST is already the
+## project default (textures/canvas_textures/default_texture_filter=0), same belt-and-suspenders
+## explicitness as CoworkerDetailPopup._build_icon. `_sprite_loaded` then tells _draw() to skip
+## the fallback circle/glyph for this instance entirely — an art-missing type still renders
+## exactly as before (BossBase._sprite_loaded idiom).
+func _setup_sprite() -> void:
+	var tex := Coworkers.icon(type)
+	if tex == null:
+		return
+	_sprite = Sprite2D.new()
+	_sprite.texture = tex
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	match type:
+		"cat":
+			_sprite.scale = Vector2.ONE * (CAT_RADIUS_PX * 2.0 / 32.0)
+		"drone":
+			_sprite.scale = Vector2.ONE * (DRONE_RADIUS_PX * 2.0 / 32.0)
+		"mannequin":
+			_sprite.scale = Vector2.ONE * (MANNEQUIN_RADIUS_PX * 2.0 / 32.0)
+	add_child(_sprite)
+	_sprite_loaded = true
+
+## Basement descend/ascend (or any other future long-range teleport) can put the player up to
+## ±24k px away in a single frame; _hover_follow's move_toward-at-COWORKER_FOLLOW_SPEED (idle
+## cat/mannequin) would otherwise take 2+ minutes to close that gap, stranding the companion off-
+## screen for the whole basement trip. Snap straight to the hover point instead, and clear any
+## in-flight cat lunge (its anchor/target were computed against the PRE-teleport position, so
+## letting that lerp finish would fling the cat across the map on the next tick). The drone's own
+## per-frame orbit formula (_process_drone) already recomputes an absolute position every tick
+## regardless of where global_position was last, so this is a harmless no-op for it — cheaper to
+## run the one distance check unconditionally here than to special-case it out per type.
+func _leash_snap() -> void:
+	global_position = player.global_position + Vector2.RIGHT.rotated(_follow_angle) * GameConfig.COWORKER_FOLLOW_DIST
+	_cat_state = "idle"
+
 func _physics_process(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
 		return
+	if global_position.distance_to(player.global_position) > GameConfig.COWORKER_LEASH_SNAP:
+		_leash_snap()
 	match type:
 		"cat":
 			_process_cat(delta)
@@ -183,6 +229,8 @@ func _process_cat(delta: float) -> void:
 			global_position = _cat_target_pos.lerp(_cat_anchor, f2)
 			if f2 >= 1.0:
 				_cat_state = "idle"
+	if _sprite_loaded:
+		_sprite.flip_h = _cat_facing < 0.0
 
 func _resolve_cat_hit(target: Node2D) -> void:
 	if target.has_method("take_damage"):
@@ -222,6 +270,8 @@ func _process_mannequin(delta: float) -> void:
 		MannequinDecoy.spawn(player.global_position, _mannequin_hp, _mannequin_radius, _mannequin_taunt_time, get_tree())
 
 func _draw() -> void:
+	if _sprite_loaded:
+		return
 	match type:
 		"cat":
 			draw_circle(Vector2.ZERO, CAT_RADIUS_PX, CAT_COLOR)

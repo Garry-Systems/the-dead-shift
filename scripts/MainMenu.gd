@@ -1330,7 +1330,7 @@ func _on_buy_coworker() -> void:
 func _reveal_coworker(inst: Dictionary) -> void:
 	SoundManager.play("crate_win")
 	var is_eq: bool = String(inst.get("uid", "")) == SaveManager.equipped_coworker()
-	_coworker_popup.open(inst, is_eq)
+	_coworker_popup.open(inst, is_eq, true)
 	var rarity := int(inst.get("rarity", 1))
 	if rarity >= CONFETTI_MIN_RARITY:
 		_celebrate(Rarity.display_color(rarity))

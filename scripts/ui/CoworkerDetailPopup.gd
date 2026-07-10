@@ -23,6 +23,7 @@ signal closed()
 
 var _inst: Dictionary
 var _is_equipped := false
+var _from_reveal := false   # true only for a fresh STAFF FILE purchase (see open()'s 3rd arg)
 var _card_vbox: VBoxContainer
 var _action_row: Control
 var _confirm_row: Control
@@ -51,9 +52,14 @@ func _ready() -> void:
 	_card_vbox.add_theme_constant_override("separation", 12)
 	card.add_child(_card_vbox)
 
-func open(inst: Dictionary, is_equipped: bool) -> void:
+## `from_reveal` (default false, unchanged for the existing STAFF-tile-tap browse call) is true
+## only for MainMenu._reveal_coworker's fresh-purchase call — that's the one case that gets the
+## art/crates/staff_file.png icon in the header (Task 3's dead-art wiring: the crate rows
+## themselves are text-only Buttons with no icon slot, so the reveal-popup header is the route).
+func open(inst: Dictionary, is_equipped: bool, from_reveal: bool = false) -> void:
 	_inst = inst
 	_is_equipped = is_equipped
+	_from_reveal = from_reveal
 	_rebuild()
 	visible = true
 
@@ -70,9 +76,29 @@ func _rebuild() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	PixelTheme.style_title(title, 26)
 	title.add_theme_color_override("font_color", Rarity.display_color(rarity))
-	_card_vbox.add_child(title)
 	_title_lbl = title
 	_rainbow_accum = 0.0
+
+	# Task 3 (dead-art wiring): a fresh STAFF FILE reveal gets the crate's own icon next to the
+	# title — the STAFF FILE store row itself is a text-only Button (see the CRATES row loop
+	# right above it in MainMenu._populate_store), so this header is the only place it can go.
+	if _from_reveal and Crates.icon("staff_file") != null:
+		var header := HBoxContainer.new()
+		header.alignment = BoxContainer.ALIGNMENT_CENTER
+		header.add_theme_constant_override("separation", 8)
+		header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var staff_icon := TextureRect.new()
+		staff_icon.texture = Crates.icon("staff_file")
+		staff_icon.custom_minimum_size = Vector2(32, 32)
+		staff_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		staff_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		staff_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		staff_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		header.add_child(staff_icon)
+		header.add_child(title)
+		_card_vbox.add_child(header)
+	else:
+		_card_vbox.add_child(title)
 
 	var sub := Label.new()
 	sub.text = Rarity.tier_name(rarity)

@@ -14,6 +14,7 @@ extends Node2D
 ## not just the cat's — still land here too.
 
 const HIT_RADIUS := 14.0
+const HIT_RADIUS_SQ := HIT_RADIUS * HIT_RADIUS
 const COLOR := Color(0.878, 0.898, 1.0)   # C4 lavender
 
 var direction := Vector2.RIGHT
@@ -35,10 +36,9 @@ func _physics_process(delta: float) -> void:
 		if not is_instance_valid(e):
 			continue
 		var node := e as Node2D
-		if global_position.distance_to(node.global_position) <= HIT_RADIUS:
+		if global_position.distance_squared_to(node.global_position) <= HIT_RADIUS_SQ:
 			_hit(node)
 			return
-	queue_redraw()
 
 func _hit(node: Node2D) -> void:
 	if node.has_method("take_damage"):
