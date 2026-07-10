@@ -227,17 +227,17 @@ func _process(_delta: float) -> void:
 			var now := Time.get_ticks_msec() / 1000.0
 			if now - _last_shift_toast >= GameConfig.SHIFT_TOAST_COOLDOWN:
 				_last_shift_toast = now
-				# Boss intro flavor (Pack 0): appended to the SHIFT CHANGE toast rather than a new
+				# Boss intro flavor (Pack 0): rendered via the SHIFT CHANGE toast rather than a new
 				# label under _boss_name_label. A dedicated label offset down ~22px (per the task
 				# brief's preferred route) would span offset_top/bottom -52/-24 — that fully
 				# overlaps _boss_bar's -44/-24 span (the name label already sits only 2px above
 				# the bar at -74/-46), so it would render on top of the boss HP bar. Falling back
-				# to a second banner line avoids the collision entirely.
+				# to a second banner line avoids the collision entirely. Passed as `sub` (NOT
+				# concatenated into the title text) so the flavor line renders at the smaller
+				# body font — the 46px title font only fits ~23 chars/line and overflowed a
+				# 1080px screen on every flavor line when it was concatenated in.
 				var toast := "SHIFT CHANGE"   # Spawner already fires the "boss_roar" SFX on spawn
-				var flavor_line := Flavor.boss_line(boss_id)
-				if flavor_line != "":
-					toast += "\n" + flavor_line
-				_show_banner(toast)
+				_show_banner(toast, Flavor.boss_line(boss_id))
 	else:
 		_boss_bar.visible = false
 		_boss_name_label.visible = false
@@ -283,7 +283,11 @@ func show_banner(text: String) -> void:
 ## A big C4 label over a dim scrim, held briefly then faded out, then it frees itself.
 ## Self-contained (spawn and forget), same shape as ScreenFlash. The run continues underneath
 ## it — nothing is paused. Shared by the DAWN banner (Pack 3) and the SHIFT CHANGE toast (Pack 7).
-func _show_banner(text: String) -> void:
+## `sub`, when non-empty, renders a second, smaller Silkscreen body-font line under the title —
+## used for the boss intro flavor line (Pack 0), which used to be concatenated straight into the
+## title label and rendered at the 46px Press Start 2P size (only ~23 chars/line, so it overflowed
+## a 1080px screen on every flavor line). All other callers omit `sub` and are unaffected.
+func _show_banner(text: String, sub: String = "") -> void:
 	var banner := Control.new()
 	banner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -295,14 +299,35 @@ func _show_banner(text: String) -> void:
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	banner.add_child(scrim)
 
+	# Title + sub stack in a centered VBox (rather than two overlapping full-rect labels) so the
+	# sub-line sits directly under the title instead of behind/through it. An invisible sub_label
+	# (sub == "") takes no layout space — Containers skip invisible children — so every other
+	# _show_banner caller (DAWN, extraction, etc.) renders identically to before.
+	var vbox := VBoxContainer.new()
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vbox.offset_left = 60
+	vbox.offset_right = -60
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 14)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	banner.add_child(vbox)
+
 	var label := Label.new()
 	label.text = text
-	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	PixelTheme.style_title(label, 46)
-	banner.add_child(label)
+	vbox.add_child(label)
+
+	var sub_label := Label.new()
+	sub_label.text = sub
+	sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sub_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	PixelTheme.style_label(sub_label, 20, PixelTheme.ACCENT.darkened(0.45))
+	sub_label.visible = sub != ""
+	vbox.add_child(sub_label)
 
 	var tw := create_tween()
 	tw.tween_interval(BANNER_HOLD)

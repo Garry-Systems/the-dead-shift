@@ -72,6 +72,7 @@ func _ready() -> void:
 
 	_sub = Label.new()
 	_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	PixelTheme.style_label(_sub, 20, PixelTheme.TEXT_DIM)
 	vbox.add_child(_sub)
 

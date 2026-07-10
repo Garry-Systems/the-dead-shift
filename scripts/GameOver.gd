@@ -306,7 +306,7 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 		_centered_line(_stub_vbox, "★ PROMOTED: %s ★" % Ranks.name_for(rank_after), PixelTheme.ACCENT, 28)
 		var promo_blurb := Flavor.rank_blurb(rank_after)
 		if promo_blurb != "":
-			_centered_line(_stub_vbox, promo_blurb, PixelTheme.ACCENT_DIM, 16)
+			_centered_line(_stub_vbox, promo_blurb, PixelTheme.ACCENT.darkened(0.45), 16)
 
 	if not inst.is_empty():
 		_stub_vbox.add_child(_spacer(4))
@@ -319,7 +319,7 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 	# Death quip (Pack 0 lore flavor) — only on an actual death, never an extraction win.
 	if not is_win:
 		_stub_vbox.add_child(_spacer(4))
-		_centered_line(_stub_vbox, "\"%s\"" % Flavor.death_quip(), PixelTheme.ACCENT_DIM, 16)
+		_centered_line(_stub_vbox, "\"%s\"" % Flavor.death_quip(), PixelTheme.ACCENT.darkened(0.45), 16)
 
 ## Confetti pop over the pay-stub card for a NEW BEST (mirrors MainMenu's crate-win
 ## _celebrate — Confetti is a self-contained Node2D, no scene dependency, so it works fine

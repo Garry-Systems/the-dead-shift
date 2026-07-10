@@ -35,12 +35,12 @@ const DEATH_QUIPS := [
 const RANK_BLURBS := [
 	"you get a vest. the vest does nothing.",
 	"you may now run the register unsupervised. congratulations?",
-	"keys to the ice machine. guard them.",
 	"you've unlocked the horde. that's not a benefit.",
-	"someone has to order more shells. it's you now.",
+	"keys to the ice machine. guard them.",
 	"overtime approved. sleep is not.",
-	"you know where the mop is. you know where everything is.",
+	"someone has to order more shells. it's you now.",
 	"hardcore clearance. the insurance no longer applies.",
+	"you know where the mop is. you know where everything is.",
 	"you basically run this place. it shows.",
 	"it's yours now. all of it. even the basement.",
 ]
