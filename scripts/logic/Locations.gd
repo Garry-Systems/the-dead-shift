@@ -22,16 +22,25 @@ class_name Locations
 ##   gimmick        : String      "" | "mart" | "garage" — location-specific set-piece/rule
 ##                                switch read by ObstacleField/Destructible in later tasks.
 ##
-## forecourt's obstacle_mults/spawn_mults are BOTH empty {} on purpose: every getter below
+## forecourt's obstacle_mults/spawn_mults were BOTH empty {} on purpose: every getter below
 ## resolves a missing dict entry to 1.0, so forecourt runs are byte-identical to today's arena
 ## (the #1 regression risk of this pack) — nothing about forecourt's actual spawn behavior
 ## changes by this registry existing.
+## TASK 3 CATCH: that byte-identity invariant only held for the 6 rows Obstacles.gd had when this
+## registry was written. Task 3 adds a 7th row ("shelf", weight 55 — nonzero, since it must be
+## pickable via the normal weighted roll in big_mart) to the SAME shared Obstacles.all() pool
+## every location draws from. A missing dict entry defaults to mult 1.0, so leaving forecourt's
+## dict empty would let "shelf" start appearing in forecourt too — forecourt is no longer
+## byte-identical the moment a new globally-weighted row exists, regardless of this file's own
+## code. Same problem for parking_garage (a mart-themed shelf has no business in a garage either).
+## Fix: both non-mart locations now explicitly pin "shelf" to 0.0 — the registry's own
+## "0.0 = never spawns here" contract — so only big_mart's explicit "shelf": 1.0 turns it on.
 const _LIST: Array[Dictionary] = [
 	{
 		"id": "forecourt", "name": "THE FORECOURT", "rank_unlock": 0,
 		"banner_sub": "", "memo": "",
 		"ground": "res://art/ground.png",
-		"obstacle_mults": {}, "spawn_mults": {}, "gimmick": "",
+		"obstacle_mults": { "shelf": 0.0 }, "spawn_mults": {}, "gimmick": "",
 	},
 	{
 		"id": "big_mart", "name": "BIG MART", "rank_unlock": GameConfig.LOC_MART_RANK,
@@ -45,7 +54,7 @@ const _LIST: Array[Dictionary] = [
 		"id": "parking_garage", "name": "THE PARKING GARAGE", "rank_unlock": GameConfig.LOC_GARAGE_RANK,
 		"banner_sub": "level 3 stays closed.", "memo": "level 3 has been closed for a while.",
 		"ground": "res://art/ground_garage.png",
-		"obstacle_mults": { "car": 2.2, "transformer": 0.0, "crate": 0.6, "pillar": 1.0 },
+		"obstacle_mults": { "car": 2.2, "transformer": 0.0, "crate": 0.6, "pillar": 1.0, "shelf": 0.0 },
 		"spawn_mults": { "shambler": 1.3, "exploder": 1.5 },
 		"gimmick": "garage",
 	},

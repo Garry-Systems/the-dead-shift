@@ -12,6 +12,11 @@ extends Node2D
 ## FORECOURT_KEEPOUT_RADIUS check + the no_cull flag read on every Destructible).
 
 func _ready() -> void:
+	# TRANSFER STORES (Task 3): this fixed structure is forecourt-only. Non-forecourt locations
+	# (big_mart/parking_garage) build their OWN origin set-piece instead (MartFront.gd, etc.) —
+	# Forecourt must no-op rather than overlay its own store+pumps+sign on top of theirs.
+	if RunConfig.location != "forecourt":
+		return
 	add_to_group("forecourt")
 	_build_store()
 	_build_pumps()

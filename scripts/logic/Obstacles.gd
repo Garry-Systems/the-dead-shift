@@ -17,6 +17,16 @@ class_name Obstacles
 ##   color     : Color   body fill (palette C3, or hazard accent so the player can read it)
 ##   weight    : int     relative spawn weight among eligible rows
 ##   min_wave  : int     not eligible until this wave
+##   chain_id  : String  (optional, Transfer Stores Task 3) absent/"" = no chain; on death a
+##                       destructible carrying this ALSO lights same-chain_id neighbors within
+##                       SHELF_CHAIN_RADIUS (mart's "shelf" row) — a second, independent chain
+##                       trigger alongside the pre-existing barrel (hazard_id == "fire") chain,
+##                       sharing the same fuse timer + per-frame CHAIN_MAX_PER_TICK budget. See
+##                       Destructible.light_fuse()/_die().
+##   formation : bool    (optional, Transfer Stores Task 3) absent/false = scattered singly as
+##                       today; true = ObstacleField spawns this row as an axis-aligned run of
+##                       MART_FORMATION_LEN_MIN..MAX units instead of one instance. See
+##                       ObstacleField._spawn_formation().
 
 const C3 := Color(0.549, 0.522, 0.451)   # gray-tan props (palette)
 # Body tints so the player reads a hazard prop at a glance — the 3 sanctioned exceptions.
@@ -38,6 +48,15 @@ static func all() -> Array:
 		# place the 3 fixed forecourt pumps.
 		{ "id":"fuel_pump",   "kind":"hazard", "shape":"rect",   "size":GameConfig.FUEL_PUMP_SIZE, "solid":false, "hp":GameConfig.FUEL_PUMP_HP,   "hazard_id":"fire",     "loot":"",     "gem_count":0,                       "color":FIRE_TINT, "weight":10, "min_wave":4,
 			"burst_radius":GameConfig.FUEL_PUMP_BURST_RADIUS, "burst_damage":GameConfig.FUEL_PUMP_BURST_DAMAGE, "burst_force":GameConfig.FUEL_PUMP_BURST_FORCE, "hazard_scale":GameConfig.FUEL_PUMP_HAZARD_SCALE },
+		# BIG MART (Transfer Stores, Task 3): soft, non-solid loot cover -- walk-through, gem
+		# drop on death, chains via chain_id (NOT hazard_id -- hazard_id stays "" so it never
+		# blasts or spawns a hazard zone, see Destructible._die()'s chain_id branch), and
+		# spawns as a run of units via ObstacleField's formation pass (both ambient + cluster
+		# paths -- see ObstacleField._spawn_formation()). weight 55 only matters where the
+		# location's obstacle_mults actually allow it: forecourt + parking_garage both pin
+		# "shelf" to 0.0 (Locations.gd) so this new row can't silently appear in either -- only
+		# big_mart's mults set it to 1.0. min_wave 1 like crate/barrel (no gating beyond location).
+		{ "id":"shelf", "kind":"loot", "shape":"rect", "size":GameConfig.SHELF_HALF_W, "size_y":GameConfig.SHELF_HALF_H, "solid":false, "hp":GameConfig.SHELF_HP, "hazard_id":"", "loot":"gems", "gem_count":GameConfig.SHELF_GEMS, "color":C3, "weight":55, "min_wave":1, "chain_id":"shelf", "formation":true },
 	]
 
 ## A weighted-random row among types whose min_wave <= wave. Falls back to the first row.

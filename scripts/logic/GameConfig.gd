@@ -680,3 +680,26 @@ const COWORKER_TRAIT_STUDIOUS := 0.10           # +% player xp_mult, granted onc
 # Ranks.rank_for()'s 1-indexed value (Locations.unlocked(id, rank)). ---
 const LOC_MART_RANK := 2       # rank required to select BIG MART
 const LOC_GARAGE_RANK := 4     # rank required to select THE PARKING GARAGE
+
+# --- BIG MART (Transfer Stores, Task 3): shelf row, chain_id collapse, formation mode, freezer
+# patches, storefront set-piece. ---
+const SHELF_HP := 120.0                   # shelf destructible HP
+const SHELF_HALF_W := 26.0                # shelf rect half-width (px) — Destructible "size"
+const SHELF_HALF_H := 12.0                # shelf rect half-height (px) — Destructible "size_y"
+const SHELF_CHAIN_RADIUS := 140.0         # a dying chain_id-carrying shelf lights same-chain_id neighbors within this
+const SHELF_GEMS := 1                     # gems dropped per shelf kill
+const MART_FORMATION_LEN_MIN := 3         # min shelves in one formation run
+const MART_FORMATION_LEN_MAX := 5         # max shelves in one formation run
+const FREEZER_SLOW := 0.35                # freezer patch slow factor (enemies + player)
+const FREEZER_SLOW_DUR := 1.0             # seconds a single freezer slow tick lasts
+const FREEZER_RADIUS := 110.0             # freezer patch AoE radius (px)
+const FREEZER_DURATION := 45.0            # seconds a freezer patch lingers
+const FREEZER_CHANCE_PER_WAVE := 0.5      # chance a wave edge drops a freezer patch (mart only)
+# Set-piece (mirrors Forecourt's own store+pumps footprint; all built at world origin, well within
+# the existing FORECOURT_KEEPOUT_RADIUS/FORECOURT_SPAWN_KEEPOUT — those checks are unconditional,
+# not forecourt-gated, so they already protect any location's origin set-piece for free).
+const MART_SLAB_HALF_SIZE := Vector2(190.0, 130.0)  # storefront slab half-extent (px)
+const MART_SLAB_POS := Vector2(0.0, -240.0)         # slab center, offset from MartFront origin (world 0,0)
+const MART_LANE_X := 90.0                 # each checkout lane's X offset from center (left/right)
+const MART_LANE_START_Y := -90.0          # first shelf's Y in a checkout lane
+const MART_LANE_SHELF_COUNT := 3          # shelves per checkout lane

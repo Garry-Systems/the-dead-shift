@@ -25,6 +25,9 @@ var burst_damage := GameConfig.BARREL_BURST_DAMAGE   # Shockwave blast damage on
 var burst_force := GameConfig.BARREL_BURST_FORCE     # Shockwave knockback force on a "fire" death (row-overridable)
 var hazard_scale := 1.0                              # scales the lingering hazard zone's dps + radius (row-overridable)
 var no_cull := false   # true for a fixed world fixture (Forecourt) — ObstacleField must never cull this
+var chain_id := ""    # Transfer Stores (Task 3): optional row field, absent -> "" (no chain).
+                       # Shares the fuse/budget below with the pre-existing barrel (hazard_id ==
+                       # "fire") chain, but only lights same-chain_id neighbors — see light_fuse().
 
 var _health: Health
 var _detonating := false
@@ -52,6 +55,7 @@ func configure(row: Dictionary) -> void:
 	burst_damage = float(row.get("burst_damage", GameConfig.BARREL_BURST_DAMAGE))
 	burst_force = float(row.get("burst_force", GameConfig.BARREL_BURST_FORCE))
 	hazard_scale = float(row.get("hazard_scale", 1.0))
+	chain_id = String(row.get("chain_id", ""))   # absent -> "", byte-identical to every existing row
 
 func _ready() -> void:
 	if hp >= 0.0:
@@ -118,9 +122,22 @@ static func _claim_detonation_slot() -> bool:
 	_det_count += 1
 	return true
 
-## A neighboring barrel lights this one after a short delay (ripple, not recursion).
-func light_fuse() -> void:
-	if _detonating or _fuse >= 0.0 or hazard_id != "fire":
+## A neighboring destructible lights this one after a short delay (ripple, not recursion).
+## Two independent chain triggers share this ONE fuse timer + the per-frame detonation budget
+## below (Transfer Stores, Task 3 -- generalized from the barrel-only mechanism found here):
+##   - barrels: _die()'s fire-blast loop calls this with NO argument (source_chain_id == ""),
+##     exactly as it always has -- the "hazard_id != 'fire' -> return" branch below is the
+##     ORIGINAL guard, untouched, so barrel chaining is byte-for-byte what it was before this task.
+##   - chain_id rows (mart's "shelf"): _die()'s new chain_id loop calls this WITH its own
+##     chain_id -- this only lights a neighbor whose chain_id matches, so shelves chain shelves
+##     and never cross-trigger a barrel (or vice versa).
+func light_fuse(source_chain_id: String = "") -> void:
+	if _detonating or _fuse >= 0.0:
+		return
+	if source_chain_id == "":
+		if hazard_id != "fire":   # legacy barrel-chain guard — unchanged
+			return
+	elif chain_id == "" or chain_id != source_chain_id:
 		return
 	_fuse = GameConfig.CHAIN_DELAY
 
@@ -129,7 +146,7 @@ func _die() -> void:
 		return
 	_detonating = true
 	var tree := get_tree()
-	# Barrel: instant Shockwave burst + chain-fuse nearby barrels.
+	# Barrel: instant Shockwave burst + chain-fuse nearby barrels. UNCHANGED from before this task.
 	if hazard_id == "fire":
 		var sw := Shockwave.new()
 		tree.current_scene.add_child(sw)
@@ -141,6 +158,19 @@ func _die() -> void:
 				continue
 			if (d as Node2D).global_position.distance_squared_to(global_position) <= cr2 and d.has_method("light_fuse"):
 				d.light_fuse()
+	# BIG MART (Transfer Stores, Task 3): chain_id collapse. A second, independent chain trigger --
+	# any row carrying a non-empty chain_id lights same-chain_id neighbors within
+	# SHELF_CHAIN_RADIUS, reusing the SAME fuse + CHAIN_MAX_PER_TICK budget as the barrel chain
+	# above (see light_fuse()). A chained shelf falls through to its normal death below -- gems via
+	# _drop_loot, no blast/hazard (hazard_id == "" on the shelf row, so neither the blast branch
+	# above nor the hazard-zone branch below ever fires for it).
+	if chain_id != "":
+		var scr2 := GameConfig.SHELF_CHAIN_RADIUS * GameConfig.SHELF_CHAIN_RADIUS
+		for d in tree.get_nodes_in_group("destructibles"):
+			if d == self or not is_instance_valid(d):
+				continue
+			if (d as Node2D).global_position.distance_squared_to(global_position) <= scr2 and d.has_method("light_fuse"):
+				d.light_fuse(chain_id)
 	# Lingering hazard zone (capped).
 	if hazard_id != "" and tree.get_nodes_in_group("hazard_zones").size() < GameConfig.MAX_HAZARD_ZONES:
 		var cfg := Hazards.stats_for(hazard_id)

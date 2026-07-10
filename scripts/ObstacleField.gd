@@ -12,11 +12,16 @@ var location_obstacle_mults: Dictionary = {}   # TRANSFER STORES (Task 2): set o
 # from the run's Locations row; passed straight through to Obstacles.pick(). {} (forecourt/
 # default) is byte-identical to before this pack — see Obstacles._weight's mults.is_empty()
 # short-circuit.
+var _gimmick := ""   # BIG MART (Task 3): Locations.gd's gimmick for RunConfig.location, read ONCE
+# at _ready() — the run's location is fixed for the whole run (same "read once at run start"
+# pattern Main._apply_location already documents). "" (forecourt/garage) means the freezer-patch
+# wave-edge roll below is always skipped; only "mart" arms it.
 
 func _ready() -> void:
 	add_to_group("obstacle_field")
 	_player = get_tree().get_first_node_in_group("player") as Node2D
 	_prev_wave = DifficultyManager.wave
+	_gimmick = String(Locations.by_id(RunConfig.location).get("gimmick", ""))
 
 func _process(delta: float) -> void:
 	if suspended:
@@ -26,6 +31,7 @@ func _process(delta: float) -> void:
 	if DifficultyManager.wave != _prev_wave:
 		_prev_wave = DifficultyManager.wave
 		_drop_cluster()
+		_maybe_drop_freezer()   # BIG MART (Task 3): same wave-edge moment, mart-only
 	_spawn_t += delta
 	if _spawn_t >= GameConfig.OBSTACLE_SPAWN_INTERVAL:
 		_spawn_t = 0.0
@@ -72,15 +78,80 @@ func _drop_cluster() -> void:
 
 ## `row` defaults to {} = pick a weighted/wave-gated row (the ambient path); Rush Hour (below)
 ## passes an exact row instead so it can force car/rubble cover specifically.
+##
+## BIG MART (Task 3): if the resolved row carries `"formation": true` (mart's "shelf" row, via
+## either the ambient default-arg pick OR — same as any other row — a forced `row` argument),
+## `pos` is treated as the run's anchor and handed to `_spawn_formation()` instead of building a
+## single Destructible here. Both callers of this function (ambient top-up + wave-cluster drop)
+## get formation spawning for free since they both funnel through this one chokepoint.
 func _spawn_at(pos: Vector2, row: Dictionary = {}) -> void:
 	if pos.distance_squared_to(Vector2.ZERO) < GameConfig.FORECOURT_KEEPOUT_RADIUS * GameConfig.FORECOURT_KEEPOUT_RADIUS:
 		return   # never scatter into the forecourt (Pack 5) — it's a fixed structure, not ambient clutter
-	var d := Destructible.new()
 	# TRANSFER STORES (Task 2): location_obstacle_mults biases the ambient roll ({} = untouched
 	# default); Rush Hour's forced `row` above bypasses Obstacles.pick entirely, so it's unaffected.
-	d.configure(row if not row.is_empty() else Obstacles.pick(DifficultyManager.wave, location_obstacle_mults))
+	var picked := row if not row.is_empty() else Obstacles.pick(DifficultyManager.wave, location_obstacle_mults)
+	if bool(picked.get("formation", false)):
+		_spawn_formation(pos, picked)
+		return
+	var d := Destructible.new()
+	d.configure(picked)
 	get_tree().current_scene.add_child(d)
 	d.global_position = pos
+
+## BIG MART (Task 3) formation mode: an axis-aligned run of MART_FORMATION_LEN_MIN..MAX units of
+## `row`, spaced `2 * SHELF_HALF_W + 6` px apart along a randomly-chosen H or V axis, centered on
+## `anchor` (the position the normal ring/keep-out math in _ambient_topup()/_drop_cluster() already
+## rolled — the run is placed there, not re-rolled). Each unit still gets its own forecourt
+## keep-out + hard-cap check: the anchor already passed the keep-out gate above, but a run can
+## drift a fixed offset away from it, and a big cluster drop can push the count right up to the
+## hard cap mid-run.
+func _spawn_formation(anchor: Vector2, row: Dictionary) -> void:
+	var length := randi_range(GameConfig.MART_FORMATION_LEN_MIN, GameConfig.MART_FORMATION_LEN_MAX)
+	var spacing := 2.0 * GameConfig.SHELF_HALF_W + 6.0
+	var axis := Vector2.RIGHT if randf() < 0.5 else Vector2.DOWN   # random H/V orientation per formation
+	var start := anchor - axis * spacing * float(length - 1) * 0.5   # center the run on the anchor
+	var keep2 := GameConfig.FORECOURT_KEEPOUT_RADIUS * GameConfig.FORECOURT_KEEPOUT_RADIUS
+	for i in length:
+		var pos := start + axis * spacing * float(i)
+		if pos.distance_squared_to(Vector2.ZERO) < keep2:
+			continue   # this unit drifted into the forecourt keep-out — skip just this one
+		if _managed_destructibles().size() >= GameConfig.OBSTACLE_HARD_CAP:
+			return
+		var d := Destructible.new()
+		d.configure(row)
+		get_tree().current_scene.add_child(d)
+		d.global_position = pos
+
+## BIG MART (Task 3) freezer patches: at every wave edge, mart-only, a plain (unseeded, position-
+## flavor — NOT RunConfig.rand_float()/the Daily stream, matching Spawner's own angle/radius rolls)
+## FREEZER_CHANCE_PER_WAVE roll drops a slow-only HazardZone near the player. Built the same direct
+## way Player._spawn_slick()/TrailDash's puddle do (HazardZone.new() + configure_hazard(cfg)) since
+## there's no Destructible/Obstacles row backing it — it's not a scatterable obstacle. Respects the
+## same MAX_HAZARD_ZONES cap Destructible._die()'s hazard-zone spawn already honors, so a mart run
+## dense with freezer patches can't crowd out fire/acid/electric zones (or vice versa).
+func _maybe_drop_freezer() -> void:
+	if _gimmick != "mart":
+		return
+	if randf() >= GameConfig.FREEZER_CHANCE_PER_WAVE:
+		return
+	var tree := get_tree()
+	if tree.get_nodes_in_group("hazard_zones").size() >= GameConfig.MAX_HAZARD_ZONES:
+		return
+	var ang := randf_range(0.0, TAU)
+	var r := randf_range(GameConfig.OBSTACLE_CLUSTER_MIN_R, GameConfig.OBSTACLE_CLUSTER_RADIUS)
+	var pos := _player.global_position + Vector2(cos(ang), sin(ang)) * r
+	if pos.distance_squared_to(Vector2.ZERO) < GameConfig.FORECOURT_KEEPOUT_RADIUS * GameConfig.FORECOURT_KEEPOUT_RADIUS:
+		return   # don't drop one on top of MartFront's own set-piece at the origin
+	var cfg := {
+		"color": PixelTheme.ACCENT, "dps": 0.0, "radius": GameConfig.FREEZER_RADIUS,
+		"duration": GameConfig.FREEZER_DURATION, "slow": GameConfig.FREEZER_SLOW,
+		"slow_dur": GameConfig.FREEZER_SLOW_DUR, "stun": 0.0, "chain": 0, "drift": 0.0,
+		"hurts_player": true,
+	}
+	var hz := HazardZone.new()
+	tree.current_scene.add_child(hz)
+	hz.global_position = pos
+	hz.configure_hazard(cfg)
 
 ## RUSH HOUR (night event, Pack A): scatters `count` extra car/rubble cover in a rough corridor
 ## near the player — a random facing, then jittered along/across it. Reuses this field's own

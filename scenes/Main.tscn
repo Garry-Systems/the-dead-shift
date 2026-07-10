@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Texture2D" path="res://art/ground.png" id="10_ground"]
@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://scripts/VirtualJoystick.gd" id="16_joy"]
 [ext_resource type="Script" path="res://scripts/ObstacleField.gd" id="17_obstacle"]
 [ext_resource type="Script" path="res://scripts/Forecourt.gd" id="18_forecourt"]
+[ext_resource type="Script" path="res://scripts/MartFront.gd" id="18b_martfront"]
 [ext_resource type="Script" path="res://scripts/ui/CombatText.gd" id="19_combattext"]
 [ext_resource type="Script" path="res://scripts/NightEvents.gd" id="20_nightevents"]
 [ext_resource type="Script" path="res://scripts/Extraction.gd" id="21_extraction"]
@@ -47,6 +48,9 @@ scale = Vector2(4, 4)
 
 [node name="Forecourt" type="Node2D" parent="."]
 script = ExtResource("18_forecourt")
+
+[node name="MartFront" type="Node2D" parent="."]
+script = ExtResource("18b_martfront")
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 
