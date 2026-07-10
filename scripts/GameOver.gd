@@ -159,6 +159,13 @@ func _finish_run(is_win: bool) -> void:
 	var run_time := DifficultyManager.run_time
 	var vested := CoinReward.vested_signing(RunStats.signing_bonus, run_time)
 	var earned := CoinReward.final_payout(wave, bosses, kills, bonus, mult, RunStats.signing_bonus, run_time)
+	# Relics Overhaul (company_card): the itemized stub must show the clawback final_payout just
+	# applied, or the visible rows would sum past TOTAL. Same inputs, same CoinReward seams
+	# (pre_cut_total/clawback are exactly what final_payout composes internally), so this number
+	# can never drift from what was actually cut.
+	var clawback := 0
+	if RelicEffects.company_card:
+		clawback = CoinReward.clawback(CoinReward.pre_cut_total(wave, bosses, kills, bonus, mult, RunStats.signing_bonus, run_time))
 	if is_win:
 		earned = int(round(float(earned) * GameConfig.EXTRACT_PAY_MULT))
 
@@ -269,7 +276,7 @@ func _finish_run(is_win: bool) -> void:
 	if RunConfig.daily:
 		_daily_header.text = "DAILY SHIFT — %s" % SaveManager.today_string()
 
-	_populate_stub(wave, bosses, kills, bonus, mult, vested, earned, is_new_best, inst, xp_amount, is_win, promoted, rank_after, basements)
+	_populate_stub(wave, bosses, kills, bonus, mult, vested, earned, is_new_best, inst, xp_amount, is_win, promoted, rank_after, basements, clawback)
 	_root.visible = true
 	if is_new_best or is_win or promoted:
 		_celebrate()
@@ -279,7 +286,7 @@ func _finish_run(is_win: bool) -> void:
 ## and the weapon XP line.
 func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float, vested: int, earned: int,
 		is_new_best: bool, inst: Dictionary, xp_amount: int, is_win: bool = false,
-		promoted: bool = false, rank_after: int = 0, basements: int = 0) -> void:
+		promoted: bool = false, rank_after: int = 0, basements: int = 0, clawback: int = 0) -> void:
 	for c in _stub_vbox.get_children():
 		c.queue_free()
 
@@ -311,6 +318,14 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 	# the bonus itself got the SHIFT BONUS multiplier when it never does.
 	if vested > 0:
 		_row(_stub_vbox, "SIGNING BONUS", "+%d" % vested, PixelTheme.SELECT)
+	# Relics Overhaul (company_card): CORPORATE CLAWBACK — the cut CoinReward.final_payout applied
+	# inside the paid total. Sits AFTER the SIGNING BONUS row and BEFORE the EXTRACTION BONUS row,
+	# mirroring the actual order of operations (subtotal×mult, +vested, −clawback, then ×extract on
+	# a win) — the same placement reasoning the SIGNING BONUS comment above already documents. The
+	# amount comes from the SAME CoinReward.clawback/pre_cut_total seams final_payout composes, so
+	# the itemized rows always sum exactly to TOTAL, rounding included.
+	if clawback > 0:
+		_row(_stub_vbox, "CORPORATE CLAWBACK", "-%d" % clawback, PixelTheme.DANGER)
 	if is_win:
 		_row(_stub_vbox, "EXTRACTION BONUS", "x%.2f" % GameConfig.EXTRACT_PAY_MULT, PixelTheme.SELECT)
 

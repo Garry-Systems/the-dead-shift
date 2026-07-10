@@ -17,6 +17,23 @@ static func payout(wave: int, bosses: int, kills: int) -> int:
 static func vested_signing(bonus: int, run_time: float) -> int:
 	return roundi(float(bonus) * clampf(run_time / GameConfig.SIGNING_BONUS_VEST_TIME, 0.0, 1.0))
 
+## The run total BEFORE company_card's clawback: (base formula + in-world bonus) × mult, plus the
+## vested signing bonus. Split out of final_payout (pure static, probe-able) so GameOver's
+## pay-stub can itemize the clawback with EXACTLY the arithmetic final_payout applies — see
+## clawback() below. NOT flag-gated: this is the same number final_payout pays whenever
+## company_card isn't held.
+static func pre_cut_total(wave: int, bosses: int, kills: int, bonus: int, mult: float, signing_bonus: int, run_time: float) -> int:
+	var total := int(round(float(payout(wave, bosses, kills) + bonus) * mult))
+	total += vested_signing(signing_bonus, run_time)
+	return total
+
+## Relics Overhaul (company_card): the coin amount "corporate claws back" off a pre-cut total.
+## Defined as `pre_cut - roundi(pre_cut * (1 - RELIC_CARD_STUB_CUT))` — the exact complement of
+## what final_payout keeps — so the stub's "-cut" row and the paid TOTAL always sum exactly,
+## rounding included (a naive `roundi(pre_cut * CUT)` could drift the sum by 1 on .5 boundaries).
+static func clawback(pre_cut: int) -> int:
+	return pre_cut - roundi(float(pre_cut) * (1.0 - GameConfig.RELIC_CARD_STUB_CUT))
+
 ## Full run payout: the base formula above, plus in-world bonus coins (smashed crates), times
 ## the run's coin multiplier (the "Silver Tongue" level-up card) — the ONE shared place both the
 ## death payout (GameOver) and the quit/restart payout (PauseMenu, which further scales the
@@ -25,14 +42,14 @@ static func vested_signing(bonus: int, run_time: float) -> int:
 ## coin_mult (HARDCORE / Silver Tongue / REGISTER SKIM all live in that one accumulator), it's
 ## strictly time-vested. Both callers pass the SAME signing_bonus/run_time so it can't double-pay.
 static func final_payout(wave: int, bosses: int, kills: int, bonus: int, mult: float, signing_bonus: int, run_time: float) -> int:
-	var total := int(round(float(payout(wave, bosses, kills) + bonus) * mult))
-	total += vested_signing(signing_bonus, run_time)
+	var total := pre_cut_total(wave, bosses, kills, bonus, mult, signing_bonus, run_time)
 	# Relics Overhaul (company_card): "corporate claws back 25%" — a post-mult cut on the FINAL
 	# total (base+bonus+mult, PLUS the vested signing bonus), the same vested-signing precedent
 	# (a late, additive-then-multiplicative step). Static class-level flag read — no node/instance
 	# needed, so this stays true to the file's own "pure, no state dependency" doc comment; both
 	# twin callers (GameOver._finish_run, PauseMenu._abandon_run_payout) get it automatically since
-	# both already route through this one chokepoint.
+	# both already route through this one chokepoint. Subtracting clawback() (instead of re-rounding
+	# inline) keeps this the byte-same result as before AND guarantees the stub row sums (see above).
 	if RelicEffects.company_card:
-		total = roundi(float(total) * (1.0 - GameConfig.RELIC_CARD_STUB_CUT))
+		total -= clawback(total)
 	return total

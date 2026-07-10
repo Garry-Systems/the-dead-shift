@@ -67,6 +67,19 @@ var _magnet_window := 0.0
 var _vest_ready := true
 
 func _ready() -> void:
+	## statics persist across scene reloads (class-level, not node-level) — a run ending mid-equip
+	## would poison every later run; a fresh instance therefore ALWAYS starts from defaults
+	## (DifficultyManager.reset idiom). This block MUST cover every gameplay static above — all 8;
+	## `instance` is a lifecycle handle (set below, cleared in _exit_tree), HOOK_IDS/_XP_GEM_SCENE
+	## are consts, and everything else in this file is per-instance (fresh each run by construction).
+	accelerant = false
+	slow_immune = false
+	company_card = false
+	healing_disabled_except_kills = false
+	healing_factor = 1.0
+	healing_cap_frac = 1.0
+	nametag_mult = 1.0
+	nametag_gem_mult = 1.0
 	add_to_group("relic_effects")
 	_player = get_tree().get_first_node_in_group("player") as Player
 	instance = self
