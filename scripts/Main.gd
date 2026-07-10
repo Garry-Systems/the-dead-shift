@@ -25,6 +25,10 @@ func _ready() -> void:
 	# "Silver Tongue" level-up card raises later, so the two compose as one multiplicative number.
 	if RunConfig.hardcore:
 		RunStats.coin_mult *= GameConfig.HARDCORE_COIN_MULT
+	# EMPLOYEE BENEFITS (Pack A): permanent tracks applied once per run, all through existing
+	# chokepoints. Multiplies the SAME RunStats.coin_mult hardcore already touches above.
+	RunStats.coin_mult *= Benefits.coin_mult()
+	RunStats.bonus_coins += Benefits.start_cash()   # SIGNING BONUS — pays out on the stub like any coins
 	# Pack C: Daily Shift — re-arm a FRESH seeded generator every time this scene loads while
 	# RunConfig.daily is true (covers a mid-run "RESTART RUN" from PauseMenu, which reloads
 	# Main.tscn directly, bypassing MainMenu's mode picker entirely) so a restart replays the

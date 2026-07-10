@@ -21,7 +21,9 @@ const DIR_TEX: Array[Texture2D] = [
 ]
 
 var _health := Health.new(GameConfig.PLAYER_MAX_HEALTH)
-var _dash := DashState.new(GameConfig.DASH_DURATION, GameConfig.DASH_COOLDOWN)
+# EMPLOYEE BENEFITS (Pack A) STRETCH BREAKS: Benefits is save-backed and static, so reading it
+# at field-init time (before Characters.apply_base runs) is fine — see DashState._init.
+var _dash := DashState.new(GameConfig.DASH_DURATION, GameConfig.DASH_COOLDOWN * Benefits.dash_cd_mult())
 var _last_move_dir := Vector2.RIGHT
 var _has_moved := false          # true after the first move input (gates spawn fire)
 var _last_tap_time := -999.0
@@ -48,6 +50,17 @@ var _dodge_chance := 0.0       # "Quick Step" card: chance (0..DODGE_CAP) to ign
 var _thorns_mult := 0.0        # thorns card: reflected damage = incoming bite amount x this (0 = no thorns)
 var has_second_wind := false   # true once the Second Wind card has been taken this run
 var second_wind_used := false  # true once Second Wind has already saved this run (never again)
+
+## EMPLOYEE BENEFITS (Pack A) UNION REP: the once-per-run benefits revive, fires BEFORE Second
+## Wind (see take_damage). Deliberately NOT set from this field-init default — Characters.apply_base
+## (the spawn-config pass) sets it from Benefits.has_revive() so a save bought mid-session applies
+## next run predictably, the same reasoning has_second_wind/second_wind_used already follow.
+var _union_rep_available := false
+var _revive_invuln_time := 0.0   # seconds remaining of post-UNION-REP-revive invulnerability (no
+                                  # pre-existing spawn-protection mechanism was found anywhere in
+                                  # this codebase — grepped invuln/spawn_protect/_protect across
+                                  # every .gd file and found nothing to reuse; this is a new,
+                                  # minimal timer, gated the same way _fire_lock_time/_ability_cd are)
 
 ## The player's weapon node (gun upgrade cards modify it). Set in _ready.
 var gun: Gun
@@ -96,6 +109,8 @@ func _physics_process(delta: float) -> void:
 		_ability_cd -= delta
 	if _fire_lock_time > 0.0:
 		_fire_lock_time -= delta
+	if _revive_invuln_time > 0.0:
+		_revive_invuln_time -= delta
 	_tick_slow_stacks(delta)
 
 	var dir := joystick_direction
@@ -267,6 +282,10 @@ func is_dashing() -> bool:
 ## every other caller (bosses, hazards, patterns) leaves it null and is unaffected. `is_contact`
 ## marks a melee bite/touch hit (vs. a ranged/AoE hit) — Armor and Thorns key off it.
 func take_damage(amount: float, attacker = null, is_contact: bool = false) -> void:
+	# EMPLOYEE BENEFITS (Pack A) UNION REP: post-revive invulnerability window — total immunity,
+	# same shape as the dodge-roll early-return below.
+	if _revive_invuln_time > 0.0:
+		return
 	# Thorns fires off the raw incoming bite damage, independent of dodge/armor below (a spike
 	# that jabs back whether or not the bite itself lands). Guard the attacker being alive so a
 	# same-frame freed/despawned biter can't be reflected onto.
@@ -291,12 +310,32 @@ func take_damage(amount: float, attacker = null, is_contact: bool = false) -> vo
 		gun.try_hurt_nova(self)
 
 	if _health.is_dead():
+		# UNION REP (Pack A): the benefits revive fires BEFORE Second Wind (spec order) and
+		# never in HARDCORE (one-life identity — same flag the heal-gate uses). Sets
+		# _health.current directly rather than routing through heal() — revive isn't a heal;
+		# Second Wind's own death-save below takes the same direct route (_health.heal() called
+		# on the Health object itself, bypassing Player.heal()'s HARDCORE no-op gate), so this
+		# matches how Second Wind already works. maxf(1.0, ...) guarantees a revive can never
+		# leave current at 0 (which would just re-trigger is_dead() on the next hit).
+		if _union_rep_available and not RunConfig.hardcore:
+			_union_rep_available = false
+			_health.current = maxf(1.0, max_hp() * GameConfig.BENEFIT_REVIVE_HEAL_FRAC)
+			_grant_invuln(GameConfig.BENEFIT_REVIVE_INVULN)
+			get_tree().current_scene.add_child(ScreenFlash.new())
+			return
 		if has_second_wind and not second_wind_used:
 			second_wind_used = true
 			_health.heal(_health.maxhp * GameConfig.SECOND_WIND_HP_FRAC)   # current is 0 here (just clamped dead), so this sets it exactly
 			get_tree().current_scene.add_child(ScreenFlash.new())
 			return
 		_die()
+
+## EMPLOYEE BENEFITS (Pack A) UNION REP: grants (or extends) a window of total damage immunity —
+## see the _revive_invuln_time early-return at the top of take_damage(). No pre-existing
+## spawn-protection/invulnerability mechanism exists anywhere in this codebase (grepped and
+## confirmed empty), so this is the new minimal chokepoint; reuse it for any future invuln source.
+func _grant_invuln(seconds: float) -> void:
+	_revive_invuln_time = maxf(_revive_invuln_time, seconds)
 
 ## Throttled red pulse — contact damage calls this every frame, so we rate-limit
 ## it to a periodic "ouch" rather than a solid red wash.
@@ -355,10 +394,12 @@ func full_heal() -> void:
 ## SINGLE no-op gate HARDCORE mode uses (Pack G, v0.1.58): every live heal source in the game
 ## routes through here — boss-kill/boss-rush heals (BossBase.gd), lifesteal talents
 ## (TalentEngine.gd), passive regen (the physics tick above), and full_heal() above — so gating
-## just this one function blocks all of them under HARDCORE. The one exception is Second Wind's
-## own death-save (_health.heal() called directly in take_damage(), below), which is moot under
-## HARDCORE regardless since the card itself is excluded from the level-up pool entirely (see
-## Upgrades.player_cards) — has_second_wind can never be true on a HARDCORE run.
+## just this one function blocks all of them under HARDCORE. Two exceptions bypass this gate by
+## writing _health directly instead of calling this wrapper — both moot under HARDCORE by their
+## OWN gating, not this one: Second Wind's death-save (_health.heal() called directly in
+## take_damage(), below; has_second_wind can never be true on a HARDCORE run — see
+## Upgrades.player_cards) and UNION REP's revive (_health.current set directly, same function,
+## explicitly gated `not RunConfig.hardcore` since a save-bought benefit isn't card-pool-excluded).
 func heal(amount: float) -> void:
 	if RunConfig.hardcore:
 		return

@@ -3,7 +3,9 @@ class_name Characters
 ## that only apply when wielding a specific weapon. All applied through the existing
 ## Player/Gun upgrade hooks. The double-tap Dash is universal (not part of this data).
 ##
-## KEEP THIS FILE AUTOLOAD-FREE (GameConfig/Player/Gun-only). A perk that needs to touch an
+## KEEP THIS FILE AUTOLOAD-FREE (GameConfig/Player/Gun/Benefits-only — Benefits is a pure
+## class_name, like GameConfig; it reads SaveManager internally but that's its own file's
+## concern, not a stray autoload reference here). A perk that needs to touch an
 ## autoload (RunStats, SaveManager, ...) directly from apply_base()/apply_weapon() should instead
 ## return a value via a pure static function for the (already autoload-aware) caller to apply —
 ## see coin_per_kill_bonus() below. GDScript compiles this whole file on load, so a single stray
@@ -52,6 +54,16 @@ static func price(id: String) -> int:
 static func apply_base(player: Player, id: String) -> void:
 	if player == null:
 		return
+	# EMPLOYEE BENEFITS (Pack A): INSURANCE joins the spawn baseline (same adjudicated
+	# hardcore-exempt rule as Ryan's bonus — see grant_base_max_health's doc), the rest are
+	# plain run-start multipliers. Applies to every character, outside the match below.
+	if Benefits.hp_bonus() > 0.0:
+		player.grant_base_max_health(Benefits.hp_bonus())
+	player.move_speed *= Benefits.speed_mult()
+	player.xp_mult *= Benefits.xp_mult()
+	# UNION REP: set here (spawn-config time), not at Player field-init, so a save bought
+	# mid-session applies next run predictably.
+	player._union_rep_available = Benefits.has_revive()
 	match id:
 		"ryan":
 			# Via the spawn-baseline hook, NOT the upgrade-card hook: under HARDCORE the card
