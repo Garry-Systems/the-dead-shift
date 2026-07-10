@@ -26,6 +26,12 @@ const SLOW_BLEND := 0.4
 const FEAR_TINT := Color("0A001A")      # C1 void — Night Terror's "feared" tell (palette-compliant)
 const FEAR_BLEND := 0.8                 # near-solid — outranks burn/poison/mark/slow, below pin/frozen
 
+# Coworkers (Mannequin decoy, T3): contact radius against a taunt node. A plain distance check
+# (not a slide-collision, like _touching_player() uses) since a taunt node is a generic Node2D
+# that may not carry a collider at all — mirrors the effective range _touching_player() gets from
+# move_and_slide's de-penetration (sum of the player/enemy collider radii, 24+20, see line ~468).
+const TAUNT_CONTACT_RADIUS := 44.0
+
 const FLASH_CD := 0.15           # min seconds between hit-flashes. A continuous weapon (flame cone,
                                  # beam) or a rapid gun (Nail Gun) calls flash_hit far faster than the
                                  # 0.12s pop can fade, which pins the sprite SOLID WHITE and hides the
@@ -61,6 +67,8 @@ var _freeze_time := 0.0
 var _pinned := false           # Nail Gun: rooted in place (movement only) while true
 var _pin_time := 0.0
 var _fear_time := 0.0          # seconds remaining feared (Night Terror talent); 0 = not feared
+var _taunt_node: Node2D        # Coworkers (Mannequin decoy, T3): steer-to + contact target while active
+var _taunt_time := 0.0         # seconds remaining taunted; 0 = not taunted
 var _knockback := Vector2.ZERO # decaying impulse (Concussive talent)
 var _contact_cd := 0.0         # bite cooldown: counts down between contact hits so we bounce, not stick
 var _flash_mat: ShaderMaterial
@@ -309,6 +317,16 @@ func apply_fear(duration: float) -> void:
 	if not was_active:
 		_refresh_tint()
 
+## Coworkers (Mannequin decoy, T3): steer this enemy toward `node` — and redirect its contact
+## bite onto `node` — instead of the player, for `duration`s. maxf-refresh on duration (same idiom
+## as every other status in this file — T3 re-taunts every 0.5s to keep aggro without resetting an
+## already-longer window); `node` always overwrites (not merged) so a fresh decoy immediately takes
+## over aggro from a stale one. Bosses are immune for free: BossBase never defines/calls this
+## (BossBase != Enemy), so no has_method gate is needed at the call site either.
+func taunt(node: Node2D, duration: float) -> void:
+	_taunt_node = node
+	_taunt_time = maxf(_taunt_time, duration)
+
 ## Septic Shock (`onhit_dot_detonate`): the total damage still owed by the active burn + poison
 ## channels, at their CURRENT per-tick rate — i.e. what `_physics_process` would deal if both
 ## ran to completion untouched. Read-only; pairs with clear_dots() below.
@@ -425,6 +443,17 @@ func _physics_process(delta: float) -> void:
 		if _fear_time <= 0.0:
 			_refresh_tint()
 
+	# Coworkers (Mannequin decoy, T3): expiry countdown + freed-node immediate clear (checked
+	# every read, not just here, but clearing eagerly keeps stale state from lingering a frame).
+	if _taunt_time > 0.0:
+		if not is_instance_valid(_taunt_node):
+			_taunt_time = 0.0
+			_taunt_node = null
+		else:
+			_taunt_time -= delta
+			if _taunt_time <= 0.0:
+				_taunt_node = null
+
 	if _elite_buff_time > 0.0:
 		_elite_buff_time -= delta
 		if _elite_buff_time <= 0.0:
@@ -448,6 +477,15 @@ func _physics_process(delta: float) -> void:
 		if flee == Vector2.ZERO:
 			flee = Vector2.RIGHT
 		velocity = flee * move_speed * _slow_factor * (1.0 + _elite_buff_speed)
+	elif _taunt_time > 0.0 and is_instance_valid(_taunt_node):
+		# Coworkers (Mannequin decoy, T3): same base-class chokepoint as fear above, so a subclass
+		# _desired_velocity override (RangedEnemy's standoff-keeping) can't bypass it — every
+		# taunted enemy beelines the decoy instead of the player. Outranked by fear (elif above);
+		# still outranked by frozen/pinned below (that velocity-zero check runs after this).
+		var to_taunt := (_taunt_node.global_position - global_position).normalized()
+		if to_taunt == Vector2.ZERO:
+			to_taunt = Vector2.RIGHT
+		velocity = to_taunt * move_speed * _slow_factor * (1.0 + _elite_buff_speed)
 
 	if _knockback != Vector2.ZERO:
 		velocity += _knockback
@@ -468,7 +506,19 @@ func _physics_process(delta: float) -> void:
 	# us to the sum of the collider radii — 24+20=44 — just outside any small threshold.)
 	if _contact_cd > 0.0:
 		_contact_cd -= delta
-	if _contact_cd <= 0.0 and _touching_player():
+	if _contact_cd <= 0.0 and _taunt_time > 0.0 and _touching_taunt_node():
+		# Coworkers (Mannequin decoy, T3): contact redirects onto the taunt node instead of the
+		# player while taunted — same bite-and-bounce cadence/CD as the path below, just aimed at
+		# a generic Node2D. has_method-guarded: a taunt node without take_damage still gets bitten
+		# (bounce + CD), it just doesn't take damage from it.
+		if _taunt_node.has_method("take_damage"):
+			_taunt_node.take_damage(touch_damage * elite_damage_mult())
+		var away := _taunt_node.global_position.direction_to(global_position)
+		if away == Vector2.ZERO:
+			away = Vector2.RIGHT
+		apply_knockback(away * GameConfig.ENEMY_BOUNCE_SPEED)
+		_contact_cd = GameConfig.ENEMY_CONTACT_HIT_CD
+	elif _contact_cd <= 0.0 and _touching_player():
 		_target.take_damage(touch_damage * elite_damage_mult(), self, true)   # attacker=self (Thorns), is_contact=true (Armor)
 		var away := _target.global_position.direction_to(global_position)
 		if away == Vector2.ZERO:
@@ -507,6 +557,14 @@ func _touching_player() -> bool:
 		if get_slide_collision(i).get_collider() == _target:
 			return true
 	return false
+
+## Coworkers (Mannequin decoy, T3): true if this body is within TAUNT_CONTACT_RADIUS of the
+## current taunt node. Every read re-checks is_instance_valid — a decoy freed mid-frame (e.g. this
+## bite itself killing it) never dereferences a stale pointer.
+func _touching_taunt_node() -> bool:
+	if _taunt_node == null or not is_instance_valid(_taunt_node):
+		return false
+	return global_position.distance_to(_taunt_node.global_position) <= TAUNT_CONTACT_RADIUS
 
 func take_damage(amount: float) -> void:
 	if _health.is_dead():
