@@ -11,6 +11,9 @@ const _XP_GEM_SCENE := preload("res://scenes/XpGem.tscn")
 var kind := "loot"
 var shape := "circle"
 var size := 18.0
+var size_y := 18.0   # Transfer Stores (v0.1.65): rect half-height. Absent row field -> configure()
+                     # defaults this to `size` (square, today's behavior). Only "rect" shape reads
+                     # it; "circle" rows ignore it entirely.
 var solid := false
 var hp := 25.0
 var hazard_id := ""
@@ -38,6 +41,7 @@ func configure(row: Dictionary) -> void:
 	kind = String(row["kind"])
 	shape = String(row["shape"])
 	size = float(row["size"])
+	size_y = float(row.get("size_y", size))   # absent -> square, byte-identical to every existing row
 	solid = bool(row["solid"])
 	hp = float(row["hp"])
 	hazard_id = String(row["hazard_id"])
@@ -66,7 +70,7 @@ func _build_shape() -> void:
 	var cs := CollisionShape2D.new()
 	if shape == "rect":
 		var rect := RectangleShape2D.new()
-		rect.size = Vector2(size * 2.0, size * 2.0)
+		rect.size = Vector2(size * 2.0, size_y * 2.0)
 		cs.shape = rect
 	else:
 		var circ := CircleShape2D.new()
@@ -166,7 +170,7 @@ func _draw() -> void:
 	var c := Color(1, 1, 1, 1) if _hit_flash > 0.0 else color
 	var outline := Color(0.04, 0.0, 0.10)   # C1 void
 	if shape == "rect":
-		var r := Rect2(Vector2(-size, -size), Vector2(size * 2.0, size * 2.0))
+		var r := Rect2(Vector2(-size, -size_y), Vector2(size * 2.0, size_y * 2.0))
 		draw_rect(r, c)
 		draw_rect(r, outline, false, 2.0)
 	else:

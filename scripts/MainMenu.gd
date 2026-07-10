@@ -305,6 +305,8 @@ func _start_run(mode: String) -> void:
 		return
 	RunConfig.mode = mode
 	RunConfig.clear_mode_flags()   # a normal mode pick can never inherit a stale daily/hardcore/overtime flag
+	if mode == "boss_rush":
+		RunConfig.location = "forecourt"   # Transfer Stores: Boss Rush's arena is forecourt-only — the boss roster/patterns aren't tuned around mart aisles or garage pillars
 	# Clock in for your shift: a short themed loading beat, then gameplay.
 	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
 
@@ -338,6 +340,7 @@ func _on_daily_shift() -> void:
 		return
 	RunConfig.mode = "endless"
 	RunConfig.clear_mode_flags()   # a Daily Shift pick can never inherit a stale hardcore/overtime flag
+	RunConfig.location = "forecourt"   # Transfer Stores: Daily Shift stays forecourt so every player's seeded board is the same fair fight
 	RunConfig.start_daily(SaveManager.today_string())
 	SaveManager.mark_daily_shift_started()
 	SaveManager.add_daily_played()   # lifetime counter (Pack H: REGULAR commendation) — consumed on START, mirrors mark_daily_shift_started

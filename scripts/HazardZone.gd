@@ -90,9 +90,10 @@ func _apply(dt: float) -> void:
 			continue
 		if (e as Node2D).global_position.distance_squared_to(global_position) > r2:
 			continue
-		e.take_damage(_dps * dt * GameConfig.ENEMY_HAZARD_DMG_MULT)
-		if not is_instance_valid(e):
-			continue
+		if _dps > 0.0:   # Transfer Stores freezer patches: dps 0 must never flash/shake the hit reaction
+			e.take_damage(_dps * dt * GameConfig.ENEMY_HAZARD_DMG_MULT)
+			if not is_instance_valid(e):
+				continue
 		if _slow > 0.0 and e.has_method("apply_slow"):
 			e.apply_slow(_slow, _slow_dur)
 		if _stun > 0.0 and e.has_method("apply_freeze"):
@@ -103,7 +104,8 @@ func _apply(dt: float) -> void:
 		var player := tree.get_first_node_in_group("player")
 		if player != null and is_instance_valid(player):
 			if (player as Node2D).global_position.distance_squared_to(global_position) <= r2:
-				player.take_damage(_dps * dt * GameConfig.PLAYER_HAZARD_DMG_MULT)
+				if _dps > 0.0:   # Transfer Stores freezer patches: dps 0 must never flash/shake the hit reaction
+					player.take_damage(_dps * dt * GameConfig.PLAYER_HAZARD_DMG_MULT)
 				if _slow > 0.0 and player.has_method("apply_slow"):
 					player.apply_slow(_slow, _slow_dur)
 

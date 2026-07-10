@@ -6,6 +6,15 @@ extends Node
 var character_id := "ryan"
 var mode := "endless"        # "endless" | "boss_rush" | "horde"
 
+# --- Locations (Transfer Stores, v0.1.65) ---
+## Locations.ALL id for the run about to start. Session-only, same as `mode`/the flags below —
+## set by the PLAY-panel location picker (Task 5), read once at run start (Main.gd, Task 2).
+## Reset to "forecourt" in clear_mode_flags() alongside the other mode-exclusivity fields;
+## Daily Shift and Boss Rush additionally FORCE it back to "forecourt" at their own launch sites
+## (MainMenu._on_daily_shift / _start_run's "boss_rush" branch) so neither can ever inherit a
+## non-forecourt pick even if a future picker sets `location` in a different order.
+var location := "forecourt"
+
 ## Set by GameOver's STORE button just before returning to the menu; MainMenu._ready()
 ## consumes (and resets) this to land directly in the store view instead of the hub.
 var open_store_on_menu := false
@@ -55,6 +64,9 @@ func clear_mode_flags() -> void:
 	clear_daily()
 	hardcore = false
 	overtime = false
+	location = "forecourt"   # Transfer Stores: reset with the other run-exclusivity fields; the
+	                         # location picker (Task 5) re-applies its pick AFTER this call, same
+	                         # as hardcore/overtime/daily do today
 
 ## Float roll for the 3 daily-seeded decision points above: the seeded generator while `daily` is
 ## armed, otherwise the engine's own global RNG (byte-identical to every non-daily run today).

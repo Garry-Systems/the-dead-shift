@@ -41,22 +41,39 @@ static func all() -> Array:
 	]
 
 ## A weighted-random row among types whose min_wave <= wave. Falls back to the first row.
-static func pick(wave: int) -> Dictionary:
+##
+## `mults` (Transfer Stores, v0.1.65): optional Locations.obstacle_mults-shaped Dictionary,
+## row id -> weight multiplier. Default {} is the exact pre-existing code path (no per-row
+## multiply, byte-identical weights/roll/total to today). A non-empty dict re-weights
+## `roundi(weight * mult)` per eligible row (missing id = mult 1.0); a row that rounds to <= 0
+## is excluded from the pool entirely (0.0 = "never spawns here" per the registry's contract).
+static func pick(wave: int, mults: Dictionary = {}) -> Dictionary:
 	var rows := all()
 	var pool: Array = []
 	var total := 0
 	for e in rows:
 		if int(e["min_wave"]) <= wave:
+			var w := _weight(e, mults)
+			if w <= 0:
+				continue
 			pool.append(e)
-			total += int(e["weight"])
+			total += w
 	if pool.is_empty() or total <= 0:
 		return rows[0]
 	var roll := randi() % total
 	for e in pool:
-		roll -= int(e["weight"])
+		roll -= _weight(e, mults)
 		if roll < 0:
 			return e
 	return pool[pool.size() - 1]
+
+## Effective spawn weight for row `e` under `mults`. Empty `mults` short-circuits to the row's
+## plain int weight (no float roundtrip at all) — the default-arg call path stays byte-identical.
+static func _weight(e: Dictionary, mults: Dictionary) -> int:
+	var w := int(e["weight"])
+	if mults.is_empty():
+		return w
+	return roundi(float(w) * float(mults.get(String(e["id"]), 1.0)))
 
 ## The row matching `id`, or {} if not found. Used for a fixed placement (Forecourt's fuel
 ## pumps) that wants the exact row rather than a weighted/wave-gated pick.

@@ -675,3 +675,8 @@ const COWORKER_TRAIT_CHILLING_DUR := 1.5        # cat/drone hit rider: seconds t
 const COWORKER_TRAIT_PINNING_CHANCE := 0.15     # cat/drone hit rider: chance to also apply_pin (duration reuses COWORKER_CAT_PIN)
 const COWORKER_TRAIT_MAGNETIC := 0.40           # +% player pickup radius, granted once at Companion spawn (Delivery Girl's own mechanism)
 const COWORKER_TRAIT_STUDIOUS := 0.10           # +% player xp_mult, granted once at Companion spawn
+
+# --- Locations (Transfer Stores, v0.1.65): Locations.gd rank-gate thresholds. Compared against
+# Ranks.rank_for()'s 1-indexed value (Locations.unlocked(id, rank)). ---
+const LOC_MART_RANK := 2       # rank required to select BIG MART
+const LOC_GARAGE_RANK := 4     # rank required to select THE PARKING GARAGE
