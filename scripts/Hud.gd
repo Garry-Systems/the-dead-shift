@@ -215,8 +215,9 @@ func _process(_delta: float) -> void:
 	if boss != null:
 		_boss_bar.visible = true
 		_boss_bar.value = (boss as BossBase).health_fraction()
+		var boss_id := (boss as BossBase).boss_id()
 		_boss_name_label.visible = true
-		_boss_name_label.text = Bosses.name_for((boss as BossBase).boss_id())
+		_boss_name_label.text = Bosses.name_for(boss_id)
 		if not _boss_was_alive:
 			_boss_was_alive = true
 			# Debounced: the "no boss -> boss" edge can flicker in Boss Rush (a boss dying and
@@ -226,7 +227,17 @@ func _process(_delta: float) -> void:
 			var now := Time.get_ticks_msec() / 1000.0
 			if now - _last_shift_toast >= GameConfig.SHIFT_TOAST_COOLDOWN:
 				_last_shift_toast = now
-				_show_banner("SHIFT CHANGE")   # Spawner already fires the "boss_roar" SFX on spawn
+				# Boss intro flavor (Pack 0): appended to the SHIFT CHANGE toast rather than a new
+				# label under _boss_name_label. A dedicated label offset down ~22px (per the task
+				# brief's preferred route) would span offset_top/bottom -52/-24 — that fully
+				# overlaps _boss_bar's -44/-24 span (the name label already sits only 2px above
+				# the bar at -74/-46), so it would render on top of the boss HP bar. Falling back
+				# to a second banner line avoids the collision entirely.
+				var toast := "SHIFT CHANGE"   # Spawner already fires the "boss_roar" SFX on spawn
+				var flavor_line := Flavor.boss_line(boss_id)
+				if flavor_line != "":
+					toast += "\n" + flavor_line
+				_show_banner(toast)
 	else:
 		_boss_bar.visible = false
 		_boss_name_label.visible = false

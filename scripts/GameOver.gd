@@ -313,6 +313,11 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 			xp_line += " — next talent at LV%d" % next_lvl
 		_centered_line(_stub_vbox, xp_line, PixelTheme.TEXT_DIM, 16)
 
+	# Death quip (Pack 0 lore flavor) — only on an actual death, never an extraction win.
+	if not is_win:
+		_stub_vbox.add_child(_spacer(4))
+		_centered_line(_stub_vbox, "\"%s\"" % Flavor.death_quip(), PixelTheme.ACCENT_DIM, 16)
+
 ## Confetti pop over the pay-stub card for a NEW BEST (mirrors MainMenu's crate-win
 ## _celebrate — Confetti is a self-contained Node2D, no scene dependency, so it works fine
 ## parented under this different scene's overlay). NOTE: get_viewport_rect() is a CanvasItem
