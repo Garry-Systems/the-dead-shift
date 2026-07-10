@@ -615,3 +615,21 @@ const COMMENDATION_TIER_HARD_XP := 500
 const COMMENDATION_TIER_EASY_CRATE := "scrap_crate"
 const COMMENDATION_TIER_MED_CRATE := "munitions_cache"
 const COMMENDATION_TIER_HARD_CRATE := "titan_crate"
+
+# --- THE BASEMENT (roadmap-4 Pack E, v0.1.63) ---
+const BASEMENT_MIN_WAVE := 3            # first wave a cellar door can roll
+const BASEMENT_DOOR_CHANCE := 0.25      # per wave-edge roll (via RunConfig.rand_float — Daily stays seeded)
+const BASEMENT_MAX_PER_RUN := 2         # doors per run
+const BASEMENT_DOOR_LIFETIME := 45.0    # seconds an unentered door lingers
+const BASEMENT_DESCEND_HOLD := 1.2      # seconds standing in the ring to descend
+const BASEMENT_DOOR_MIN_DIST := 500.0   # door placement ring around the player (px)
+const BASEMENT_DOOR_MAX_DIST := 900.0
+const BASEMENT_OFFSET := Vector2(24000, 24000)  # gauntlet arena world offset
+const BASEMENT_RADIUS := 800.0          # walled ring radius
+const BASEMENT_DURATION := 60.0         # gauntlet seconds (shift clock keeps ticking — stolen time)
+const BASEMENT_SPAWN_INTERVAL := 0.55   # dense trash cadence inside
+const BASEMENT_ELITES := 2              # guaranteed elites per gauntlet (+1 past wave 10)
+const BASEMENT_CRATE_FLOOR_BASE := 2    # reward crate rarity floor = BASE + wave/WAVES, capped
+const BASEMENT_CRATE_FLOOR_WAVES := 5
+const BASEMENT_CRATE_FLOOR_MAX := 7     # apex floor (red) — never guarantees the animated tiers
+const BASEMENT_PICKUP_WINDOW := 8.0     # seconds to grab the crate before auto-ascend
