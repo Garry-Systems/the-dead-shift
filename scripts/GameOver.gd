@@ -248,11 +248,16 @@ func _finish_run(is_win: bool) -> void:
 
 	# Weapon-loot: award XP to the equipped weapon so its talents unlock over time, then read
 	# the refreshed instance back for the pay-stub's XP line (post-gain level/talent state).
-	# HARDCORE doubles this at the flush (Pack G) — the one Inventory.add_run_xp chokepoint.
+	# HARDCORE doubles this at the flush (Pack G); the "Punch Card" relic (Relics Overhaul)
+	# composes into the SAME multiplier via RunStats.weapon_xp_mult — both round together, once,
+	# mirroring CoinReward.final_payout's single int(round(float * mult)) idiom — the one
+	# Inventory.add_run_xp chokepoint.
 	var equipped_uid := Inventory.equipped_uid()
 	var xp_amount := kills + wave * 10 + bosses * 50
+	var xp_mult := RunStats.weapon_xp_mult
 	if RunConfig.hardcore:
-		xp_amount *= GameConfig.HARDCORE_WEAPON_XP_MULT
+		xp_mult *= GameConfig.HARDCORE_WEAPON_XP_MULT
+	xp_amount = int(round(float(xp_amount) * xp_mult))
 	Inventory.add_run_xp(xp_amount)
 	var inst := Inventory.get_item(equipped_uid)
 

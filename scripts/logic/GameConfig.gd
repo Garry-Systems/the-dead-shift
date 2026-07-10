@@ -80,7 +80,7 @@ const SLAM_EXPAND_TIME := 0.5         # seconds for the ring to grow 0 -> SLAM_R
 const SLAM_DAMAGE := 35.0             # damage if the player is caught by the ring (once per slam)
 
 # --- Relics (Phase 4 step 3) ---
-const MAX_RELIC_SLOTS := 4            # held relic capacity (designed to be raised later)
+const MAX_RELIC_SLOTS := 4            # held relic capacity (overstocked raises this to 6 while held)
 const RELIC_DAMAGE_PCT := 0.25        # glass_edge: +% gun damage
 const RELIC_BULLET_SPEED_PCT := 0.30  # heavy_rounds: +% bullet speed
 const RELIC_RANGE_PCT := 0.30         # long_scope: +% gun range
@@ -89,6 +89,49 @@ const RELIC_REGEN := 1.5              # field_kit: +HP/sec
 const RELIC_PICKUP_PCT := 0.40        # lodestone: +% pickup radius
 const RELIC_MOVE_SPEED_PCT := 0.15    # featherweight: +% move speed
 const RELIC_MAX_HEALTH := 40.0        # vital_surge: +max HP (and heals the same)
+
+# --- Relics Overhaul "Lost & Found" (v0.1.66) — RELIC CHOICE drop moment + 27-relic pool ---
+# §1/§2: the pick-1-of-2 drop moment + slots/scrapping.
+const RELIC_CURSED_CHANCE := 0.35     # card B: chance the second roll is a CURSED relic instead of A's standard/prototype mix (card A is NEVER cursed)
+const RELIC_DRY_COINS := 150          # paid instead of a choice when the un-held pool can't offer even one card
+const RELIC_SKIP_COINS := 75          # paid when the player taps SKIP on a RELIC CHOICE instead of taking either card
+const RELIC_SCRAP_COINS := 100        # pause-menu SCRAP: coins paid for freeing a held STANDARD/PROTOTYPE relic's slot
+const RELIC_CURSED_SCRAP_COINS := 25  # SCRAP payout for a held CURSED relic (cheaper — the power already got used)
+
+# Two new STANDARD relics (run-scoped RunStats multipliers, not player/gun props).
+const RELIC_TIP_JAR_PCT := 0.15       # tip_jar: +% RunStats.coin_mult
+const RELIC_PUNCH_CARD_PCT := 0.20    # punch_card: +% RunStats.weapon_xp_mult
+
+# PROTOTYPE (10) — run-rule relics; magnitudes read by RelicEffects.gd (owns the hooks).
+const RELIC_STATIC_TRAIL_DPS := 20.0     # static_soles: damage/sec of the dash's electric trail
+const RELIC_STATIC_TRAIL_DUR := 1.0      # static_soles: how long the trail lingers (seconds)
+const RELIC_DOUBLE_FUSE_PCT := 0.5       # double_fuse: second detonation's power, as a fraction of the first
+const RELIC_DOUBLE_FUSE_DELAY := 0.3     # double_fuse: delay before the second detonation (seconds)
+const RELIC_MAGNET_STREAK := 5           # magnet_coil: kills within the window needed to trigger the gem pull
+const RELIC_MAGNET_WINDOW := 3.0         # magnet_coil: streak window (seconds); a gap this long resets the counter
+const RELIC_INTERCOM_FEAR := 1.5         # intercom: fear duration applied to nearby trash on elite death (seconds)
+const RELIC_ACCELERANT_PCT := 0.25       # accelerant: +% damage taken by burning enemies from ALL sources
+const RELIC_TIMECLOCK_HOLD := 10.0       # overtime_clock: seconds the shift clock is held on each boss kill
+const RELIC_SPARE_GEMS := 1              # spare_parts: extra gems dropped by crates & shelves
+const RELIC_SPARE_COIN_CHANCE := 0.10    # spare_parts: chance of an additional coin burst on the same drop
+const RELIC_RUBBER_MOVE_PCT := 0.05      # rubber_soles: +% move speed (on top of full slow immunity)
+const RELIC_ADRENAL_REFUND := 2.0        # adrenal_valve: dash cooldown refunded per hit taken (seconds)
+const RELIC_CHAIN_PIERCE := 1            # chain_letter: +pierce on every gun
+
+# CURSED (7) — devil's bargains; opt-in only, slot B.
+const RELIC_STAPLER_DMG_PCT := 0.40      # managers_stapler: +% gun damage
+const RELIC_STAPLER_HEAL_FACTOR := 0.5   # managers_stapler: multiplier applied to ALL incoming healing
+const RELIC_DRINK_SPEED_PCT := 0.25      # expired_drink: +% move speed AND +% fire rate
+const RELIC_DRINK_HP_LOSS := 30.0        # expired_drink: max HP lost on pickup
+const RELIC_DRINK_HP_FLOOR := 40.0       # expired_drink: max HP can never be reduced below this by the loss above
+const RELIC_CARD_COIN_MULT := 2.0        # company_card: coin-payout multiplier while held
+const RELIC_CARD_STUB_CUT := 0.25        # company_card: fraction cut from the FINAL pay-stub total (post-mult) at run end
+const RELIC_PACT_HEAL_PER_KILL := 1.0    # blood_pact: HP healed per kill (the only heal source left while held)
+const RELIC_NAMETAG_ELITE_MULT := 1.5    # cursed_nametag: elite spawn-chance multiplier
+const RELIC_NAMETAG_GEM_MULT := 2.0      # cursed_nametag: elite gem-drop multiplier
+const RELIC_OVERSTOCK_SLOTS := 2         # overstocked: extra relic slots granted (4 -> 6)
+const RELIC_OVERSTOCK_HP_LOSS := 20.0    # overstocked: max HP lost on pickup
+const RELIC_VEST_HEAL_CAP := 0.5         # dead_mans_vest: incoming healing capped at this fraction of max HP while held
 
 # --- XP / Leveling ---
 const XP_BASE := 5                    # XP needed to reach level 1
