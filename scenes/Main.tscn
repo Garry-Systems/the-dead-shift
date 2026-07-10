@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Texture2D" path="res://art/ground.png" id="10_ground"]
@@ -20,6 +20,7 @@
 [ext_resource type="Script" path="res://scripts/NightEvents.gd" id="20_nightevents"]
 [ext_resource type="Script" path="res://scripts/Extraction.gd" id="21_extraction"]
 [ext_resource type="Script" path="res://scripts/Juice.gd" id="22_juice"]
+[ext_resource type="Script" path="res://scripts/Basement.gd" id="23_basement"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("11_main")
@@ -54,6 +55,9 @@ script = ExtResource("2_spawn")
 
 [node name="ObstacleField" type="Node2D" parent="."]
 script = ExtResource("17_obstacle")
+
+[node name="Basement" type="Node2D" parent="."]
+script = ExtResource("23_basement")
 
 [node name="CombatText" type="Node2D" parent="."]
 script = ExtResource("19_combattext")

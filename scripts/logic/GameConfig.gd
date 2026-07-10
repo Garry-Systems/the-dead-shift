@@ -633,3 +633,4 @@ const BASEMENT_CRATE_FLOOR_BASE := 2    # reward crate rarity floor = BASE + wav
 const BASEMENT_CRATE_FLOOR_WAVES := 5
 const BASEMENT_CRATE_FLOOR_MAX := 7     # apex floor (red) — never guarantees the animated tiers
 const BASEMENT_PICKUP_WINDOW := 8.0     # seconds to grab the crate before auto-ascend
+const BASEMENT_DOOR_RING := 90.0        # standing-distance radius that counts as "on the door"
