@@ -21,6 +21,7 @@ var _armed := false
 var _time_left := 0.0
 var _tick := 0.0
 var _hurts_player := true
+var _puddle := false    # fuel-slick pre-arm look (Tanker trail): dark slick + faint sheen instead of faint hazard color
 
 ## Configure from a Hazards.stats_for() dict. Caller sets global_position + add_child FIRST.
 func configure_hazard(cfg: Dictionary) -> void:
@@ -38,7 +39,8 @@ func configure_hazard(cfg: Dictionary) -> void:
 	if not _hurts_player:
 		add_to_group("player_pools")   # player-placed pool (Acid Cannon, later Bile Spill); capped via cap_player_pools()
 	setup(null, null, {})                  # AttackPattern grabs the player from the group
-	_windup = GameConfig.HAZARD_WINDUP     # short arm, bypassing the boss PATTERN_WINDUP clamp
+	_windup = float(cfg.get("windup", GameConfig.HAZARD_WINDUP))   # short arm by default; Tanker fuel passes a longer puddle→ignite delay
+	_puddle = bool(cfg.get("puddle", false))
 	var ang := randf_range(0.0, TAU)
 	_drift_dir = Vector2(cos(ang), sin(ang))
 
@@ -118,7 +120,11 @@ func _zap_arc(enemies: Array) -> void:
 
 func _draw() -> void:
 	if not _armed:
-		draw_circle(Vector2.ZERO, _radius, Color(_color.r, _color.g, _color.b, 0.12))
+		if _puddle:
+			draw_circle(Vector2.ZERO, _radius, Color(0.04, 0.0, 0.10, 0.6))                  # C1 fuel slick
+			draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 24, Color(0.88, 0.9, 1.0, 0.25), 2.0)  # faint C4 sheen rim (dodge tell)
+		else:
+			draw_circle(Vector2.ZERO, _radius, Color(_color.r, _color.g, _color.b, 0.12))
 		return
 	var a := clampf(_time_left / _duration, 0.0, 1.0) if _duration > 0.0 else 1.0
 	draw_circle(Vector2.ZERO, _radius, Color(_color.r, _color.g, _color.b, 0.30 * a))
