@@ -6,15 +6,29 @@ class_name Coworkers
 ## runtime (see Companion.gd, Task 3).
 ##
 ## Instance shape: { uid, type, rarity, trait } — trait is "" below
-## COWORKER_TRAIT_MIN_RARITY (Savage/purple, rarity 5, and up). Type is uniform-random on
-## every roll; rarity is supplied by the caller (the store rolls it via Rarity.roll — see
-## MainMenu, Task 4).
+## COWORKER_TRAIT_MIN_RARITY (Savage/purple, rarity 5, and up), and always drawn from the
+## rolled type's own TRAITS_FOR pool (no dead rolls). Type is uniform-random on every roll;
+## rarity is supplied by the caller (the store rolls it via Rarity.roll — see MainMenu,
+## Task 4).
 
 const TYPES := ["cat", "drone", "mannequin"]
 
 const TRAITS := [
 	"sharp", "wired", "wide", "steady", "chilling", "pinning", "magnetic", "studious",
 ]
+
+## Per-type trait pools — every trait in a pool does something REAL for that type (the
+## coworker version of the affix signature guarantee: no dead rolls, ever). Excluded per
+## type: cat drops "pinning" (its pounce already always pins — a maxf-refresh no-op) and
+## "steady" (mannequin-only); drone drops "steady"; mannequin keeps only the four traits
+## that touch a decoy-placer at all (STEADY = HP/duration, WIDE = taunt radius,
+## MAGNETIC/STUDIOUS = player-side, type-agnostic). The flat TRAITS list above stays as
+## the iteration/desc-lookup surface.
+const TRAITS_FOR := {
+	"cat":       ["sharp", "wired", "wide", "chilling", "magnetic", "studious"],
+	"drone":     ["sharp", "wired", "wide", "chilling", "pinning", "magnetic", "studious"],
+	"mannequin": ["steady", "wide", "magnetic", "studious"],
+}
 
 ## Display name for a coworker type.
 static func name_for(type: String) -> String:
@@ -86,15 +100,19 @@ static func trait_desc(t: String) -> String:
 		_:
 			return ""
 
-## Rolls a full coworker instance at the given rarity. Type is uniform-random; a trait only
-## rolls at COWORKER_TRAIT_MIN_RARITY (5, Savage/purple) and above — see GameConfig.
+## Rolls a full coworker instance at the given rarity. Type is uniform-random and rolls
+## FIRST; a trait only rolls at COWORKER_TRAIT_MIN_RARITY (5, Savage/purple) and above — see
+## GameConfig — and draws from the rolled TYPE's own pool (TRAITS_FOR), never the flat list,
+## so a rolled trait is always live for its carrier (no dead rolls).
 static func roll(rarity: int) -> Dictionary:
+	var type: String = TYPES[randi() % TYPES.size()]
 	var t := ""
 	if rarity >= GameConfig.COWORKER_TRAIT_MIN_RARITY:
-		t = TRAITS[randi() % TRAITS.size()]
+		var pool: Array = TRAITS_FOR[type]
+		t = pool[randi() % pool.size()]
 	return {
 		"uid": _uid(),
-		"type": TYPES[randi() % TYPES.size()],
+		"type": type,
 		"rarity": rarity,
 		"trait": t,
 	}

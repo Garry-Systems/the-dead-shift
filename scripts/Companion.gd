@@ -139,10 +139,11 @@ func _nearest_enemy(max_range: float) -> Node2D:
 			best = node
 	return best
 
-## CHILLING/PINNING "ride the attack" — type-agnostic riders applied after any cat pounce or
-## drone shot lands (never mannequin, which never deals damage). Mutually exclusive with each
-## other (a coworker rolls exactly one trait) but NOT with a cat's own always-on apply_pin
-## below (a "pinning" cat's rider just re-applies the same maxf-refreshed duration — harmless).
+## CHILLING/PINNING "ride the attack" — riders applied after any cat pounce or drone shot
+## lands (never mannequin, which never deals damage and whose trait pool excludes both).
+## Mutually exclusive with each other (a coworker rolls exactly one trait). PINNING can only
+## arrive here on a DRONE — Coworkers.TRAITS_FOR excludes it from the cat's pool, whose
+## pounce already always pins (a rider there would be a dead maxf-refresh no-op).
 func _apply_trait_riders(body: Node) -> void:
 	if trait_id == "chilling" and body.has_method("apply_slow"):
 		body.apply_slow(GameConfig.COWORKER_TRAIT_CHILLING_SLOW, GameConfig.COWORKER_TRAIT_CHILLING_DUR)
