@@ -339,6 +339,14 @@ func _build_action_row() -> Control:
 func _show_scrap_confirm() -> void:
 	_action_row.visible = false
 	var band: Array = Rarity.tier(int(_inst.get("rarity", 1))).scrap
+	# EMPLOYEE BENEFITS (Pack A): a deconstruct also banks SCRAP (coin payout / 10, min 1,
+	# PACK RAT-multiplied — see Inventory.deconstruct). The scrap flow shows no post-payout
+	# result feedback (MainMenu._on_scrap just repopulates the grid), so the byproduct is
+	# previewed on the YES confirm button — as a band, like the coin question above it,
+	# because the exact payout only rolls at deconstruct time.
+	var s_lo := roundi(maxi(1, int(band[0]) / 10) * Benefits.scrap_mult())
+	var s_hi := roundi(maxi(1, int(band[1]) / 10) * Benefits.scrap_mult())
+	var scrap_note := ("+%d SCRAP" % s_lo) if s_lo == s_hi else ("+%d-%d SCRAP" % [s_lo, s_hi])
 	_confirm_row = VBoxContainer.new()
 	_confirm_row.add_theme_constant_override("separation", 10)
 	_confirm_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -352,7 +360,7 @@ func _show_scrap_confirm() -> void:
 	hb.add_theme_constant_override("separation", 12)
 	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var yes := Button.new()
-	yes.text = "YES"
+	yes.text = "YES (%s)" % scrap_note
 	PixelTheme.style_button(yes, Vector2(0, 62), 20)
 	yes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	yes.pressed.connect(func():

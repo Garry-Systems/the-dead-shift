@@ -6,6 +6,7 @@ extends Node
 
 signal inventory_changed()
 signal coins_changed(amount: int)
+signal scrap_changed(amount: int)   # EMPLOYEE BENEFITS (Pack A): new SCRAP total after a deconstruct banks its byproduct
 signal item_added(inst: Dictionary)
 signal equipped_changed(uid: String)
 
@@ -90,7 +91,9 @@ func equip(uid: String) -> bool:
 	equipped_changed.emit(uid)
 	return true
 
-## Scraps a weapon for coins (rarity-based payout). Can't scrap the equipped one.
+## Scraps a weapon for coins (rarity-based payout) plus a SCRAP byproduct (payout/10,
+## min 1, PACK RAT-multiplied — Pack A). Can't scrap the equipped one. Returns the COIN
+## payout (unchanged contract); the scrap side is surfaced via scrap_changed.
 func deconstruct(uid: String) -> int:
 	var it := get_item(uid)
 	if it.is_empty() or uid == equipped_uid():
@@ -101,8 +104,13 @@ func deconstruct(uid: String) -> int:
 	list = list.filter(func(w): return String(w.get("uid", "")) != uid)
 	SaveManager.set_weapons(list)
 	SaveManager.add_coins(payout)
+	# EMPLOYEE BENEFITS (Pack A): deconstructs also bank SCRAP — an ADDITIVE byproduct, the
+	# coins payout above is untouched. PACK RAT multiplies the byproduct only.
+	var scrap_gain := roundi(maxi(1, payout / 10) * Benefits.scrap_mult())
+	SaveManager.add_scrap(scrap_gain)
 	SaveManager.save_game()
 	coins_changed.emit(coins())
+	scrap_changed.emit(SaveManager.scrap())   # mirrors coins_changed: the new wallet total
 	inventory_changed.emit()
 	return payout
 
