@@ -63,6 +63,11 @@ const DEFAULTS := {
 	"basements_cleared": 0,              # Pack E (THE BASEMENT), Task 5: LIFETIME gauntlets survived to the reward
 	                                      # drop — never resets; bumped at the SAME Basement._start_reward() chokepoint
 	                                      # that flushes it (mirrors crates_opened_total's "chokepoint owns its save" idiom)
+	"last_location": "forecourt",         # Transfer Stores, Task 5: last-selected mode-panel location id, restored at
+	                                      # menu load (MainMenu._restore_selected_location — locked→forecourt guard)
+	"location_best": {},                  # Transfer Stores, Task 5: location id -> best wave reached, non-forecourt
+	                                      # endless-family runs only (mirrors horde_best_wave's own dedicated track;
+	                                      # see GameOver._finish_run's guard for the exact endless-family/overtime rule)
 }
 
 var _data: Dictionary = {}
@@ -583,6 +588,32 @@ func basements_cleared() -> int:
 ## rather than waiting for the paid_out-guarded end-of-run block). Caller saves.
 func add_basement_cleared() -> void:
 	_data["basements_cleared"] = basements_cleared() + 1
+
+# --- Locations (Transfer Stores, Task 5) ---
+
+## Last-selected mode-panel location id ("forecourt" if never chosen / a fresh save). Restored at
+## menu load — MainMenu re-validates it's still unlocked before trusting it (see
+## MainMenu._restore_selected_location's locked→forecourt guard; a rank can only ever unlock more
+## locations, never re-lock one, but the guard is cheap insurance against a hand-edited save).
+func last_location() -> String:
+	return String(_data.get("last_location", "forecourt"))
+
+func set_last_location(id: String) -> void:
+	_data["last_location"] = id
+
+## Best wave ever reached at location `id` (0 = never recorded there). Mirrors horde_best_wave's
+## own dedicated per-mode track shape, keyed by location id instead of a fixed field name.
+func location_best(id: String) -> int:
+	var d: Dictionary = _data.get("location_best", {})
+	return int(d.get(id, 0))
+
+## Records a new best wave for `id` if higher than the stored value (maxi()-idiom, mirrors
+## record_horde_best_wave). Called from GameOver for non-forecourt, non-horde, non-overtime runs
+## only — see GameOver._finish_run's guard. Memory only; caller saves.
+func set_location_best(id: String, wave: int) -> void:
+	var d: Dictionary = _data.get("location_best", {})
+	d[id] = maxi(int(d.get(id, 0)), wave)
+	_data["location_best"] = d
 
 ## Ids of one-time Commendation badges already earned (persisted; never un-earned once granted).
 func commendations_earned() -> Array:

@@ -137,12 +137,17 @@ func open(title: String, reward: Dictionary) -> void:
 			_name.text = "RANK %d — %s" % [rank, Ranks.name_for(rank)]
 			_name.add_theme_color_override("font_color", PixelTheme.ACCENT)
 			var unlocked: Array = reward.get("unlocked", [])
-			if unlocked.is_empty():
+			var names: Array[String] = []
+			for id in unlocked:
+				names.append(Ranks.mode_display_name(String(id)))
+			# Transfer Stores (Task 5): MainMenu._promotion_reward() already pre-formats these as
+			# "TRANSFER APPROVED: <NAME>" strings (not mode ids), so they're appended straight into
+			# the same comma-joined line instead of going through mode_display_name above.
+			for t in reward.get("transfers", []):
+				names.append(String(t))
+			if names.is_empty():
 				_sub.text = "Keep grinding — more modes ahead."
 			else:
-				var names: Array[String] = []
-				for id in unlocked:
-					names.append(Ranks.mode_display_name(String(id)))
 				_sub.text = "Unlocked: %s" % ", ".join(names)
 			# Promotion blurb (Pack 0 lore flavor) — descriptor already carries it (built by
 			# MainMenu._promotion_reward()); appended as a second line under whatever "Keep

@@ -60,6 +60,8 @@ const STAFF_MEMOS := [
 	"MEMO: the corkboard is for APPROVED notices only.",
 	"MEMO: lost & found is full. stop finding things.",
 	"MEMO: smile. customers can tell.",
+	"MEMO: BIG MART is not our competitor. BIG MART is a warning.",
+	"MEMO: do not park on level 3.",
 ]
 
 static func boss_line(id: String) -> String:

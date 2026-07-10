@@ -193,6 +193,15 @@ func _finish_run(is_win: bool) -> void:
 	# apply to it normally, PLUS its own best-clockout track.
 	if RunConfig.mode != "horde" and not RunConfig.overtime:
 		SaveManager.record_run(wave, bosses)
+		# Transfer Stores (Task 5): per-location best wave, SAME guard family as best_wave above
+		# (never horde, never overtime — its preset headstart would inflate the comparison
+		# unfairly, exactly like the shared best_wave/best_bosses records it sits beside), plus
+		# its own forecourt exclusion (forecourt already has best_wave; a redundant per-location
+		# record for it would just be noise). Boss Rush/Daily Shift never reach this branch with a
+		# non-forecourt location since both force RunConfig.location back to "forecourt" at their
+		# own launch sites (MainMenu._start_run / _on_daily_shift).
+		if RunConfig.location != "forecourt":
+			SaveManager.set_location_best(RunConfig.location, wave)
 	if RunConfig.mode == "horde":
 		SaveManager.record_horde_best_wave(wave)
 	if RunConfig.overtime:

@@ -19,6 +19,11 @@ var _daily_btn: Button         # DAILY SHIFT button (mode panel) — refreshed o
 var _horde_btn: Button         # HORDE NIGHT button (mode panel) — locked/unlocked by rank (Pack G)
 var _overtime_btn: Button      # OVERTIME button (mode panel) — locked/unlocked by rank (Pack G)
 var _hardcore_btn: Button      # HARDCORE button (mode panel) — locked/unlocked by rank (Pack G)
+var _location_btn: Button      # LOCATION: <NAME> cycling picker (mode panel, Transfer Stores Task 5) —
+                                # hidden until rank >= GameConfig.LOC_MART_RANK
+var _selected_location := "forecourt"   # this session's picked location id, applied to RunConfig.location
+                                         # at run start (AFTER RunConfig.clear_mode_flags(), see _start_run
+                                         # /_start_overtime/_start_hardcore); persisted to SaveManager.last_location
 var _hub_rank_label: Label     # hub "RANK N — NAME" readout (Pack G), refreshed alongside _hub_coins
 var _hub_rank_bar: ProgressBar # hub progress-toward-next-rank bar (Pack G)
 var _inv_vbox: VBoxContainer   # inventory card content (rebuilt by _populate_inventory)
@@ -74,6 +79,7 @@ func _ready() -> void:
 	_build_benefits_panel()
 	_build_reward_popup()
 	_ensure_valid_character()
+	_restore_selected_location()
 	_show_only(_hub)
 	# The pay-stub's STORE button (GameOver) sets this before returning here — land straight
 	# in the store instead of the hub, one-shot (consumed immediately).
@@ -217,6 +223,7 @@ func _on_play() -> void:
 func _show_mode_panel() -> void:
 	_refresh_daily_button()
 	_refresh_mode_lock_buttons()
+	_refresh_location_row()
 	_show_only(_mode_panel)
 
 func _spacer(h: int) -> Control:
@@ -294,6 +301,11 @@ func _build_mode_panel() -> void:
 	vbox.add_child(_overtime_btn)
 	_hardcore_btn = _make_button("HARDCORE", _start_hardcore)
 	vbox.add_child(_hardcore_btn)
+	# LOCATION picker (Transfer Stores, Task 5): cycles UNLOCKED locations only, wraps. Hidden
+	# entirely below GameConfig.LOC_MART_RANK (see _refresh_location_row) — before that rank only
+	# "forecourt" exists, so the row would be pure noise.
+	_location_btn = _make_button(_location_label(), _on_cycle_location)
+	vbox.add_child(_location_btn)
 	vbox.add_child(_spacer(4))
 	vbox.add_child(_make_button("BACK", func(): _show_only(_hub)))
 
@@ -305,8 +317,9 @@ func _start_run(mode: String) -> void:
 		return
 	RunConfig.mode = mode
 	RunConfig.clear_mode_flags()   # a normal mode pick can never inherit a stale daily/hardcore/overtime flag
+	RunConfig.location = _selected_location   # Task 5: apply the picker's pick AFTER the reset above (mirrors hardcore/overtime below)
 	if mode == "boss_rush":
-		RunConfig.location = "forecourt"   # Transfer Stores: Boss Rush's arena is forecourt-only — the boss roster/patterns aren't tuned around mart aisles or garage pillars
+		RunConfig.location = "forecourt"   # Transfer Stores: Boss Rush's arena is forecourt-only — the boss roster/patterns aren't tuned around mart aisles or garage pillars (overrides the picker assignment above, always wins for this one mode)
 	# Clock in for your shift: a short themed loading beat, then gameplay.
 	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
 
@@ -318,6 +331,7 @@ func _start_overtime() -> void:
 	RunConfig.mode = "endless"
 	RunConfig.clear_mode_flags()
 	RunConfig.overtime = true
+	RunConfig.location = _selected_location   # Task 5: apply the picker's pick AFTER the reset above
 	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
 
 ## HARDCORE (Pack G): endless underneath, flagged via RunConfig.hardcore. Re-checks its own unlock
@@ -328,6 +342,7 @@ func _start_hardcore() -> void:
 	RunConfig.mode = "endless"
 	RunConfig.clear_mode_flags()
 	RunConfig.hardcore = true
+	RunConfig.location = _selected_location   # Task 5: apply the picker's pick AFTER the reset above
 	get_tree().change_scene_to_file("res://scenes/RunLoading.tscn")
 
 ## Pack C: Daily Shift — one attempt per calendar day, consumed the instant this fires (not on
@@ -371,6 +386,62 @@ func _apply_mode_lock(btn: Button, mode_id: String, label: String) -> void:
 	var unlocked := Ranks.is_unlocked(mode_id, SaveManager.rank_xp())
 	btn.disabled = not unlocked
 	btn.text = label if unlocked else "%s — %s" % [label, Ranks.lock_text(mode_id)]
+
+# --- LOCATION picker (Transfer Stores, Task 5) ---
+# Simpler idiom than the 3 rank-locked mode buttons above (_apply_mode_lock's disabled+"UNLOCKS
+# AT" text): rather than showing every location and disabling the locked ones, this ONE button
+# just cycles through whichever locations are ALREADY unlocked at the player's current rank,
+# wrapping — a locked location never appears as a choice at all, so there's no lock text/disabled
+# state to render for it. Chosen because a cycling picker (unlike 3 separate always-visible mode
+# buttons) has nowhere natural to show a disabled "locked" option in the same row; skipping locked
+# entries entirely reads as "there's nothing there yet" instead of "here's a thing you can't have."
+
+func _location_label() -> String:
+	return "LOCATION: %s" % String(Locations.by_id(_selected_location).get("name", "THE FORECOURT"))
+
+## Ordered ids (Locations.all()'s own order) unlocked at `rank` — the picker's cycle set. Pure
+## data query over the existing Locations/Ranks getters; no new registry state.
+func _unlocked_location_ids(rank: int) -> Array:
+	var ids: Array = []
+	for row in Locations.all():
+		var lid := String(row["id"])
+		if Locations.unlocked(lid, rank):
+			ids.append(lid)
+	return ids
+
+## Restores the last-picked location at menu load. Guard: a saved id that's somehow no longer
+## unlocked (hand-edited save; ranks themselves never regress) falls back to forecourt rather than
+## trusting stale/invalid save data.
+func _restore_selected_location() -> void:
+	var saved := SaveManager.last_location()
+	var rank := Ranks.rank_for(SaveManager.rank_xp())
+	_selected_location = saved if Locations.unlocked(saved, rank) else "forecourt"
+
+## Refreshes the LOCATION row's visibility + text to the player's current rank. Called every time
+## the mode panel is about to show (mirrors _refresh_daily_button/_refresh_mode_lock_buttons above
+## — a promotion earned since the last visit can change the unlocked set between two visits).
+func _refresh_location_row() -> void:
+	if _location_btn == null:
+		return
+	var rank := Ranks.rank_for(SaveManager.rank_xp())
+	_location_btn.visible = rank >= GameConfig.LOC_MART_RANK
+	if not Locations.unlocked(_selected_location, rank):
+		_selected_location = "forecourt"   # same locked→forecourt guard as _restore_selected_location
+	_location_btn.text = _location_label()
+
+## Advances to the next unlocked location, wrapping. Persists immediately (mirrors
+## _on_toggle_effects's save-on-toggle idiom) so the pick survives an app restart even if the
+## player never actually starts a run this session.
+func _on_cycle_location() -> void:
+	var rank := Ranks.rank_for(SaveManager.rank_xp())
+	var ids := _unlocked_location_ids(rank)
+	if ids.is_empty():
+		return
+	var idx := ids.find(_selected_location)
+	_selected_location = String(ids[(idx + 1) % ids.size()] if idx != -1 else ids[0])
+	SaveManager.set_last_location(_selected_location)
+	SaveManager.save_game()
+	_location_btn.text = _location_label()
 
 # --- character select ---
 func _build_char_panel() -> void:
@@ -970,6 +1041,17 @@ func _populate_records() -> void:
 	_stat_row(list, "OVERTIME BEST CLOCK-OUT", ShiftClock.clock_string(overtime_co) if overtime_co > 0.0 else "—")
 	var hardcore_co := SaveManager.hardcore_best_clockout_seconds()
 	_stat_row(list, "HARDCORE BEST CLOCK-OUT", ShiftClock.clock_string(hardcore_co) if hardcore_co > 0.0 else "—")
+	# Transfer Stores (Task 5): one dim row per unlocked non-forecourt location — mirrors the
+	# per-mode best rows just above (no dedicated header, folded straight into the general list,
+	# same as HORDE BEST WAVE/OVERTIME BEST CLOCK-OUT/HARDCORE BEST CLOCK-OUT). A location the
+	# player hasn't unlocked yet has nothing to show and would just be noise, same reasoning as the
+	# mode-panel picker row's own rank gate.
+	for loc_row in Locations.all():
+		var loc_id := String(loc_row["id"])
+		if loc_id == "forecourt" or not Locations.unlocked(loc_id, rank):
+			continue
+		var lb := SaveManager.location_best(loc_id)
+		_stat_row(list, String(loc_row["name"]), ("WAVE %d" % lb) if lb > 0 else "—")
 	_stat_row(list, "ARMAGEDDONS PULLED", "%d" % SaveManager.armageddons_pulled())
 	_stat_row(list, "DAILY STREAK", "%d" % SaveManager.daily_streak())
 	_stat_row(list, "WEAPONS FUSED", "%d" % SaveManager.fusions())
@@ -1419,7 +1501,18 @@ func _promotion_reward() -> Dictionary:
 		var need := int(Ranks.UNLOCKS[mode_id])
 		if need > from_rank and need <= to_rank:
 			unlocked.append(String(mode_id))
-	return { "kind": "rank", "rank": to_rank, "unlocked": unlocked, "blurb": Flavor.rank_blurb(to_rank) }
+	# Transfer Stores (Task 5): mirrors the mode-unlock loop above exactly, but over Locations
+	# instead of Ranks.UNLOCKS (forecourt's rank_unlock is 0, so `need > from_rank` already excludes
+	# it — no explicit "skip forecourt" needed). Pre-formatted "TRANSFER APPROVED: <NAME>" strings
+	# go in their own array (not merged into `unlocked`, which RewardPopup maps through
+	# Ranks.mode_display_name — these aren't mode ids) so RewardPopup can append them to the same
+	# "Unlocked: ..." line without misinterpreting them as a mode id lookup.
+	var transfers: Array = []
+	for row in Locations.all():
+		var need := int(row["rank_unlock"])
+		if need > from_rank and need <= to_rank:
+			transfers.append("TRANSFER APPROVED: %s" % String(row["name"]))
+	return { "kind": "rank", "rank": to_rank, "unlocked": unlocked, "transfers": transfers, "blurb": Flavor.rank_blurb(to_rank) }
 
 ## Adds the reward to the player's stuff and returns the (possibly converted) descriptor to reveal.
 func _grant_reward(reward: Dictionary) -> Dictionary:
