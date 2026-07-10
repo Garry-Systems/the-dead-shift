@@ -76,6 +76,8 @@ func configure(inst: Dictionary) -> void:
 	rarity = int(inst.get("rarity", 1))
 	trait_id = String(inst.get("trait", ""))
 
+	# KEEP IN SYNC with CoworkerDetailPopup._stat_lines (scripts/ui/) — same formula, no
+	# shared seam by convention (that popup previews these exact numbers at browse time).
 	var mult := Coworkers.stat_mult(rarity)
 	var dmg_mult := mult * (1.0 + (GameConfig.COWORKER_TRAIT_SHARP if trait_id == "sharp" else 0.0))
 	var rate_mult := mult * (1.0 + (GameConfig.COWORKER_TRAIT_WIRED if trait_id == "wired" else 0.0))

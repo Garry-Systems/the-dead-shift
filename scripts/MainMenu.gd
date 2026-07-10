@@ -610,7 +610,7 @@ func _on_equip(inst: Dictionary) -> void:
 func _input(event: InputEvent) -> void:
 	# Resolve which list is currently drag-scrollable (inventory or store; one at a time).
 	var sc: ScrollContainer = null
-	if _inv_panel.visible and _inv_scroll != null and not (_detail_popup.visible or _crate_opener.visible):
+	if _inv_panel.visible and _inv_scroll != null and not (_detail_popup.visible or _crate_opener.visible or _coworker_popup.visible):
 		sc = _inv_scroll
 	elif _store_panel.visible and _store_scroll != null:
 		sc = _store_scroll

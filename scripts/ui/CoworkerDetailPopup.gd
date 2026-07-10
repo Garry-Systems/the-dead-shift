@@ -133,6 +133,9 @@ func _process(delta: float) -> void:
 	if is_instance_valid(_title_lbl):
 		_title_lbl.add_theme_color_override("font_color", Rarity.display_color(int(_inst.get("rarity", 1))))
 
+## KEEP IN SYNC with Companion.configure()'s scaling block (Companion.gd) — same formula,
+## no shared seam by convention (Companion.gd has no autoload-free extraction point).
+##
 ## Effective per-type stat lines shown in the STATS section. Mirrors Companion.configure()'s
 ## stat_mult()-then-single-trait scaling formula exactly (a browsing-time preview of the
 ## SAME numbers the companion will actually run with) — kept in sync by hand since
