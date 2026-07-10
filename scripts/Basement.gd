@@ -111,13 +111,21 @@ func _pick_door_pos() -> Vector2:
 ## Fade, stash the surface position, teleport into the fixed walled arena, suspend the surface
 ## systems, and start the gauntlet countdown. The entered door (still `_door` — only one can be
 ## alive at a time, gated by can_roll's door_alive check) frees itself here; its job is done.
+## The wall is built FIRST (its position is the fixed BASEMENT_OFFSET, independent of the
+## player): if it can't be built, the whole descend aborts before any state changes — a wall-less
+## gauntlet would just be an open field the spawns leak out of.
 func _descend() -> void:
 	if _player == null or not is_instance_valid(_player):
+		return
+	if not _build_wall():
+		# Nothing below ran yet, so these are no-op resets — kept anyway so this abort path can
+		# never leave half-set state even if the ordering above ever changes.
+		_set_suspended(false)
+		in_basement = false
 		return
 	get_tree().current_scene.add_child(ScreenFlash.new())
 	_surface_pos = _player.global_position
 	_player.global_position = GameConfig.BASEMENT_OFFSET
-	_build_wall()
 	_set_suspended(true)
 	in_basement = true
 	_phase = Phase.GAUNTLET
@@ -130,25 +138,34 @@ func _descend() -> void:
 		_door.queue_free()
 	_door = null
 
-## Ring of ~24 indestructible rubble segments (Obstacles.by_id("rubble") — hp -1 via
+## SEALED ring of indestructible rubble segments (Obstacles.by_id("rubble") — hp -1 via
 ## GameConfig.RUBBLE_HP, the same "hp < 0 = indestructible" idiom Forecourt's store building
-## uses) at BASEMENT_RADIUS around the fixed arena center. no_cull so ObstacleField's cull/cap
-## passes ignore them outright (its _managed_destructibles/_cull_far both skip any Destructible
-## with no_cull true) even though ObstacleField itself is suspended for the gauntlet's duration —
-## belt and suspenders, same as Forecourt's permanent fixtures. Tagged "basement_wall" for
-## _ascend's cleanup (Destructible has no notion of that group itself).
-func _build_wall() -> void:
+## uses) at BASEMENT_RADIUS around the fixed arena center. The segment count is COMPUTED from
+## the ring circumference and the rubble collider's radius (BASEMENT_WALL_SEG_RADIUS, tied to
+## the "rubble" row's circle size) so adjacent edges always overlap — center spacing is held to
+## 90% of a segment's 2r diameter (the x0.9 overlap factor), leaving no pixel seams an enemy or
+## the player could slip through (a fixed 24 segments at radius 800 left ~141px gaps). no_cull
+## so ObstacleField's cull/cap passes ignore them outright (its _managed_destructibles/_cull_far
+## both skip any Destructible with no_cull true) even though ObstacleField itself is suspended
+## for the gauntlet's duration — belt and suspenders, same as Forecourt's permanent fixtures.
+## Tagged "basement_wall" for _ascend's cleanup (Destructible has no notion of that group
+## itself). Returns false (with a loud warning) if the rubble registry row is missing — the
+## caller (_descend) aborts the whole descend rather than running a wall-less gauntlet.
+func _build_wall() -> bool:
 	var row := Obstacles.by_id("rubble")
 	if row.is_empty():
-		return
-	for i in GameConfig.BASEMENT_WALL_SEGMENTS:
-		var ang := float(i) / float(GameConfig.BASEMENT_WALL_SEGMENTS) * TAU
+		push_warning("Basement: 'rubble' row missing from Obstacles — cannot build the wall, descend aborted")
+		return false
+	var segs := int(ceil(TAU * GameConfig.BASEMENT_RADIUS / (2.0 * GameConfig.BASEMENT_WALL_SEG_RADIUS * 0.9)))
+	for i in segs:
+		var ang := float(i) / float(segs) * TAU
 		var d := Destructible.new()
 		d.configure(row)
 		d.no_cull = true
 		d.add_to_group("basement_wall")
 		get_tree().current_scene.add_child(d)
 		d.global_position = GameConfig.BASEMENT_OFFSET + Vector2(cos(ang), sin(ang)) * GameConfig.BASEMENT_RADIUS
+	return true
 
 func _process_gauntlet(delta: float) -> void:
 	match _phase:
@@ -196,12 +213,14 @@ func _rim_pos() -> Vector2:
 
 ## Timer's up: stop spawning (Phase.REWARD's match branch above no longer calls
 ## _spawn_gauntlet_enemy), drop the reward at the arena center, and start the pickup-window
-## countdown.
+## countdown. The reward is a real registry CRATE (BasementLogic.crate_id_for maps the wave's
+## crate_floor onto a crate id), not a rolled weapon — crates ignore the weapon-inventory cap
+## and get the full store reveal/open flow.
 func _start_reward() -> void:
 	_phase = Phase.REWARD
 	_pickup_t = 0.0
 	_crate = BasementCratePickup.new()
-	_crate.rarity_floor = BasementLogic.crate_floor(DifficultyManager.wave)
+	_crate.crate_id = BasementLogic.crate_id_for(DifficultyManager.wave)
 	get_tree().current_scene.add_child(_crate)
 	_crate.global_position = GameConfig.BASEMENT_OFFSET
 	_banner("SHIFT CONTINUES", "grab it and go")
