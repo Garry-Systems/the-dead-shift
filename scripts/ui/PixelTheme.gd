@@ -72,6 +72,25 @@ static func style_button(b: Button, min_size: Vector2 = Vector2(806, 135), font_
 	b.add_theme_color_override("font_focus_color", TEXT)
 	b.add_theme_color_override("font_disabled_color", TEXT_DIM)  # OWNED / locked / unaffordable read as C3
 
+## CURSED-relic card variant (Relics Overhaul, Task 3): an "inverted" frame — an ACCENT (C4)
+## border on a DARK (C1) fill, versus style_button's normal BTN_BG (C2 darkened) fill / ACCENT_DIM
+## (C2) border — so a cursed pick reads as a warning using only the existing strict 4-color index
+## (no new colors). Hover/press states climb the same ladder as style_button (brighter fill on
+## hover, full ACCENT on press).
+static func style_cursed_button(b: Button, min_size: Vector2 = Vector2(806, 135), font_size: int = 39) -> void:
+	b.custom_minimum_size = min_size
+	b.add_theme_font_override("font", body_font())
+	b.add_theme_font_size_override("font_size", font_size)
+	b.add_theme_stylebox_override("normal", _box(DARK, ACCENT, 4))
+	b.add_theme_stylebox_override("hover", _box(BTN_BG, ACCENT, 4))
+	b.add_theme_stylebox_override("pressed", _box(ACCENT, ACCENT, 4))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_color_override("font_color", ACCENT)
+	b.add_theme_color_override("font_hover_color", Color(1, 1, 1))
+	b.add_theme_color_override("font_pressed_color", DARK)
+	b.add_theme_color_override("font_focus_color", ACCENT)
+	b.add_theme_color_override("font_disabled_color", TEXT_DIM)
+
 ## Title text: Press Start 2P, amber, with a hard 1:1 pixel drop shadow.
 static func style_title(l: Label, size: int = 40) -> void:
 	l.add_theme_font_override("font", title_font())
