@@ -573,14 +573,20 @@ func take_damage(amount: float) -> void:
 		amount = armored_damage(amount)
 	if _vuln_bonus > 0.0:
 		amount *= (1.0 + minf(_vuln_bonus, GameConfig.TALENT_VULN_MAX))
+	# Relics Overhaul (accelerant): burning enemies take extra damage from EVERY source, not just
+	# the burn tick itself. Static flag read — zero cost, byte-identical when the relic isn't held.
+	if _burn_time > 0.0 and RelicEffects.accelerant:
+		amount *= (1.0 + GameConfig.RELIC_ACCELERANT_PCT)
 	_health.take_damage(amount)
 	if _health.is_dead():
 		RunStats.add_kill()
+		RelicEffects.on_kill(global_position)   # Relics Overhaul: magnet_coil streak, blood_pact kill-heal
 		if RunStats.coins_per_kill > 0.0:   # Pack E: the Janitor's passive flat coin-per-kill bonus
 			RunStats.add_coins(int(RunStats.coins_per_kill))
 		if is_elite:
 			RunStats.add_coins(GameConfig.ELITE_COIN_BONUS)
 			RunStats.add_elite_kill()
+			RelicEffects.on_elite_kill(global_position)   # Relics Overhaul: intercom fear-nearby-trash
 		# Pack C challenge board: "was it burning/poisoned/during a Power Surge at the moment it
 		# died" — cheap state checks at the one chokepoint every kill already passes through.
 		# _burn_dps/_dot_dps are only zeroed AFTER their tick's take_damage call (see
@@ -614,7 +620,7 @@ func _drop_gem() -> void:
 	# max HP over the wave-1 base (capped), so killing the big thing beats runner-farming.
 	var value := roundi(max_health / GameConfig.ENEMY_MAX_HEALTH)
 	if is_elite:
-		value = roundi(value * GameConfig.ELITE_GEM_VALUE_MULT)
+		value = roundi(value * GameConfig.ELITE_GEM_VALUE_MULT * RelicEffects.nametag_gem_mult)
 	value = roundi(value * NightEvents.gem_value_mult(get_tree()))   # Fog Bank: x2 while active
 	gem.value = clampi(value, 1, GameConfig.XP_GEM_VALUE_MAX)
 	get_tree().current_scene.add_child(gem)

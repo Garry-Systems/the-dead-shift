@@ -27,4 +27,12 @@ static func vested_signing(bonus: int, run_time: float) -> int:
 static func final_payout(wave: int, bosses: int, kills: int, bonus: int, mult: float, signing_bonus: int, run_time: float) -> int:
 	var total := int(round(float(payout(wave, bosses, kills) + bonus) * mult))
 	total += vested_signing(signing_bonus, run_time)
+	# Relics Overhaul (company_card): "corporate claws back 25%" — a post-mult cut on the FINAL
+	# total (base+bonus+mult, PLUS the vested signing bonus), the same vested-signing precedent
+	# (a late, additive-then-multiplicative step). Static class-level flag read — no node/instance
+	# needed, so this stays true to the file's own "pure, no state dependency" doc comment; both
+	# twin callers (GameOver._finish_run, PauseMenu._abandon_run_payout) get it automatically since
+	# both already route through this one chokepoint.
+	if RelicEffects.company_card:
+		total = roundi(float(total) * (1.0 - GameConfig.RELIC_CARD_STUB_CUT))
 	return total

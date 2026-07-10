@@ -231,6 +231,7 @@ func _die() -> void:
 
 func _reward() -> void:
 	RunStats.add_boss()
+	RelicEffects.on_boss_kill()   # Relics Overhaul: overtime_clock's hold, dead_mans_vest's per-cycle reset
 	# In Boss Rush bosses die constantly, so its rewards are toned down vs Endless.
 	var boss_rush: bool = RunConfig.mode == "boss_rush"
 	# XP burst — scattered around the boss, enough to pop a level-up (fewer in Boss Rush).

@@ -15,6 +15,8 @@ var projectile_count := 1
 var spread := 0.0                  # total fan arc in radians across the projectiles
 var fire_mode := "projectile"      # "projectile" (default) | "cone" | "lightning"
 var base_pierce := 0               # pierce baked into every shot (Nail Gun)
+var bonus_pierce := 0              # Relics Overhaul (chain_letter): run-scoped relic pierce bonus,
+                                    # folded in wherever base_pierce/_surge_pierce combine (see _spawn_bullet)
 var cone_angle := 1.05             # cone mode: total arc in radians (~60°)
 var jump_count := 0                # lightning mode: max arcs after the first hit
 var jump_radius := 320.0           # lightning mode: max px to the next arc target
@@ -430,7 +432,7 @@ func _spawn_bullet(dir: Vector2) -> void:
 	bullet.speed = bullet_speed
 	bullet.damage = damage
 	bullet.max_travel = gun_range
-	bullet.pierce_count = pierce_count + base_pierce + (_surge_pierce if _surge_time > 0.0 else 0) + int(_overpen.get("pierce", 0))
+	bullet.pierce_count = pierce_count + base_pierce + bonus_pierce + (_surge_pierce if _surge_time > 0.0 else 0) + int(_overpen.get("pierce", 0))
 	bullet.overpen_growth = float(_overpen.get("growth", 0.0))
 	bullet.ricochet_count = ricochet_count
 	bullet.talent_payload = talent_payload

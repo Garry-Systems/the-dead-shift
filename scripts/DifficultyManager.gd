@@ -7,6 +7,11 @@ extends Node
 var run_time := 0.0
 var wave := 1
 
+# Relics Overhaul (overtime_clock): seconds run_time is held. Decremented BEFORE run_time advances
+# in _process() below, so a hold freezes run_time — and everything pure-derived from it (wave,
+# ShiftClock, dawn/Extraction) — coherently as one unit, with no separate accumulator to desync.
+var time_hold := 0.0
+
 # Temporary difficulty overrides (Pack A: Run variety) -- set by NightEvents (Blood Moon) and
 # Extraction (the dawn final surge), read by Spawner. Living here (not on those scene nodes)
 # means reset() below is the ONE place both get zeroed, so a run that ends (quit/death) mid-event
@@ -24,11 +29,15 @@ func _ready() -> void:
 func reset() -> void:
 	run_time = 0.0
 	wave = 1
+	time_hold = 0.0
 	_spawn_interval_mult = 1.0
 	_surge_floor_forced = false
 	_elite_chance_mult = 1.0
 
 func _process(delta: float) -> void:
+	if time_hold > 0.0:
+		time_hold = maxf(time_hold - delta, 0.0)
+		return
 	run_time += delta
 	wave = int(floor(run_time / GameConfig.WAVE_DURATION)) + 1
 
@@ -57,9 +66,12 @@ func set_surge_floor_forced(b: bool) -> void:
 func set_elite_chance_mult(m: float) -> void:
 	_elite_chance_mult = m
 
-## Current elite-roll chance multiplier (1.0 = normal). Read by Spawner.
+## Current elite-roll chance multiplier (1.0 = normal). Read by Spawner. Composes (multiplies)
+## Relics Overhaul's cursed_nametag factor ON TOP of Extraction's own surge value — Extraction
+## still SETS _elite_chance_mult directly (unchanged), cursed_nametag never touches that setter,
+## so neither source can clobber the other; this is the one read site both land on.
 func elite_chance_mult() -> float:
-	return _elite_chance_mult
+	return _elite_chance_mult * RelicEffects.nametag_mult
 
 ## "M:SS" elapsed run time for the HUD.
 func time_string() -> String:

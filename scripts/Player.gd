@@ -202,6 +202,7 @@ func set_dash_ability(ability: String) -> void:
 ## nothing extra; a character with a special dash ability resolves it here.
 func _on_dash_started() -> void:
 	SoundManager.play("dash")
+	RelicEffects.on_dash_started(self)   # Relics Overhaul: static_soles electric trail
 	match _dash_ability:
 		"shockwave":
 			_spawn_shockwave()
@@ -303,6 +304,7 @@ func take_damage(amount: float, attacker = null, is_contact: bool = false) -> vo
 	_hurt_flash()
 	if amount > 0.0:
 		CameraShake.add_trauma(GameConfig.SHAKE_TRAUMA_PLAYER_HURT)   # Pack D
+		RelicEffects.on_player_hurt(self)   # Relics Overhaul: adrenal_valve dash-cooldown refund
 
 	# Dead Man's Switch (onhurt_nova): retaliation blast after damage lands. Gun-held ICD; a
 	# no-op on a weapon without the talent (try_hurt_nova checks talent_payload itself).
@@ -322,6 +324,10 @@ func take_damage(amount: float, attacker = null, is_contact: bool = false) -> vo
 			_health.current = maxf(1.0, max_hp() * GameConfig.BENEFIT_REVIVE_HEAL_FRAC)
 			_grant_invuln(GameConfig.BENEFIT_REVIVE_INVULN)
 			get_tree().current_scene.add_child(ScreenFlash.new())
+			return
+		# Relics Overhaul (dead_mans_vest): cheat death once per boss cycle, AFTER UNION REP and
+		# BEFORE Second Wind (spec order) — a safe no-op when the relic isn't held/instance is gone.
+		if RelicEffects.try_vest_save(self):
 			return
 		if has_second_wind and not second_wind_used:
 			second_wind_used = true
@@ -403,8 +409,32 @@ func full_heal() -> void:
 func heal(amount: float) -> void:
 	if RunConfig.hardcore:
 		return
-	if _health != null:
-		_health.heal(amount)
+	# Relics Overhaul (blood_pact): every OTHER heal source disabled while held — the kill-heal
+	# itself bypasses this via relic_kill_heal()/_apply_heal() below, not this wrapper.
+	if RelicEffects.healing_disabled_except_kills:
+		return
+	_apply_heal(amount)
+
+## Shared apply: managers_stapler's healing_factor and dead_mans_vest's healing_cap_frac both
+## layer UNDER whichever gate let the call through (heal()'s hardcore/blood_pact gates, or
+## relic_kill_heal()'s own hardcore-only gate) — so both relics still affect a blood_pact kill-heal
+## if somehow held together. Cap only clamps THIS heal's growth: if current was already above the
+## cap before this call (e.g. the cap relic was just equipped), it is never forced back down.
+func _apply_heal(amount: float) -> void:
+	if _health == null:
+		return
+	var pre := _health.current
+	_health.heal(amount * RelicEffects.healing_factor)
+	if RelicEffects.healing_cap_frac < 1.0:
+		var cap := _health.maxhp * RelicEffects.healing_cap_frac
+		_health.current = minf(_health.current, maxf(cap, pre))
+
+## blood_pact: kills heal a sliver — the ONE heal source that survives healing_disabled_except_kills.
+## Still hardcore-gated (per the design doc: "healing is already zero" under hardcore covers this too).
+func relic_kill_heal(amount: float) -> void:
+	if RunConfig.hardcore:
+		return
+	_apply_heal(amount)
 
 ## Talent VFX (Bloodthirst/Leech/Mosquito lifesteal): a 1-frame rim pulse in `color` on the
 ## sprite — the LeechMote's landing tell. Independent of the hurt-flash shader channel (no
@@ -422,6 +452,20 @@ func lifesteal_blip(color: Color) -> void:
 ## Player.heal()'s no-op gate enforces, keyed off the same RunConfig.hardcore flag.
 func relic_add_max_health(amount: float) -> void:
 	_health.add_max(amount, not RunConfig.hardcore)
+
+## adrenal_valve (RelicEffects): refunds `seconds` off the dash's current cooldown countdown.
+func relic_refund_dash_cooldown(seconds: float) -> void:
+	_dash.refund_cooldown(seconds)
+
+## dead_mans_vest (RelicEffects): cheat-death revive at exactly 1 HP. Direct _health write, not
+## heal() — mirrors UNION REP's own revive just above (a revive isn't a heal, and
+## healing_cap_frac must never clip it back down the instant it lands). Reuses UNION REP's own
+## invuln window (BENEFIT_REVIVE_INVULN) — both are "just cheated death" moments; no dedicated
+## vest invuln const was authored for this relic.
+func relic_vest_revive() -> void:
+	_health.current = 1.0
+	_grant_invuln(GameConfig.BENEFIT_REVIVE_INVULN)
+	get_tree().current_scene.add_child(ScreenFlash.new())
 
 func _on_level_up() -> void:
 	leveled_up.emit()
@@ -486,6 +530,11 @@ func apply_fire_lock(duration: float) -> void:
 ## own source instead of merging into one shared factor/time pair, so a weaker-but-longer source
 ## can't inherit a stronger source's multiplier (or vice versa) — see _current_slow_factor.
 func apply_slow(factor: float, duration: float) -> void:
+	# Relics Overhaul (rubber_soles): full slow immunity — static flag read, zero cost when the
+	# relic isn't held. No stack is ever recorded, so a mid-run equip/unequip can't leave a stale
+	# slow entry behind (nothing was ever appended while immune).
+	if RelicEffects.slow_immune:
+		return
 	_slow_stacks.append({ "factor": clampf(1.0 - factor, 0.1, 1.0), "remaining": duration })
 
 ## Pure decay step for the shove impulse, split out so a headless probe can prove it always

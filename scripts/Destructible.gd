@@ -248,6 +248,7 @@ func _die() -> void:
 		tree.current_scene.add_child(sw)
 		sw.global_position = global_position
 		sw.blast(burst_radius, burst_damage, burst_force, null, null)
+		RelicEffects.on_hazard_burst(global_position, burst_radius, burst_damage, burst_force)   # Relics Overhaul: double_fuse echo
 		var cr2 := GameConfig.BARREL_CHAIN_RADIUS * GameConfig.BARREL_CHAIN_RADIUS
 		for d in tree.get_nodes_in_group("destructibles"):
 			if d == self or not is_instance_valid(d):
@@ -281,6 +282,7 @@ func _die() -> void:
 	# Loot.
 	if loot == "gems":
 		_drop_loot(gem_count)
+		RelicEffects.on_crate_loot(global_position)   # Relics Overhaul: spare_parts extra gem + coin-burst chance
 	queue_free()
 
 func _drop_loot(n: int) -> void:

@@ -37,3 +37,8 @@ func tick(delta: float) -> void:
 ## touch a cooldown already counting down — takes effect on the next dash.
 func upgrade_cooldown(pct: float) -> void:
 	_cooldown *= (1.0 - pct)
+
+## Relic hook (adrenal_valve): refunds `seconds` off the CURRENT cooldown countdown — never below
+## zero (a dash already off cooldown just stays off cooldown; can't go "negative-ready").
+func refund_cooldown(seconds: float) -> void:
+	_cooldown_time = maxf(_cooldown_time - seconds, 0.0)

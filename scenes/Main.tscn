@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Texture2D" path="res://art/ground.png" id="10_ground"]
@@ -23,6 +23,7 @@
 [ext_resource type="Script" path="res://scripts/Extraction.gd" id="21_extraction"]
 [ext_resource type="Script" path="res://scripts/Juice.gd" id="22_juice"]
 [ext_resource type="Script" path="res://scripts/Basement.gd" id="23_basement"]
+[ext_resource type="Script" path="res://scripts/RelicEffects.gd" id="24_relics"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("11_main")
@@ -84,6 +85,9 @@ script = ExtResource("4_hud")
 
 [node name="LevelUpUI" type="CanvasLayer" parent="."]
 script = ExtResource("5_levelup")
+
+[node name="RelicEffects" type="Node" parent="."]
+script = ExtResource("24_relics")
 
 [node name="RelicBar" type="CanvasLayer" parent="."]
 script = ExtResource("8_relicbar")
