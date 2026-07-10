@@ -4,6 +4,14 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.61 — Voices from the Corkboard (2026-07-09)
+
+The store found its voice:
+- Every boss gets an intro line under the SHIFT CHANGE toast. THE MANAGER never clocked out.
+- The pay-stub has opinions about your death. Only your death — winners are spared.
+- Promotions come with a word from whatever is left of corporate, and daily logins now include a STAFF MEMO. Read the memos.
+- All 18 commendations rewritten with the respect they deserve (which varies).
+
 ## v0.1.60 — New Management Problems (2026-07-09)
 
 Two new faces on the night shift. Boss roster is now 9 deep — both join the Endless rotation and Boss Rush:
