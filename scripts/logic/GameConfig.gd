@@ -368,6 +368,13 @@ const TANKER_POOL_RADIUS := 70.0         # px pool radius
 const TANKER_POOL_DURATION := 4.0        # seconds a pool burns after igniting
 const TANKER_IGNITE_DELAY := 0.9         # puddle→ignite windup: cross the wet fuel early or lose the lane
 const TANKER_JACKKNIFE_RETELEGRAPH := 0.4  # pause between the two JACKKNIFE dashes (re-aims at the player)
+const TANKER_HP := 2400.0              # second-tankiest after Manager (3000) — a truck
+const TANKER_SPEED_MULT := 0.5         # crawls between bursts; the dashes ARE the mobility
+const TANKER_CHARGE_SPEED := 600.0     # px/sec dash (under Courier's 650 but lasts longer)
+const TANKER_CHARGE_DURATION := 1.0    # seconds per dash — a long haul so the trail matters
+const TANKER_JACKKNIFE_SPACING := 60.0 # denser P3 trail (base spacing 90)
+const TANKER_RUPTURE_RADIUS := 260.0   # P3 tank-rupture ExpandingRing radius
+const TANKER_RUPTURE_DAMAGE := 40.0    # tank-rupture damage
 
 # --- Talent VFX overhaul, Phase 1 (make every existing proc visible) ---
 # CombatText: one pooled Node2D (see scripts/ui/CombatText.gd) — gold crit numbers + headline
