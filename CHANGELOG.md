@@ -4,6 +4,14 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.62 — The Benefits Package (2026-07-10)
+
+You're a valued employee now. Valued employees get BENEFITS:
+- **NEW: the BENEFITS page** — spend SCRAP on nine permanent perks: more health, faster shoes, night school, dash training, a skim off the register, a bigger salvage pile, and one very expensive favor from the UNION REP (he gets you back up, once — not in HARDCORE).
+- **NEW: SCRAP** — every weapon you deconstruct now also banks scrap on top of the usual coins. PACK RAT makes the pile grow faster.
+- **NEW: SECOND OPINION** — a REROLL button on the level-up cards (charges per run).
+- The SIGNING BONUS pays on your stub — and it *vests*: work at least two minutes of your shift to collect the whole thing. Nice try.
+
 ## v0.1.61 — Voices from the Corkboard (2026-07-09)
 
 The store found its voice:
