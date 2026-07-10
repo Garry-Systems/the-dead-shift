@@ -11,6 +11,9 @@ var _inv_panel: Control
 var _records_panel: Control
 var _records_vbox: VBoxContainer   # records list content (rebuilt by _populate_records)
 var _records_scroll: ScrollContainer   # current records list scroll (null when not shown)
+var _benefits_panel: Control
+var _benefits_vbox: VBoxContainer   # benefits list content (rebuilt by _populate_benefits)
+var _benefits_scroll: ScrollContainer   # current benefits list scroll (null when not shown)
 var _char_buttons := {}        # character id -> Button (to highlight the selected one)
 var _daily_btn: Button         # DAILY SHIFT button (mode panel) — refreshed on every show (Pack C)
 var _horde_btn: Button         # HORDE NIGHT button (mode panel) — locked/unlocked by rank (Pack G)
@@ -23,8 +26,9 @@ var _hub_coins: Label          # hub coin readout (refreshed when returning to h
 var _inv_from_play := false    # true when the inventory was opened by PLAY (no weapon equipped)
 var _detail_popup: WeaponDetailPopup   # reused modal shown when a tile is tapped
 
-# Drag-anywhere scrolling for the inventory grid, the store list, AND the records list: a drag
-# that starts ANYWHERE on the screen (even on a tile/button) scrolls; a plain tap still selects.
+# Drag-anywhere scrolling for the inventory grid, the store list, the records list, AND the
+# benefits list: a drag that starts ANYWHERE on the screen (even on a tile/button) scrolls; a
+# plain tap still selects.
 # Driven from _input so the gesture is caught before the GUI consumes it. State is shared — only
 # one of these lists is visible at a time.
 var _inv_scroll: ScrollContainer       # current inventory grid scroll (null when grid is empty / not shown)
@@ -66,6 +70,7 @@ func _ready() -> void:
 	_build_inventory_panel()
 	_build_records_panel()
 	_build_store_panel()
+	_build_benefits_panel()
 	_build_reward_popup()
 	_ensure_valid_character()
 	_show_only(_hub)
@@ -136,6 +141,7 @@ func _show_only(panel: Control) -> void:
 	_inv_panel.visible = panel == _inv_panel
 	_records_panel.visible = panel == _records_panel
 	_store_panel.visible = panel == _store_panel
+	_benefits_panel.visible = panel == _benefits_panel
 	if panel == _hub and _hub_coins != null:
 		_hub_coins.text = "COINS: %d" % SaveManager.coins()
 		_refresh_hub_rank()
@@ -176,6 +182,7 @@ func _build_hub() -> void:
 	vbox.add_child(_spacer(8))
 	vbox.add_child(_make_button("PLAY", _on_play))
 	vbox.add_child(_make_button("STORE", func(): _show_store()))
+	vbox.add_child(_make_button("BENEFITS", func(): _show_benefits()))
 	vbox.add_child(_make_button("CHARACTERS", func(): _show_characters()))
 	vbox.add_child(_make_button("INVENTORY", func(): _show_inventory(false)))
 	vbox.add_child(_make_button("RECORDS", func(): _show_records()))
@@ -561,6 +568,8 @@ func _input(event: InputEvent) -> void:
 		sc = _store_scroll
 	elif _records_panel.visible and _records_scroll != null:
 		sc = _records_scroll
+	elif _benefits_panel.visible and _benefits_scroll != null:
+		sc = _benefits_scroll
 	if sc == null:
 		return
 	if event is InputEventScreenTouch:
@@ -909,6 +918,125 @@ func _populate_records() -> void:
 	var back := _make_button("BACK", _guarded(func(): _show_only(_hub)))
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_records_vbox.add_child(back)
+
+# --- benefits: spend scrap on permanent QoL tracks (Employee Benefits Pack A) ---
+func _build_benefits_panel() -> void:
+	_benefits_panel = _make_panel()
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		margin.add_theme_constant_override(side, 24)
+	_benefits_panel.add_child(margin)
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	margin.add_child(card)
+	_benefits_vbox = VBoxContainer.new()
+	_benefits_vbox.add_theme_constant_override("separation", 10)
+	card.add_child(_benefits_vbox)
+	# Contents are (re)built on every show by _populate_benefits().
+
+func _show_benefits() -> void:
+	_populate_benefits()
+	_show_only(_benefits_panel)
+
+## One track row: NAME + flavor (readable-dim idiom — ACCENT.darkened(0.45), matching
+## RewardPopup's streak subtitle) on the left, level pips (filled/empty) on the right, and a
+## buy button underneath. Mirrors _commendation_row's name+desc / right-readout shape, but the
+## action needs its own Button rather than an inline label.
+func _benefit_row(parent: VBoxContainer, track: Dictionary) -> void:
+	var id := String(track.get("id", ""))
+	var cap := int(track.get("cap", 0))
+	var lvl := Benefits.level(id)
+	var cost := Benefits.cost(id, lvl + 1)
+	var maxed := cost < 0   # cost() returns -1 once level == cap
+
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 10)
+	top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var text_col := VBoxContainer.new()
+	text_col.add_theme_constant_override("separation", 0)
+	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var name_l := Label.new()
+	name_l.text = String(track.get("name", ""))
+	PixelTheme.style_label(name_l, 22, PixelTheme.ACCENT)
+	text_col.add_child(name_l)
+	var flavor_l := Label.new()
+	flavor_l.text = String(track.get("flavor", ""))
+	flavor_l.custom_minimum_size = Vector2(460, 0)
+	flavor_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	PixelTheme.style_label(flavor_l, 16, PixelTheme.ACCENT.darkened(0.45))
+	text_col.add_child(flavor_l)
+	top.add_child(text_col)
+
+	var pips := HBoxContainer.new()
+	pips.add_theme_constant_override("separation", 4)
+	for i in range(cap):
+		var pip := Label.new()
+		pip.text = "●" if i < lvl else "○"
+		PixelTheme.style_label(pip, 20, PixelTheme.ACCENT if i < lvl else PixelTheme.ACCENT_DIM)
+		pips.add_child(pip)
+	top.add_child(pips)
+	row.add_child(top)
+
+	var buy := Button.new()
+	buy.text = "MAXED" if maxed else "%d SCRAP" % cost
+	PixelTheme.style_button(buy, Vector2(660, 80), 22)
+	buy.disabled = maxed or SaveManager.scrap() < cost
+	if not maxed:
+		buy.pressed.connect(_guarded(_on_buy_benefit.bind(id)))
+	row.add_child(buy)
+
+	parent.add_child(row)
+
+func _populate_benefits() -> void:
+	for c in _benefits_vbox.get_children():
+		c.queue_free()
+	_benefits_scroll = null   # cleared each rebuild; re-set below
+
+	_make_title(_benefits_vbox, "BENEFITS", 44)
+
+	var balance := Label.new()
+	balance.text = "SCRAP: %d" % SaveManager.scrap()
+	balance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(balance, 26, PixelTheme.ACCENT)
+	_benefits_vbox.add_child(balance)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE   # built-in touch scroll off; driven from _input like the store/records
+	_benefits_scroll = scroll
+	_benefits_vbox.add_child(scroll)
+	var center_row := HBoxContainer.new()
+	center_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	center_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(center_row)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 14)
+	list.custom_minimum_size = Vector2(660, 0)
+	center_row.add_child(list)
+
+	for t in Benefits.TRACKS:
+		_benefit_row(list, t)
+
+	var back := _make_button("BACK", _guarded(func(): _show_only(_hub)))
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_benefits_vbox.add_child(back)
+
+## Buy pressed → try_buy validates cost/cap/wallet itself; a full repopulate refreshes every
+## row's pips/cost AND the balance line in one shot, mirroring _on_buy_character/_on_buy_crate's
+## own full _populate_store() refresh after a purchase attempt (success or fail).
+func _on_buy_benefit(id: String) -> void:
+	if Benefits.try_buy(id):
+		SoundManager.play("purchase")
+	else:
+		SoundManager.play("ui_tap")
+	_populate_benefits()
 
 # --- store: spend coins to unlock characters + buy crates ---
 func _build_store_panel() -> void:
