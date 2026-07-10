@@ -58,6 +58,9 @@ const DEFAULTS := {
 	"best_run_payout": 0,                # Pack H: highest single-run actual coin payout (`earned`) ever, across every run — max() at the same paid_out-guarded flush as everything else, both exit paths
 	"commendations_earned": [],          # Pack H: ids of one-time Commendations badges already earned (persisted; never un-earned)
 	"pending_commendation_rewards": [],  # Pack H: commendation ids already granted (rank XP + crate), awaiting reveal at the next menu entry
+	"basements_cleared": 0,              # Pack E (THE BASEMENT), Task 5: LIFETIME gauntlets survived to the reward
+	                                      # drop — never resets; bumped at the SAME Basement._start_reward() chokepoint
+	                                      # that flushes it (mirrors crates_opened_total's "chokepoint owns its save" idiom)
 }
 
 var _data: Dictionary = {}
@@ -551,6 +554,18 @@ func best_run_payout() -> int:
 
 func record_best_run_payout(earned: int) -> void:
 	_data["best_run_payout"] = maxi(best_run_payout(), earned)
+
+## LIFETIME THE BASEMENT gauntlets cleared (Pack E, Task 5) — never resets. Distinct from
+## RunStats.basements_cleared, which is the per-run count read by the pay-stub row.
+func basements_cleared() -> int:
+	return int(_data.get("basements_cleared", 0))
+
+## Called once per real gauntlet clear, from Basement._start_reward() — the SAME chokepoint
+## that owns its own save_game() flush, mirroring add_crate_opened()'s idiom above (a mid-run
+## grant with no guaranteed later flush before a crash/force-quit, so it flushes immediately
+## rather than waiting for the paid_out-guarded end-of-run block). Caller saves.
+func add_basement_cleared() -> void:
+	_data["basements_cleared"] = basements_cleared() + 1
 
 ## Ids of one-time Commendation badges already earned (persisted; never un-earned once granted).
 func commendations_earned() -> Array:

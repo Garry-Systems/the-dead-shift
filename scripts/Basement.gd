@@ -219,6 +219,15 @@ func _rim_pos() -> Vector2:
 func _start_reward() -> void:
 	_phase = Phase.REWARD
 	_pickup_t = 0.0
+	# Task 5: BASEMENTS CLEARED — the gauntlet is won the moment the reward drops, not when the
+	# player actually grabs it (a player who ignores the crate still cleared the basement). The
+	# per-run counter (pay-stub row) and the lifetime save counter both bump here together; the
+	# lifetime one flushes immediately (own chokepoint owns its save, same idiom as
+	# add_crate_opened()/Inventory.commit_crate) since this is a mid-run grant with no guaranteed
+	# later flush before a crash/force-quit could eat it.
+	RunStats.add_basement_cleared()
+	SaveManager.add_basement_cleared()
+	SaveManager.save_game()
 	_crate = BasementCratePickup.new()
 	_crate.crate_id = BasementLogic.crate_id_for(DifficultyManager.wave)
 	get_tree().current_scene.add_child(_crate)

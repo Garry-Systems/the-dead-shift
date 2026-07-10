@@ -29,6 +29,10 @@ var poison_kills := 0           # kill transition happened while the enemy's Ven
 var blood_moons_survived := 0   # a Blood Moon event ran its full course (NightEvents._end_event) this run
 var power_surge_kills := 0      # kill transition happened while a Power Surge event was active
 
+var basements_cleared := 0      # Pack E (THE BASEMENT), Task 5: gauntlets survived to the reward
+                                 # drop this run — bumped at crate SPAWN (Basement._start_reward),
+                                 # not at pickup; read by GameOver's pay-stub INFORMATIONAL row.
+
 ## Zero the counters for a fresh run.
 func reset() -> void:
 	kills = 0
@@ -44,6 +48,7 @@ func reset() -> void:
 	poison_kills = 0
 	blood_moons_survived = 0
 	power_surge_kills = 0
+	basements_cleared = 0
 
 ## A trash enemy was killed.
 func add_kill() -> void:
@@ -81,4 +86,9 @@ func add_blood_moon_survived() -> void:
 
 func add_power_surge_kill() -> void:
 	power_surge_kills += 1
+
+## THE BASEMENT (Pack E) gauntlet reward dropped — the run survived it. Called from
+## Basement._start_reward(), at crate spawn (not at pickup — the clear itself is the event).
+func add_basement_cleared() -> void:
+	basements_cleared += 1
 

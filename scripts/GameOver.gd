@@ -152,6 +152,7 @@ func _finish_run(is_win: bool) -> void:
 	var kills := RunStats.kills
 	var bonus := RunStats.bonus_coins
 	var mult := RunStats.coin_mult
+	var basements := RunStats.basements_cleared
 	# SIGNING BONUS (final-review fix): DifficultyManager.run_time is the run's elapsed-seconds
 	# clock (same source ShiftClock's "Clocked out" line and the OVERTIME/HARDCORE best-clockout
 	# records below already read) — vested() below feeds the pay-stub's dedicated row.
@@ -254,7 +255,7 @@ func _finish_run(is_win: bool) -> void:
 	if RunConfig.daily:
 		_daily_header.text = "DAILY SHIFT — %s" % SaveManager.today_string()
 
-	_populate_stub(wave, bosses, kills, bonus, mult, vested, earned, is_new_best, inst, xp_amount, is_win, promoted, rank_after)
+	_populate_stub(wave, bosses, kills, bonus, mult, vested, earned, is_new_best, inst, xp_amount, is_win, promoted, rank_after, basements)
 	_root.visible = true
 	if is_new_best or is_win or promoted:
 		_celebrate()
@@ -264,7 +265,7 @@ func _finish_run(is_win: bool) -> void:
 ## and the weapon XP line.
 func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float, vested: int, earned: int,
 		is_new_best: bool, inst: Dictionary, xp_amount: int, is_win: bool = false,
-		promoted: bool = false, rank_after: int = 0) -> void:
+		promoted: bool = false, rank_after: int = 0, basements: int = 0) -> void:
 	for c in _stub_vbox.get_children():
 		c.queue_free()
 
@@ -276,6 +277,12 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 	_row(_stub_vbox, "BASE PAY", "+%d" % base_pay)
 	_row(_stub_vbox, "WAVES %d×%d" % [wave, GameConfig.COIN_PER_WAVE], "+%d" % wave_pay)
 	_row(_stub_vbox, "BOSSES %d×%d" % [bosses, GameConfig.COIN_PER_BOSS], "+%d" % boss_pay)
+	# Task 5: BASEMENTS CLEARED — INFORMATIONAL only (no coin rate, no "+" value; the "×%d" form
+	# reads as a count, not a payout line) so it can't be mistaken for a term that feeds the
+	# subtotal above. Sits next to WAVES/BOSSES since it's the same kind of run-progress fact,
+	# not a coin-math one. Hidden entirely on a 0-basement run.
+	if basements > 0:
+		_row(_stub_vbox, "BASEMENTS CLEARED", "×%d" % basements)
 	_row(_stub_vbox, "KILLS %d×%d" % [kills, GameConfig.COIN_PER_KILL], "+%d" % kill_pay)
 	_row(_stub_vbox, "TIPS", "+%d" % bonus)
 	# The subtotal above (base+waves+bosses+kills+tips) is exactly CoinReward.payout(...)+bonus;
