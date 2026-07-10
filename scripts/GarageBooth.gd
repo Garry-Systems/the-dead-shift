@@ -49,7 +49,7 @@ func _build_arm(side: int) -> void:
 	arm.configure({
 		"kind": "cover", "shape": "rect",
 		"size": GameConfig.GARAGE_ARM_HALF_SIZE.x, "size_y": GameConfig.GARAGE_ARM_HALF_SIZE.y,
-		"solid": false, "hp": -1.0, "hazard_id": "", "loot": "", "gem_count": 0,
+		"solid": false, "hp": GameConfig.GARAGE_ARM_HP, "hazard_id": "", "loot": "", "gem_count": 0,
 		"color": Obstacles.C2,
 	})
 	arm.no_cull = true

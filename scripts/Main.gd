@@ -89,9 +89,12 @@ func _ready() -> void:
 ##   banner at run start, so this location banner never collides with anything.
 ## - Bias: hands the row's spawn_mults/obstacle_mults dicts to the three Enemies.pick/
 ##   Obstacles.pick call sites (Spawner, ObstacleField, Basement — verified exhaustively, see
-##   Locations.gd's field doc). forecourt's mults are {} in the registry already, so setting the
-##   fields unconditionally below is a no-op there (Enemies/Obstacles._weight's `mults.is_empty()`
-##   short-circuit keeps the byte-identical path).
+##   Locations.gd's field doc). forecourt's spawn_mults is {} — Enemies._weight's
+##   `mults.is_empty()` short-circuit keeps that path byte-identical. forecourt's obstacle_mults is
+##   NOT empty (`{"shelf": 0.0}`, pinning the mart-only "shelf" row off everywhere else), so it
+##   takes Obstacles._weight's multiply branch instead — every non-"shelf" id still defaults to
+##   mult 1.0 there, and `roundi(float(w) * 1.0) == w` exactly for Obstacles.gd's integer weights,
+##   so forecourt stays byte-identical regardless of which branch actually runs.
 func _apply_location(loc: Dictionary) -> void:
 	if loc.is_empty():
 		return
@@ -101,8 +104,16 @@ func _apply_location(loc: Dictionary) -> void:
 			var ground_sprite := get_node_or_null("Ground/Sprite2D") as Sprite2D
 			if ground_sprite != null:
 				ground_sprite.texture = load(ground_path)
+			else:
+				push_warning("Main: Ground/Sprite2D not found — location ground not applied")
 		else:
 			push_warning("Locations: ground texture missing for '%s' (%s) — Task 6 not shipped yet, keeping the baked forecourt ground" % [String(loc.get("id", "")), ground_path])
+		# the forecourt painting belongs to the forecourt — hide it for every other location. It's
+		# a scene-baked Sprite2D (z_index -50) no script ever touched, so left alone it renders
+		# under BIG MART's/THE PARKING GARAGE's set-pieces for every non-forecourt run.
+		var gas := get_node_or_null("GasStation")
+		if gas != null:
+			gas.visible = false
 		var hud := get_tree().get_first_node_in_group("hud")
 		if hud != null:
 			hud.call("_show_banner", "TONIGHT'S SHIFT: %s" % String(loc.get("name", "")), String(loc.get("banner_sub", "")))

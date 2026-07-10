@@ -722,3 +722,4 @@ const GARAGE_BOOTH_POS := Vector2(0.0, -240.0)        # booth center, offset fro
 const GARAGE_ARM_HALF_SIZE := Vector2(70.0, 8.0)      # barrier arm half-extent (px) — size_y makes it a thin rect, not a square
 const GARAGE_ARM_OFFSET_X := 150.0                    # each arm's X offset from center (left/right)
 const GARAGE_ARM_Y := -150.0                          # both arms' Y position (between the booth and the spawn apron)
+const GARAGE_ARM_HP := 40.0   ## breakable gate arm — walk-through props must never eat bullets forever

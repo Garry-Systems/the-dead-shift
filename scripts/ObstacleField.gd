@@ -9,9 +9,12 @@ var _cull_t := 0.0
 var _prev_wave := 1
 var suspended := false   # THE BASEMENT (Pack E): controller pauses surface spawning/scatter while below
 var location_obstacle_mults: Dictionary = {}   # TRANSFER STORES (Task 2): set once by Main.gd
-# from the run's Locations row; passed straight through to Obstacles.pick(). {} (forecourt/
-# default) is byte-identical to before this pack — see Obstacles._weight's mults.is_empty()
-# short-circuit.
+# from the run's Locations row; passed straight through to Obstacles.pick(). This {} is just the
+# pre-_ready() default — forecourt's actual row value is `{"shelf": 0.0}`, NOT empty, so
+# Obstacles._weight takes its multiply branch (roundi(w * mults.get(id, 1.0))) rather than the
+# mults.is_empty() short-circuit. Every non-"shelf" id still defaults to mult 1.0, and
+# roundi(w * 1.0) == w exactly for Obstacles.gd's integer weights, so forecourt stays
+# byte-identical to before this pack no matter which branch runs.
 var _gimmick := ""   # BIG MART (Task 3)/PARKING GARAGE (Task 4): Locations.gd's gimmick for
 # RunConfig.location, read ONCE at _ready() — the run's location is fixed for the whole run (same
 # "read once at run start" pattern Main._apply_location already documents). "" (forecourt) means
