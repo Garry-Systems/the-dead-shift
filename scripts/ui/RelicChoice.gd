@@ -26,11 +26,15 @@ extends CanvasLayer
 ## Two phases share the same card list (built via the RelicMenu `_clear_vbox`/`_add_*` idiom):
 ##   CHOICE — 1-2 cards (A is never cursed, B may be) + a SKIP button (pays RELIC_SKIP_COINS),
 ##            styled like LevelUpUI's reroll button (secondary, sits under the cards).
-##   SCRAP  — shown only when the bar is full and a card was taken: one card per HELD relic,
-##            labelled with its scrap payout. Tapping one frees its slot (RelicBar.scrap() — the
-##            SAME shared function Task 4's pause-menu SCRAP button will call) and immediately
-##            applies the relic that was taken, completing the swap. No SKIP in this phase — the
-##            take is already committed; only which relic to give up is left to choose.
+##   SCRAP  — shown only when the bar is full and a card was taken: one card per SCRAPPABLE held
+##            relic (see _scrap_candidates — Overstocked is excluded whenever scrapping it would
+##            leave the bar still over capacity and strand the pending take), labelled with its
+##            scrap payout. Tapping one frees its slot (RelicBar.scrap() — the SAME shared
+##            function Task 4's pause-menu SCRAP button will call) and immediately applies the
+##            relic that was taken, completing the swap; if the bar is somehow STILL full after
+##            the scrap, the phase re-enters with refreshed candidates instead of dropping the
+##            pick (see _on_scrap). No SKIP in this phase — the take is already committed; only
+##            which relic to give up is left to choose.
 ## A roll that comes back empty (nothing left un-held) pays RELIC_DRY_COINS instead of opening
 ## anything — the overlay never flashes on screen for a dry pickup.
 ##
@@ -137,14 +141,35 @@ func _open_scrap() -> void:
 func _rebuild_scrap() -> void:
 	_clear_vbox()
 	_add_title("BAR FULL — scrap one to make room")
-	var held: Array = _bar.call("held_ids") if _bar != null else []
-	for id in held:
+	for id in _scrap_candidates():
 		var hid := String(id)
 		_add_scrap_card(hid, func(): _on_scrap(hid))
+
+## Swap-phase scrap candidates: every held id EXCEPT any whose removal would leave the bar STILL
+## over capacity — concretely, Overstocked (the capacity relic) whenever held-1 > MAX_RELIC_SLOTS:
+## scrapping it mid-swap shrinks the bar 6->4 while 5 relics are still held, so the pending
+## take() would no-op on the still-full bar and the player's chosen relic would silently vanish.
+## Scrap Overstocked from the pause manager instead (Task 4), where no take is pending.
+func _scrap_candidates() -> Array:
+	var held: Array = _bar.call("held_ids") if _bar != null else []
+	var out: Array = []
+	for id in held:
+		if String(id) == "overstocked" and held.size() - 1 > GameConfig.MAX_RELIC_SLOTS:
+			continue
+		out.append(id)
+	return out
 
 func _on_scrap(id: String) -> void:
 	if _bar != null:
 		_bar.call("scrap", id)
+		if bool(_bar.call("is_full")):
+			# Belt-and-suspenders behind _scrap_candidates' filter: the scrap somehow left the
+			# bar still at/over capacity (a capacity relic slipped through, or the bar was forced
+			# over capacity externally). NEVER silently drop the pending pick — it is only ever
+			# consumed by a successful take() — so re-enter the swap phase with refreshed
+			# candidates and let the player keep scrapping down until the take fits.
+			_rebuild_scrap()
+			return
 		_bar.call("take", _swap_take_id)
 	_advance()
 
