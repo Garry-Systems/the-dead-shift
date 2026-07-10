@@ -198,7 +198,11 @@ func _abandon_run_payout() -> void:
 	var bosses := RunStats.bosses_killed
 	# int() truncates here (unchanged from before this card existed) — final_payout() itself
 	# already rounds once for the coin_mult; this only re-truncates the QUIT_PAYOUT_FRAC step.
-	var earned := int(CoinReward.final_payout(wave, bosses, RunStats.kills, RunStats.bonus_coins, RunStats.coin_mult) * GameConfig.QUIT_PAYOUT_FRAC)
+	# SIGNING BONUS (final-review fix): passes the SAME vested-at-DifficultyManager.run_time value
+	# GameOver's death/win path computes — an instant quit (run_time ~= 0) vests ~0, and whatever
+	# HAS vested still gets the same 0.75 QUIT_PAYOUT_FRAC haircut as the rest of final_payout,
+	# same as today's behavior for every other term.
+	var earned := int(CoinReward.final_payout(wave, bosses, RunStats.kills, RunStats.bonus_coins, RunStats.coin_mult, RunStats.signing_bonus, DifficultyManager.run_time) * GameConfig.QUIT_PAYOUT_FRAC)
 	SaveManager.add_coins(earned)
 	# Rank XP (Pack G): the ACTUAL (already QUIT_PAYOUT_FRAC-haircut) amount just granted — same
 	# accessor GameOver's death/win flush uses. A quit never shows the pay-stub, so any resulting

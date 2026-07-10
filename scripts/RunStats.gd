@@ -15,6 +15,10 @@ var coins_per_kill := 0.0   # Pack E: the Janitor's passive — flat bonus coins
 var paid_out := false    # this run's payout already granted (death OR quit) — no double dipping
 var coin_mult := 1.0     # "Silver Tongue" level-up card: multiplies the WHOLE run payout (stacks); the
                          # one place GameOver + PauseMenu's quit path both read from — see CoinReward.final_payout
+var signing_bonus := 0   # SIGNING BONUS (Benefits.start_cash()): set once at run start (Main.gd), paid out
+                         # POST-mult and vested over GameConfig.SIGNING_BONUS_VEST_TIME seconds of run_time
+                         # — see CoinReward.vested_signing — so an instant pause-quit can't farm it at full
+                         # value x HARDCORE x REGISTER SKIM.
 
 # --- Pack C: challenge-board counters (v0.1.53) — all flushed at the paid_out-guarded payout
 # blocks alongside the existing kill/boss/elite counters. See Enemy.take_damage / TalentEngine._chain
@@ -34,6 +38,7 @@ func reset() -> void:
 	coins_per_kill = 0.0
 	paid_out = false
 	coin_mult = 1.0
+	signing_bonus = 0
 	fire_kills = 0
 	electric_kills = 0
 	poison_kills = 0

@@ -152,7 +152,12 @@ func _finish_run(is_win: bool) -> void:
 	var kills := RunStats.kills
 	var bonus := RunStats.bonus_coins
 	var mult := RunStats.coin_mult
-	var earned := CoinReward.final_payout(wave, bosses, kills, bonus, mult)
+	# SIGNING BONUS (final-review fix): DifficultyManager.run_time is the run's elapsed-seconds
+	# clock (same source ShiftClock's "Clocked out" line and the OVERTIME/HARDCORE best-clockout
+	# records below already read) — vested() below feeds the pay-stub's dedicated row.
+	var run_time := DifficultyManager.run_time
+	var vested := CoinReward.vested_signing(RunStats.signing_bonus, run_time)
+	var earned := CoinReward.final_payout(wave, bosses, kills, bonus, mult, RunStats.signing_bonus, run_time)
 	if is_win:
 		earned = int(round(float(earned) * GameConfig.EXTRACT_PAY_MULT))
 
@@ -249,7 +254,7 @@ func _finish_run(is_win: bool) -> void:
 	if RunConfig.daily:
 		_daily_header.text = "DAILY SHIFT — %s" % SaveManager.today_string()
 
-	_populate_stub(wave, bosses, kills, bonus, mult, earned, is_new_best, inst, xp_amount, is_win, promoted, rank_after)
+	_populate_stub(wave, bosses, kills, bonus, mult, vested, earned, is_new_best, inst, xp_amount, is_win, promoted, rank_after)
 	_root.visible = true
 	if is_new_best or is_win or promoted:
 		_celebrate()
@@ -257,7 +262,7 @@ func _finish_run(is_win: bool) -> void:
 ## Fills the pay-stub: itemized coin lines (same terms CoinReward.final_payout computes — no
 ## magic numbers), a clocked-out timestamp (endless only), NEW BEST, RANK XP + PROMOTED (Pack G),
 ## and the weapon XP line.
-func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float, earned: int,
+func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float, vested: int, earned: int,
 		is_new_best: bool, inst: Dictionary, xp_amount: int, is_win: bool = false,
 		promoted: bool = false, rank_after: int = 0) -> void:
 	for c in _stub_vbox.get_children():
@@ -278,6 +283,13 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 	# showing the same factor here keeps the stub's math identical to what actually got paid.
 	if not is_equal_approx(mult, 1.0):
 		_row(_stub_vbox, "SHIFT BONUS", "x%.2f" % mult, PixelTheme.SELECT)
+	# SIGNING BONUS (final-review fix): the vested amount is added POST-mult inside
+	# CoinReward.final_payout — it does NOT get multiplied by SHIFT BONUS above — so this row sits
+	# AFTER that multiplier row, mirroring the actual order of operations (subtotal*mult, then
+	# +vested, then, if a win, *EXTRACTION BONUS below) rather than before it, which would imply
+	# the bonus itself got the SHIFT BONUS multiplier when it never does.
+	if vested > 0:
+		_row(_stub_vbox, "SIGNING BONUS", "+%d" % vested, PixelTheme.SELECT)
 	if is_win:
 		_row(_stub_vbox, "EXTRACTION BONUS", "x%.2f" % GameConfig.EXTRACT_PAY_MULT, PixelTheme.SELECT)
 

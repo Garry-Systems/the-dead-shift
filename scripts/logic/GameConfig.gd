@@ -567,6 +567,7 @@ const BENEFIT_HP_PER_LVL := 4.0          # INSURANCE: flat max HP per level (spa
 const BENEFIT_SPEED_PER_LVL := 0.02      # COMFY SHOES: move-speed fraction per level
 const BENEFIT_XP_PER_LVL := 0.03         # NIGHT SCHOOL: xp-gain fraction per level
 const BENEFIT_CASH_PER_LVL := 50         # SIGNING BONUS: run-start coins per level
+const SIGNING_BONUS_VEST_TIME := 120.0   # seconds of shift time before the signing bonus fully vests (anti instant-quit farm)
 const BENEFIT_DASH_CD_PER_LVL := 0.04    # STRETCH BREAKS: dash-cooldown cut per level
 const BENEFIT_COIN_PER_LVL := 0.02       # REGISTER SKIM: coin-gain fraction per level
 const BENEFIT_SCRAP_PER_LVL := 0.10      # PACK RAT: extra scrap from deconstructs per level
@@ -577,8 +578,10 @@ const HARDCORE_COIN_MULT := 3.0       # HARDCORE: RunStats.coin_mult x this at r
 const HARDCORE_WEAPON_XP_MULT := 2    # HARDCORE: weapon XP x this at the end-of-run flush (the one Inventory.add_run_xp chokepoint)
 
 const OVERTIME_START_SECONDS := 240.0 # OVERTIME: DifficultyManager.run_time preset at run start (2:00 AM, ~wave 9)
-# Enough raw XP for ~8 level-ups at run start (xp_mult is always 1.0 there — no Fast Learner card
-# taken yet): sum of XpCurve.xp_for_level(0..7) = (5+0*3)+(5+1*3)+...+(5+7*3) = 124.
+# Enough raw XP for ~8 level-ups at run start. xp_mult IS guaranteed 1.0 there (fixed, final-review
+# round): Main.gd grants this headstart BEFORE Characters.apply_base applies NIGHT SCHOOL's
+# xp_mult bonus — previously it ran AFTER, so NIGHT SCHOOL inflated the headstart into a free extra
+# level on every OVERTIME run. Sum of XpCurve.xp_for_level(0..7) = (5+0*3)+(5+1*3)+...+(5+7*3) = 124.
 const OVERTIME_HEADSTART_XP := 124
 
 # --- Commendations wall (Pack H: v0.1.59) ---

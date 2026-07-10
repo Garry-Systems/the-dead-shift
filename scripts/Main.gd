@@ -28,7 +28,10 @@ func _ready() -> void:
 	# EMPLOYEE BENEFITS (Pack A): permanent tracks applied once per run, all through existing
 	# chokepoints. Multiplies the SAME RunStats.coin_mult hardcore already touches above.
 	RunStats.coin_mult *= Benefits.coin_mult()
-	RunStats.bonus_coins += Benefits.start_cash()   # SIGNING BONUS — pays out on the stub like any coins
+	# SIGNING BONUS (final-review fix): its OWN post-mult, time-vested field — NOT bonus_coins —
+	# so an instant pause-quit can't farm it at full value x HARDCORE x3 x REGISTER SKIM. See
+	# CoinReward.vested_signing / GameConfig.SIGNING_BONUS_VEST_TIME.
+	RunStats.signing_bonus = Benefits.start_cash()
 	# Pack C: Daily Shift — re-arm a FRESH seeded generator every time this scene loads while
 	# RunConfig.daily is true (covers a mid-run "RESTART RUN" from PauseMenu, which reloads
 	# Main.tscn directly, bypassing MainMenu's mode picker entirely) so a restart replays the
@@ -40,16 +43,20 @@ func _ready() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Player
 	if player != null:
 		player.global_position = GameConfig.FORECOURT_PLAYER_SPAWN   # the forecourt apron, clear of the store + pump row
+		# OVERTIME (Pack G, final-review fix): headstart XP BEFORE Characters.apply_base — that call
+		# multiplies player.xp_mult by NIGHT SCHOOL's Benefits.xp_mult(), and OVERTIME_HEADSTART_XP is
+		# calibrated assuming xp_mult == 1.0 (see its doc comment). Granting it after apply_base let
+		# NIGHT SCHOOL inflate the headstart into a free extra level. player.xp_mult is still its
+		# freshly-spawned default (1.0) here, so add_xp() applies the raw, uninflated amount. Any
+		# resulting level-ups queue in LevelUpUI (its _ready already connected `leveled_up` before this
+		# runs — children ready before their parent, and LevelUpUI is a sibling child of this scene
+		# root) and show once the run's first frame renders — expected behavior, not a bug.
+		if RunConfig.overtime:
+			player.add_xp(GameConfig.OVERTIME_HEADSTART_XP)
 		Characters.apply_base(player, RunConfig.character_id)
 		RunStats.coins_per_kill = Characters.coin_per_kill_bonus(RunConfig.character_id)   # Pack E: the Janitor's passive
 		player.set_dash_ability(Characters.dash_ability(RunConfig.character_id))
 		_equip_loadout(player)
-		# OVERTIME (Pack G): headstart XP AFTER the loadout is equipped, per spec. Any resulting
-		# level-ups queue in LevelUpUI (its _ready already connected `leveled_up` before this runs —
-		# children ready before their parent, and LevelUpUI is a sibling child of this scene root)
-		# and show once the run's first frame renders — expected behavior, not a bug.
-		if RunConfig.overtime:
-			player.add_xp(GameConfig.OVERTIME_HEADSTART_XP)
 
 	var spawner := get_tree().get_first_node_in_group("spawner")
 	if spawner != null:

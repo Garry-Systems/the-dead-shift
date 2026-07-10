@@ -44,6 +44,11 @@ var _music_bus_idx := -1
 var _current_music := ""                    # id currently loaded on _music_player ("" = none)
 
 func _ready() -> void:
+	# Final-review fix: without this, the pool/music players pause with the rest of the tree,
+	# so SFX fired while paused go silent — LevelUpUI's reroll button (_on_reroll_pressed's
+	# "ui_tap", scripts/LevelUpUI.gd) and GameOver.trigger_win's "dawn_sting" (scripts/GameOver.gd,
+	# called with get_tree().paused already true) both need to be heard while paused.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_buses()
 	_load_streams()
 	_build_pool()
