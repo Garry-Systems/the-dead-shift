@@ -6,12 +6,20 @@ extends CanvasLayer
 var _player: Player
 var _queue: Array[int] = []        # levels waiting for an upgrade pick
 var _current_cards: Array = []
+var _current_level: int = 0        # level of the offer currently on screen (needed to redraw on reroll)
 
 var _root: Control
 var _title: Label
 var _buttons: Array[Button] = []
 var _card_titles: Array[Label] = []
 var _descs: Array[Label] = []
+var _reroll_btn: Button
+
+# SECOND OPINION (Employee Benefits Pack A): per-run reroll charges. Read ONCE here at
+# _ready() — Main.tscn (and this UI with it) is reloaded fresh at the start of every run
+# (including a mid-run "RESTART RUN", per Main.gd), so a _ready()-time read is per-run,
+# never persisted or re-rolled mid-run.
+var _rerolls_left: int = 0
 
 func _ready() -> void:
 	# Keep this UI alive and clickable while the rest of the tree is paused.
@@ -23,6 +31,8 @@ func _ready() -> void:
 		_player.leveled_up.connect(_on_player_leveled_up)
 
 	_build_ui()
+	_rerolls_left = Benefits.reroll_charges()
+	_update_reroll_button()
 	_root.visible = false
 
 func _build_ui() -> void:
@@ -93,22 +103,48 @@ func _build_ui() -> void:
 		_buttons.append(b)
 		vbox.add_child(b)
 
+	# SECOND OPINION: half-height pixel button under the card row. Hidden whenever the
+	# player has no charges left (default 0 charges = never shown, matching every other
+	# unowned Benefits track reading as absent rather than as a dead/disabled control).
+	_reroll_btn = Button.new()
+	PixelTheme.style_button(_reroll_btn, Vector2(760, 92), 24)
+	_reroll_btn.pressed.connect(_on_reroll_pressed)
+	vbox.add_child(_reroll_btn)
+
 func _on_player_leveled_up() -> void:
 	_queue.append(_player.level)
 	if not _root.visible:
 		_show_next()
 
 func _show_next() -> void:
-	var lvl: int = _queue.pop_front()
+	_current_level = _queue.pop_front()
 	SoundManager.play("level_up")
-	_current_cards = _pick_three(lvl)
-	_title.text = "LEVEL %d — choose a %s upgrade" % [lvl, Upgrades.label_for_level(lvl)]
+	_title.text = "LEVEL %d — choose a %s upgrade" % [_current_level, Upgrades.label_for_level(_current_level)]
+	_refresh_cards()
+	_root.visible = true
+	get_tree().paused = true
+
+## Populates the 3 card labels from a fresh `_pick_three` draw for `_current_level`, and
+## syncs the reroll button. Shared by the initial offer (`_show_next`) and a reroll
+## (`_on_reroll_pressed`) — both just need the SAME offer parity redrawn, repeats allowed.
+func _refresh_cards() -> void:
+	_current_cards = _pick_three(_current_level)
 	for i in 3:
 		var c: Dictionary = _current_cards[i]
 		_card_titles[i].text = String(c["title"]).to_upper()
 		_descs[i].text = String(c["desc"])
-	_root.visible = true
-	get_tree().paused = true
+	_update_reroll_button()
+
+func _update_reroll_button() -> void:
+	_reroll_btn.visible = _rerolls_left > 0
+	_reroll_btn.text = "REROLL (%d)" % _rerolls_left
+
+func _on_reroll_pressed() -> void:
+	if _rerolls_left <= 0:
+		return
+	_rerolls_left -= 1
+	SoundManager.play("ui_tap")
+	_refresh_cards()
 
 func _on_card_pressed(index: int) -> void:
 	var card: Dictionary = _current_cards[index]
