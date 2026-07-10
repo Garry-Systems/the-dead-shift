@@ -32,6 +32,7 @@ jobs:
           grep -iE "android_sdk_path|debug_keystore|java_sdk|jdk" /root/.config/godot/editor_settings-4.6.tres 2>/dev/null || echo "(no android lines in image editor_settings)"
 
       - name: Stamp Android version code from the build number
+        id: stamp
         env:
           RUN_NUMBER: ${{ github.run_number }}
         run: |
@@ -41,7 +42,13 @@ jobs:
           # checkout only, never committed back — with the monotonically-increasing CI run
           # number so each published APK is unambiguously newer than the last.
           sed -i "s#^version/code=.*#version/code=${RUN_NUMBER}#" export_presets.cfg
-          sed -i "s#^version/name=.*#version/name=\"0.1.${RUN_NUMBER}\"#" export_presets.cfg
+          # The DISPLAYED version comes from the committed VERSION file, not the run number —
+          # run numbers desynced from release tags when two releases shipped in one push
+          # (v0.1.56+57), so "Settings shows 0.1.<run>" stopped matching the tagged version.
+          # Each release commit bumps VERSION; the tag must match it.
+          VERSION_NAME="$(tr -d ' \n' < VERSION)"
+          sed -i "s#^version/name=.*#version/name=\"${VERSION_NAME}\"#" export_presets.cfg
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
           echo "--- stamped version lines ---"
           grep -E "^version/(code|name)=" export_presets.cfg
 
@@ -62,6 +69,6 @@ jobs:
         with:
           tag_name: android-latest
           name: The Dead Shift — latest Android (debug)
-          body: "Auto-built debug APK — version 0.1.${{ github.run_number }} (commit ${{ github.sha }}). On your phone, download the .apk below and tap to install (allow installs from this source). With a previous build installed, this one installs as an UPDATE — check Settings ▸ Apps ▸ The Dead Shift shows 0.1.${{ github.run_number }} to confirm it took."
+          body: "Auto-built debug APK — version ${{ steps.stamp.outputs.version_name }} (commit ${{ github.sha }}). On your phone, download the .apk below and tap to install (allow installs from this source). With a previous build installed, this one installs as an UPDATE — check Settings ▸ Apps ▸ The Dead Shift shows ${{ steps.stamp.outputs.version_name }} to confirm it took."
           prerelease: true
           files: build/the-dead-shift.apk

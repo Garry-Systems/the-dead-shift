@@ -4,6 +4,14 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.60 — New Management Problems (2026-07-09)
+
+Two new faces on the night shift. Boss roster is now 9 deep — both join the Endless rotation and Boss Rush:
+
+- **THE KAREN** — the first *customer* boss. Her scream knocks you clean out of your firing stance, she films you for the review (you're slowed — it's humiliating), and her decoys steal your auto-aim. Get her low and she demands the manager. **She gets the manager.** He buffs the staff around him. Good luck.
+- **THE TANKER** — pump 3's fuel delivery, still making rounds. His charges leak a trail of fuel that catches fire a moment later — cross the wet stuff early or lose the lane. At low health he JACKKNIFES: two charges back to back, denser trail, and a tank rupture when he stops. His own fire never burns him. He's used to it.
+- Version numbers are now honest: **Settings ▸ Apps shows the same v0.1.60 as this page** (build numbers had drifted one behind the release names — fixed for good).
+
 ## v0.1.59 — Employee of the Month (2026-07-06)
 
 - **THE COMMENDATIONS WALL** — 18 lifetime badges on your RECORDS page, from FIRST DAY (finish a run) to GENOCIDE SHIFT (25,000 kills), GOLDEN TICKET (pull an Armageddon), EMPLOYEE OF THE MONTH (7-day streak), DAWN PATROL (survive an extraction) and CAREER CLERK (100 runs). Every badge pays **Rank XP and a crate** the moment you earn it — the crate spins open right there. Progress counters show on everything you haven't earned yet, so there's always a next thing on the wall.
