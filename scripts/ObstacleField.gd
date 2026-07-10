@@ -12,10 +12,16 @@ var location_obstacle_mults: Dictionary = {}   # TRANSFER STORES (Task 2): set o
 # from the run's Locations row; passed straight through to Obstacles.pick(). {} (forecourt/
 # default) is byte-identical to before this pack — see Obstacles._weight's mults.is_empty()
 # short-circuit.
-var _gimmick := ""   # BIG MART (Task 3): Locations.gd's gimmick for RunConfig.location, read ONCE
-# at _ready() — the run's location is fixed for the whole run (same "read once at run start"
-# pattern Main._apply_location already documents). "" (forecourt/garage) means the freezer-patch
-# wave-edge roll below is always skipped; only "mart" arms it.
+var _gimmick := ""   # BIG MART (Task 3)/PARKING GARAGE (Task 4): Locations.gd's gimmick for
+# RunConfig.location, read ONCE at _ready() — the run's location is fixed for the whole run (same
+# "read once at run start" pattern Main._apply_location already documents). "" (forecourt) means
+# neither the freezer-patch wave-edge roll nor the lattice pass/car-alarm hook below ever arm;
+# "mart" arms freezer only, "garage" arms the lattice + car-alarm hook only.
+var _lattice_cells: Dictionary = {}   # PARKING GARAGE (Task 4): Vector2i(gx,gy) -> spawned pillar
+# Destructible. Garage-only in practice — _lattice_pass() no-ops immediately on any other
+# _gimmick, so this stays empty {} for the rest of this run everywhere else. Entries are added by
+# _spawn_pillar() and erased the instant _cull_far() culls that cell's pillar (NOT lazily via an
+# is_instance_valid poll — see _cull_far()'s own hook) so a revisited cell always re-spawns.
 
 func _ready() -> void:
 	add_to_group("obstacle_field")
@@ -40,15 +46,27 @@ func _process(delta: float) -> void:
 	if _cull_t >= GameConfig.OBSTACLE_CULL_INTERVAL:
 		_cull_t = 0.0
 		_cull_far()
+		_lattice_pass()   # PARKING GARAGE (Task 4): same cadence as cull — see _lattice_pass()'s own doc comment for why co-locating them keeps the spawn/cull reconcile trivially correct
 
 ## The ambient-managed destructibles only: permanent fixtures (Forecourt store/pumps, tagged
 ## no_cull) are excluded, so they never eat density-target or hard-cap slots.
+##
+## PARKING GARAGE (Task 4): lattice pillars are ALSO excluded here, for the same reason but a
+## different mechanism — they're a deterministic structural feature, not ambient clutter, yet
+## (unlike Forecourt fixtures) they DO need to be cullable so a revisited cell can respawn (see
+## _cull_far()'s lattice_cell hook). A dense lattice can hold ~24 pillars alone at
+## OBSTACLE_CULL_RADIUS — exactly OBSTACLE_HARD_CAP — so counting them here would starve every
+## other ambient obstacle (car/crate/barrel) out of the garage entirely. This exclusion is
+## SEPARATE from no_cull on purpose: _cull_far() below iterates the raw "destructibles" group
+## directly (not this filtered list), so pillars stay fully cullable despite being exempt here.
 func _managed_destructibles() -> Array:
 	var out: Array = []
 	for d in get_tree().get_nodes_in_group("destructibles"):
 		if not is_instance_valid(d):
 			continue
 		if "no_cull" in d and d.no_cull:
+			continue
+		if d.has_meta("lattice_cell"):
 			continue
 		out.append(d)
 	return out
@@ -90,6 +108,18 @@ func _spawn_at(pos: Vector2, row: Dictionary = {}) -> void:
 	# TRANSFER STORES (Task 2): location_obstacle_mults biases the ambient roll ({} = untouched
 	# default); Rush Hour's forced `row` above bypasses Obstacles.pick entirely, so it's unaffected.
 	var picked := row if not row.is_empty() else Obstacles.pick(DifficultyManager.wave, location_obstacle_mults)
+	# PARKING GARAGE (Task 4): CAR ALARM gimmick hook. This is the ONE chokepoint every "car" row
+	# passes through — ambient top-up, wave-cluster drop, AND Rush Hour's forced row all funnel
+	# through here — so gating on `_gimmick == "garage"` here covers all three placements for
+	# free, the same way formation-mode below covers both ambient/cluster callers for free.
+	# duplicate() FIRST: `picked` may be the exact dict Rush Hour's `car_row` variable holds across
+	# its whole scatter loop (Obstacles.by_id() called once, reused for N spawns) or a fresh dict
+	# `Obstacles.pick()` just built — either way, mutating in place risks leaking "wail" onto a
+	# shared reference outside this function's control, so duplicate() is cheap insurance, per the
+	# brief's own literal `row = row.duplicate(); row["wail"] = true` interface.
+	if _gimmick == "garage" and String(picked.get("id", "")) == "car":
+		picked = picked.duplicate()
+		picked["wail"] = true
 	if bool(picked.get("formation", false)):
 		_spawn_formation(pos, picked)
 		return
@@ -187,4 +217,73 @@ func _cull_far() -> void:
 		if "no_cull" in d and d.no_cull:
 			continue   # Forecourt fixtures (store cover / fuel pumps) are permanent, not ambient scatter
 		if (d as Node2D).global_position.distance_squared_to(_player.global_position) > cull2:
+			if d.has_meta("lattice_cell"):
+				# PARKING GARAGE (Task 4): free the cell slot the INSTANT its pillar is culled
+				# (not lazily via an is_instance_valid poll on the next _lattice_pass) — this is
+				# the ONE place a lattice pillar's lifetime ever ends, so hooking here keeps
+				# _lattice_cells authoritative with zero polling, and guarantees a revisited cell
+				# re-spawns on the very next lattice pass rather than a pass or two later.
+				_lattice_cells.erase(d.get_meta("lattice_cell"))
 			d.queue_free()
+
+## PARKING GARAGE (Task 4): the pillar lattice. Deterministic per-world-cell presence (hash() is
+## purely position-derived — no RNG at all) means the SAME world spot always resolves the SAME
+## verdict, so pillars read as a stable, revisitable dash-lane pattern rather than random scatter
+## (hence the pillar row's weight:0 in Obstacles.gd — it must never ALSO roll through the normal
+## ambient/cluster pick() path). Runs on the SAME cadence as _cull_far() right above (both are
+## "which destructibles exist near the player right now" passes — co-locating them keeps the
+## spawn/cull reconcile trivial, see _cull_far()'s lattice_cell erase). Scan radius reuses
+## OBSTACLE_CULL_RADIUS rather than a new constant: using the SAME radius the culler enforces
+## means a freshly-spawned pillar can never immediately fall outside cull range next tick, and a
+## just-culled cell's re-entry into scan range and its cull are governed by the one same radius.
+func _lattice_pass() -> void:
+	if _gimmick != "garage":
+		return
+	var grid := GameConfig.PILLAR_GRID
+	var radius := GameConfig.OBSTACLE_CULL_RADIUS
+	var r2 := radius * radius
+	var ppos := _player.global_position
+	var gx_lo := int(floor((ppos.x - radius) / grid))
+	var gx_hi := int(floor((ppos.x + radius) / grid))
+	var gy_lo := int(floor((ppos.y - radius) / grid))
+	var gy_hi := int(floor((ppos.y + radius) / grid))
+	var keep2 := GameConfig.FORECOURT_KEEPOUT_RADIUS * GameConfig.FORECOURT_KEEPOUT_RADIUS
+	var basement2 := (GameConfig.BASEMENT_RADIUS * 2.0) * (GameConfig.BASEMENT_RADIUS * 2.0)
+	for gx in range(gx_lo, gx_hi + 1):
+		for gy in range(gy_lo, gy_hi + 1):
+			var cell := Vector2i(gx, gy)
+			if _lattice_cells.has(cell):
+				var existing = _lattice_cells[cell]
+				if is_instance_valid(existing):
+					continue   # already spawned (and not yet culled) — no double
+				_lattice_cells.erase(cell)   # defensive: freed some other way than _cull_far's hook
+			var pos := Vector2(float(gx) * grid, float(gy) * grid)
+			if pos.distance_squared_to(ppos) > r2:
+				continue
+			if pos.distance_squared_to(Vector2.ZERO) < keep2:
+				continue   # forecourt keep-out (unconditional, mirrors _spawn_at's own check)
+			if pos.distance_squared_to(GameConfig.BASEMENT_OFFSET) < basement2:
+				continue   # THE BASEMENT's gauntlet arena footprint — excluded per the brief even
+				           # though ObstacleField is already `suspended` while the player is below
+				           # (defense-in-depth, not the primary safety net)
+			if not _pillar_present(cell):
+				continue
+			_spawn_pillar(cell, pos)
+
+## Pure, deterministic per-cell presence check — hash(Vector2i) is position-derived only (no RNG
+## involved), so the SAME world cell always resolves the SAME verdict regardless of when/how often
+## it's queried. `PILLAR_DENSITY * 100.0` cast to int for the comparison (GDScript would otherwise
+## compare an int % against a float fine too, but this keeps the intent literal/explicit).
+static func _pillar_present(cell: Vector2i) -> bool:
+	return hash(cell) % 100 < int(GameConfig.PILLAR_DENSITY * 100.0)
+
+func _spawn_pillar(cell: Vector2i, pos: Vector2) -> void:
+	var row := Obstacles.by_id("pillar")
+	if row.is_empty():
+		return   # defensive: registry row missing, skip rather than configure() on an empty dict
+	var d := Destructible.new()
+	d.configure(row)
+	d.set_meta("lattice_cell", cell)
+	get_tree().current_scene.add_child(d)
+	d.global_position = pos
+	_lattice_cells[cell] = d

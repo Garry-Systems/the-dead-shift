@@ -28,11 +28,23 @@ var no_cull := false   # true for a fixed world fixture (Forecourt) — Obstacle
 var chain_id := ""    # Transfer Stores (Task 3): optional row field, absent -> "" (no chain).
                        # Shares the fuse/budget below with the pre-existing barrel (hazard_id ==
                        # "fire") chain, but only lights same-chain_id neighbors — see light_fuse().
+var wail := false      # PARKING GARAGE (Task 4): optional row field, absent -> false (a plain
+                       # car everywhere outside the garage gimmick). See _start_wail() below.
 
 var _health: Health
 var _detonating := false
 var _fuse := -1.0          # >= 0 = chain fuse counting down to detonation
 var _hit_flash := 0.0
+# PARKING GARAGE (Task 4): car alarm wail state. `_wailed` is a one-way latch (one wail per car
+# EVER, per the brief) — set the instant a wail is triggered and never cleared, so a second
+# take_damage (even after the wail already ended, or while it's running) can never restart it.
+var _wailed := false
+var _wailing := false      # currently in an active WAIL_TIME window (drives taunts + the ring draw)
+var _wail_time := 0.0
+var _wail_taunt_t := 0.0   # countdown to the next taunt tick — starts at 0.0 so the FIRST
+                           # _process() tick after the wail starts fires immediately (same
+                           # idiom as MannequinDecoy._tick/TICK_INTERVAL)
+static var _last_wail_sfx_ms := -1000000000   # shared across every wailing car — see _play_wail_sfx()
 
 # Global per-frame chain-detonation budget (CHAIN_MAX_PER_TICK) so a dense barrel farm
 # ripples across frames instead of detonating a whole wavefront on one frame.
@@ -56,6 +68,7 @@ func configure(row: Dictionary) -> void:
 	burst_force = float(row.get("burst_force", GameConfig.BARREL_BURST_FORCE))
 	hazard_scale = float(row.get("hazard_scale", 1.0))
 	chain_id = String(row.get("chain_id", ""))   # absent -> "", byte-identical to every existing row
+	wail = bool(row.get("wail", false))          # absent -> false, byte-identical to every existing row
 
 func _ready() -> void:
 	if hp >= 0.0:
@@ -93,6 +106,12 @@ func take_damage(amount: float) -> void:
 	queue_redraw()
 	if _health.is_dead():
 		_die()
+	elif wail and not _wailed:
+		# PARKING GARAGE (Task 4): "the FIRST take_damage that doesn't kill it" — this elif only
+		# ever reaches on a SURVIVING hit (the is_dead() branch above already returned via _die()
+		# otherwise), and `_wailed` latches true inside _start_wail() so no later hit (lethal or
+		# not) can re-enter this branch for the same car.
+		_start_wail()
 
 func _process(delta: float) -> void:
 	if _hit_flash > 0.0:
@@ -110,6 +129,18 @@ func _process(delta: float) -> void:
 					return
 				_fuse = -1.0
 				_die()
+	# PARKING GARAGE (Task 4): wail tick — decays WAIL_TIME, re-taunting every WAIL_TAUNT_TICK.
+	if _wailing:
+		_wail_time -= delta
+		if _wail_time <= 0.0:
+			_wailing = false
+			remove_from_group("wailing_cars")
+		else:
+			_wail_taunt_t -= delta
+			if _wail_taunt_t <= 0.0:
+				_wail_taunt_t = GameConfig.WAIL_TAUNT_TICK
+				_taunt_nearby()
+		queue_redraw()   # pulsing ring needs a redraw every tick, not just on state transitions
 
 ## Per-frame chain budget: at most CHAIN_MAX_PER_TICK fused barrels detonate per frame.
 static func _claim_detonation_slot() -> bool:
@@ -140,6 +171,71 @@ func light_fuse(source_chain_id: String = "") -> void:
 	elif chain_id == "" or chain_id != source_chain_id:
 		return
 	_fuse = GameConfig.CHAIN_DELAY
+
+## PARKING GARAGE (Task 4): begins this car's ONE lifetime wail. Enforces WAIL_MAX_CONCURRENT
+## on the "wailing_cars" group FIRST (drop-oldest — see _cap_wailing_cars), then arms the timer/
+## tick and joins the group. Called only from take_damage()'s `wail and not _wailed` branch, which
+## already latches `_wailed` — but the flag is (re-)set here too as the actual, authoritative
+## "has this car ever wailed" bit, since silence_wail() below never touches it.
+func _start_wail() -> void:
+	_wailed = true
+	var tree := get_tree()
+	if tree != null:
+		_cap_wailing_cars(tree)
+	_wailing = true
+	_wail_time = GameConfig.WAIL_TIME
+	_wail_taunt_t = 0.0   # first _process() tick fires a taunt immediately — no initial dead air
+	add_to_group("wailing_cars")
+	queue_redraw()
+
+## Enforces WAIL_MAX_CONCURRENT on "wailing_cars": if already at cap, SILENCES (not frees) the
+## OLDEST member (group order == spawn/trigger order — same assumption Mine._evict_oldest/
+## HazardZone.cap_player_pools already rely on) before this car joins. "Silence, don't free" per
+## the brief: an alarm car that gets capped out keeps existing as a normal (now-permanently-quiet)
+## car — it already spent its one lifetime wail, so silencing it costs nothing further.
+func _cap_wailing_cars(tree) -> void:
+	var cars: Array = tree.get_nodes_in_group("wailing_cars")
+	if cars.size() >= GameConfig.WAIL_MAX_CONCURRENT:
+		var oldest = cars[0]
+		if is_instance_valid(oldest) and oldest.has_method("silence_wail"):
+			oldest.silence_wail()
+
+## Stops an active wail without freeing the car (see _cap_wailing_cars above). `_wailed` is left
+## true — a silenced car can never restart (one wail per car ever), it just stops mid-window.
+func silence_wail() -> void:
+	if not _wailing:
+		return
+	_wailing = false
+	remove_from_group("wailing_cars")
+	queue_redraw()
+
+## Every WAIL_TAUNT_TICK while wailing: taunts every Enemy within WAIL_TAUNT_RADIUS toward this
+## car (same `e is Enemy` static-type guard as MannequinDecoy._retaunt() — bosses are immune "for
+## free" since BossBase never defines/calls taunt()) and plays a throttled alarm sting.
+func _taunt_nearby() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	_play_wail_sfx()
+	var r2 := GameConfig.WAIL_TAUNT_RADIUS * GameConfig.WAIL_TAUNT_RADIUS
+	for e in tree.get_nodes_in_group("enemies"):
+		if e is Enemy and is_instance_valid(e) and global_position.distance_squared_to((e as Node2D).global_position) <= r2:
+			(e as Enemy).taunt(self, GameConfig.WAIL_TAUNT_DUR)
+
+## Reuses "boss_roar" (the loudest, most "look over here" existing SFX id — grepped SoundManager's
+## SFX_IDS; no "alarm"/"ui_denied" id actually exists in this codebase, so the brief's suggested
+## names were speculative) as a placeholder car-alarm sting, throttled via a STATIC (shared across
+## every wailing car, not per-instance) min-gap so a dense multi-car wail can't machine-gun it —
+## SoundManager.play()'s own MIN_INTERVAL_MS dict only throttles per-id calls made close together
+## in time regardless of caller, but WAIL_SFX_MIN_GAP_MS below is a second, independent throttle
+## layered on top of that (deliberately looser than SoundManager's own gate would need — this one
+## exists so the alarm reads as a periodic "whoop-whoop", not a per-tick retrigger every 0.5s).
+func _play_wail_sfx() -> void:
+	var now := Time.get_ticks_msec()
+	if now - _last_wail_sfx_ms < GameConfig.WAIL_SFX_MIN_GAP_MS:
+		return
+	_last_wail_sfx_ms = now
+	SoundManager.play("boss_roar")
 
 func _die() -> void:
 	if _detonating:
@@ -206,3 +302,12 @@ func _draw() -> void:
 	else:
 		draw_circle(Vector2.ZERO, size, c)
 		draw_arc(Vector2.ZERO, size, 0.0, TAU, 24, outline, 2.0)
+	# PARKING GARAGE (Task 4): pulsing C4 ring overlay while wailing — the "dinner bell" tell, on
+	# top of whichever base shape was just drawn above (a car is a "rect", but this reads generic
+	# in case a future non-car row ever carries "wail":true).
+	if _wailing:
+		var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 150.0)
+		var base_r := maxf(size, size_y)
+		var ring_r := base_r + 12.0 + pulse * 8.0
+		var ring_col := Color(PixelTheme.ACCENT.r, PixelTheme.ACCENT.g, PixelTheme.ACCENT.b, 0.35 + 0.35 * pulse)
+		draw_arc(Vector2.ZERO, ring_r, 0.0, TAU, 28, ring_col, 3.0)

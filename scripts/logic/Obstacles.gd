@@ -27,8 +27,21 @@ class_name Obstacles
 ##                       today; true = ObstacleField spawns this row as an axis-aligned run of
 ##                       MART_FORMATION_LEN_MIN..MAX units instead of one instance. See
 ##                       ObstacleField._spawn_formation().
+##   wail      : bool    (optional, Transfer Stores Task 4) absent/false = a normal car; true =
+##                       this Destructible starts a WAIL_TIME "car alarm" wail on its first
+##                       non-lethal take_damage — every WAIL_TAUNT_TICK it taunts nearby enemies
+##                       toward itself, pulses a C4 ring, and plays a throttled alarm sting. NEVER
+##                       baked into the "car" row itself (every non-garage car stays plain) — the
+##                       garage's gimmick hook (ObstacleField._spawn_at) duplicates a picked "car"
+##                       row and injects this flag only when gimmick == "garage". See
+##                       Destructible._start_wail()/_taunt_nearby().
 
 const C3 := Color(0.549, 0.522, 0.451)   # gray-tan props (palette)
+# PARKING GARAGE (Transfer Stores, Task 4): pillar/concrete family. The SAME hex as
+# PixelTheme.ACCENT_DIM / MannequinDecoy's own "C2 indigo" comment — no new hue invented (palette
+# strict), reused directly the same way C3 already covers crate/car/rubble/shelf regardless of
+# their otherwise-unrelated roles.
+const C2 := Color(0.239, 0.0, 0.6)       # C2 indigo (palette) — pillar row + GarageBooth fixtures
 # Body tints so the player reads a hazard prop at a glance — the 3 sanctioned exceptions.
 const FIRE_TINT := Color(0.85, 0.45, 0.2)   # palette exception (orange = fire barrel)
 const ACID_TINT := Color(0.4, 0.8, 0.2)     # palette exception (green = chem drum)
@@ -57,6 +70,14 @@ static func all() -> Array:
 		# "shelf" to 0.0 (Locations.gd) so this new row can't silently appear in either -- only
 		# big_mart's mults set it to 1.0. min_wave 1 like crate/barrel (no gating beyond location).
 		{ "id":"shelf", "kind":"loot", "shape":"rect", "size":GameConfig.SHELF_HALF_W, "size_y":GameConfig.SHELF_HALF_H, "solid":false, "hp":GameConfig.SHELF_HP, "hazard_id":"", "loot":"gems", "gem_count":GameConfig.SHELF_GEMS, "color":C3, "weight":55, "min_wave":1, "chain_id":"shelf", "formation":true },
+		# PARKING GARAGE (Transfer Stores, Task 4): weight 0 -- this row can NEVER be returned by
+		# pick()'s weighted roll (see pick()'s `if w <= 0: continue`; _weight() returns 0 for a
+		# 0-weight row regardless of `mults`, so even a future non-empty mults dict can't turn it
+		# on by accident). Pillars exist ONLY via ObstacleField._lattice_pass()'s deterministic
+		# per-world-cell placement, which fetches this row directly via by_id() and configure()s a
+		# plain Destructible with it -- pick()'s pool never sees it. Indestructible (hp -1) circle
+		# cover, same "solid":true family as car/rubble.
+		{ "id":"pillar", "kind":"cover", "shape":"circle", "size":GameConfig.PILLAR_RADIUS, "solid":true, "hp":-1.0, "hazard_id":"", "loot":"", "gem_count":0, "color":C2, "weight":0, "min_wave":1 },
 	]
 
 ## A weighted-random row among types whose min_wave <= wave. Falls back to the first row.

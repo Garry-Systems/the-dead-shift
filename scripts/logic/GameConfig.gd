@@ -703,3 +703,22 @@ const MART_SLAB_POS := Vector2(0.0, -240.0)         # slab center, offset from M
 const MART_LANE_X := 90.0                 # each checkout lane's X offset from center (left/right)
 const MART_LANE_START_Y := -90.0          # first shelf's Y in a checkout lane
 const MART_LANE_SHELF_COUNT := 3          # shelves per checkout lane
+
+# --- THE PARKING GARAGE (Transfer Stores, Task 4): pillar lattice, car alarms (wail), booth. ---
+const PILLAR_RADIUS := 40.0               # pillar row's circle radius (px)
+const PILLAR_GRID := 480.0                # lattice grid cell size (px) — world-aligned, NOT player-relative, so the same world spot is always the same cell
+const PILLAR_DENSITY := 0.55              # fraction of scanned lattice nodes that resolve "pillar present" (deterministic hash roll, no RNG)
+const WAIL_TIME := 6.0                    # seconds a car alarm wails once triggered
+const WAIL_TAUNT_RADIUS := 500.0          # radius (px) a wailing car taunts "enemies"-group members within, each tick
+const WAIL_TAUNT_TICK := 0.5              # seconds between taunt re-ticks while wailing
+const WAIL_TAUNT_DUR := 1.2               # Enemy.taunt() duration passed on each tick (always outlives the tick — no aggro gap, same idiom as MannequinDecoy's TICK_INTERVAL/taunt_time relationship)
+const WAIL_MAX_CONCURRENT := 2            # global cap on simultaneously wailing cars ("wailing_cars" group). Drop-oldest SILENCES the wail (Destructible.silence_wail) — the car itself is never freed
+const WAIL_SFX_MIN_GAP_MS := 1500         # min ms between "boss_roar" (reused alarm sting, see Destructible._play_wail_sfx) plays, shared across ALL wailing cars combined
+# Set-piece (mirrors MartFront's slab/lane footprint; built at world origin, well within the
+# existing FORECOURT_KEEPOUT_RADIUS/FORECOURT_SPAWN_KEEPOUT — those checks are unconditional, not
+# location-gated, so they already protect any location's origin set-piece for free).
+const GARAGE_BOOTH_HALF_SIZE := Vector2(80.0, 70.0)   # attendant booth half-extent (px)
+const GARAGE_BOOTH_POS := Vector2(0.0, -240.0)        # booth center, offset from GarageBooth origin (world 0,0)
+const GARAGE_ARM_HALF_SIZE := Vector2(70.0, 8.0)      # barrier arm half-extent (px) — size_y makes it a thin rect, not a square
+const GARAGE_ARM_OFFSET_X := 150.0                    # each arm's X offset from center (left/right)
+const GARAGE_ARM_Y := -150.0                          # both arms' Y position (between the booth and the spawn apron)
