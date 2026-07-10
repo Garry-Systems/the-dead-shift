@@ -18,6 +18,8 @@ const DEFAULTS := {
 	"equipped_weapon": "",    # uid of the equipped instance
 	"unlocked_characters": ["ryan"],   # character ids the player owns (Ryan free)
 	"crates": {},             # owned unopened crates: crate_id -> count
+	"scrap": 0,               # EMPLOYEE BENEFITS currency — byproduct of deconstructs (Pack A)
+	"benefits": {},           # benefit track id -> purchased level (Pack A)
 	"dev_bonus_granted": false,     # DEV (legacy): the old 10k one-time bonus flag (superseded)
 	"dev_bonus_v2_granted": false,  # DEV (temporary): the 30k start bonus already given?
 	"last_daily_claim": "",   # "YYYY-MM-DD" of the last claimed daily-login reward ("" = never)
@@ -135,6 +137,28 @@ func spend_coins(amount: int) -> bool:
 		return false
 	_data["coins"] = coins() - amount
 	return true
+
+func scrap() -> int:
+	return int(_data.get("scrap", 0))
+
+func add_scrap(amount: int) -> void:
+	_data["scrap"] = scrap() + maxi(amount, 0)
+
+## False (and no mutation) when the wallet is short.
+func spend_scrap(amount: int) -> bool:
+	if amount > scrap():
+		return false
+	_data["scrap"] = scrap() - amount
+	return true
+
+func benefit_level(id: String) -> int:
+	var b: Dictionary = _data.get("benefits", {})
+	return int(b.get(id, 0))
+
+func set_benefit_level(id: String, lvl: int) -> void:
+	var b: Dictionary = _data.get("benefits", {})
+	b[id] = lvl
+	_data["benefits"] = b
 
 ## DEV (temporary): grant a one-time coin bonus so the store/economy is testable. Grants
 ## once per save (the flag persists + is saved), so the player can still spend normally.

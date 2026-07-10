@@ -558,6 +558,19 @@ const RANK_HORDE_UNLOCK := 3       # NIGHT CLERK
 const RANK_OVERTIME_UNLOCK := 5    # KEYHOLDER
 const RANK_HARDCORE_UNLOCK := 7    # STORE MANAGER
 
+# --- EMPLOYEE BENEFITS (roadmap-4 Pack A, v0.1.62) ---
+const BENEFIT_COSTS := [25, 60, 140, 320, 700]  # scrap cost for level 1..5 of every 5-cap track
+const BENEFIT_REVIVE_COST := 1500        # UNION REP single level
+const BENEFIT_REVIVE_HEAL_FRAC := 0.5    # revive restores this fraction of max HP
+const BENEFIT_REVIVE_INVULN := 2.0       # seconds of post-revive invulnerability
+const BENEFIT_HP_PER_LVL := 4.0          # INSURANCE: flat max HP per level (spawn baseline)
+const BENEFIT_SPEED_PER_LVL := 0.02      # COMFY SHOES: move-speed fraction per level
+const BENEFIT_XP_PER_LVL := 0.03         # NIGHT SCHOOL: xp-gain fraction per level
+const BENEFIT_CASH_PER_LVL := 50         # SIGNING BONUS: run-start coins per level
+const BENEFIT_DASH_CD_PER_LVL := 0.04    # STRETCH BREAKS: dash-cooldown cut per level
+const BENEFIT_COIN_PER_LVL := 0.02       # REGISTER SKIM: coin-gain fraction per level
+const BENEFIT_SCRAP_PER_LVL := 0.10      # PACK RAT: extra scrap from deconstructs per level
+
 const HORDE_SPAWN_MULT := 0.5      # HORDE NIGHT: spawn interval x this (reuses the Blood-Moon spawn-interval-mult mechanism)
 
 const HARDCORE_COIN_MULT := 3.0       # HARDCORE: RunStats.coin_mult x this at run start (composes with the "Silver Tongue" card — same accumulator)
