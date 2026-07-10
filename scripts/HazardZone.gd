@@ -22,6 +22,7 @@ var _time_left := 0.0
 var _tick := 0.0
 var _hurts_player := true
 var _puddle := false    # fuel-slick pre-arm look (Tanker trail): dark slick + faint sheen instead of faint hazard color
+var _immune_id := 0    # instance id of a node this zone never damages (TrailDash: the leaking boss itself — bosses are in the "enemies" group)
 
 ## Configure from a Hazards.stats_for() dict. Caller sets global_position + add_child FIRST.
 func configure_hazard(cfg: Dictionary) -> void:
@@ -41,6 +42,8 @@ func configure_hazard(cfg: Dictionary) -> void:
 	setup(null, null, {})                  # AttackPattern grabs the player from the group
 	_windup = float(cfg.get("windup", GameConfig.HAZARD_WINDUP))   # short arm by default; Tanker fuel passes a longer puddle→ignite delay
 	_puddle = bool(cfg.get("puddle", false))
+	var immune = cfg.get("immune", null)
+	_immune_id = immune.get_instance_id() if (immune != null and is_instance_valid(immune)) else 0
 	var ang := randf_range(0.0, TAU)
 	_drift_dir = Vector2(cos(ang), sin(ang))
 
@@ -82,6 +85,8 @@ func _apply(dt: float) -> void:
 	var enemies := tree.get_nodes_in_group("enemies")
 	for e in enemies:
 		if e == null or not is_instance_valid(e):
+			continue
+		if _immune_id != 0 and e.get_instance_id() == _immune_id:
 			continue
 		if (e as Node2D).global_position.distance_squared_to(global_position) > r2:
 			continue

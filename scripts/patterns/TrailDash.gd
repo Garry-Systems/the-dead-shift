@@ -17,7 +17,7 @@ var _dist_acc := 0.0
 
 func setup(b: Node2D, p: Node2D, cfg: Dictionary) -> void:
 	super.setup(b, p, cfg)
-	_spacing = float(cfg.get("spacing", GameConfig.TANKER_TRAIL_SPACING))
+	_spacing = maxf(float(cfg.get("spacing", GameConfig.TANKER_TRAIL_SPACING)), 1.0)   # floor at 1px — cfg spacing <= 0 must not hang the pool-drop while-loop
 	_chain = int(cfg.get("chain", 0))
 
 func _on_telegraph_end() -> void:
@@ -49,7 +49,7 @@ func _drop_pool() -> void:
 	hz.global_position = global_position
 	hz.configure_hazard({ "color": Hazards.ORANGE, "dps": GameConfig.TANKER_POOL_DPS * _special_mult_of(boss),
 		"radius": GameConfig.TANKER_POOL_RADIUS, "duration": GameConfig.TANKER_POOL_DURATION,
-		"windup": GameConfig.TANKER_IGNITE_DELAY, "puddle": true, "hurts_player": true })
+		"windup": GameConfig.TANKER_IGNITE_DELAY, "puddle": true, "hurts_player": true, "immune": boss })
 	hz.add_to_group(FUEL_GROUP)
 
 ## JACKKNIFE: instead of freeing after dash 1, re-telegraph briefly and dash again at the
