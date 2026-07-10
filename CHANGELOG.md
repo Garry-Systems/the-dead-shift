@@ -4,6 +4,15 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.65 — Transfer Request Approved (2026-07-10)
+
+You can work at other stores now. The other stores are not better.
+- **NEW: LOCATIONS** — pick where tonight's shift happens from the PLAY screen:
+  - **BIG MART** (rank 2) — fight down the aisles. Shelves come down in dominos, whole rows at a time, and the freezer section never really closed.
+  - **THE PARKING GARAGE** (rank 4) — concrete pillars carve the dark into shooting lanes, the cars go up in chains, and if you clip one, its alarm calls everything hungry within a block. Ring the dinner bell on purpose. It's a strategy.
+- Promotions now come with TRANSFER APPROVED notices. Your RECORDS page tracks a best wave per store.
+- The Daily Shift stays at your home forecourt — one board, one fight, no excuses.
+
 ## v0.1.64 — New Hires (Night Crew) (2026-07-10)
 
 You're not working alone anymore. Technically.
