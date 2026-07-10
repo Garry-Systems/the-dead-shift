@@ -7,6 +7,7 @@ extends Node2D
 
 var mode := "endless"
 var boss_rush_count := 0      # bosses spawned so far in boss_rush (drives scaling + HUD)
+var suspended := false   # THE BASEMENT (Pack E): controller pauses surface spawning/scatter while below
 
 var _player: Node2D
 var _timer := 0.0
@@ -18,6 +19,8 @@ func _ready() -> void:
 	_player = get_tree().get_first_node_in_group("player") as Node2D
 
 func _process(delta: float) -> void:
+	if suspended:
+		return
 	if _player == null:
 		return
 	if mode == "boss_rush":

@@ -7,6 +7,7 @@ var _player: Node2D
 var _spawn_t := 0.0
 var _cull_t := 0.0
 var _prev_wave := 1
+var suspended := false   # THE BASEMENT (Pack E): controller pauses surface spawning/scatter while below
 
 func _ready() -> void:
 	add_to_group("obstacle_field")
@@ -14,6 +15,8 @@ func _ready() -> void:
 	_prev_wave = DifficultyManager.wave
 
 func _process(delta: float) -> void:
+	if suspended:
+		return
 	if _player == null or not is_instance_valid(_player):
 		return
 	if DifficultyManager.wave != _prev_wave:
