@@ -640,3 +640,20 @@ const BASEMENT_WALL_SEG_RADIUS := 34.0  # one wall segment's collision radius â€
 const BASEMENT_RIM_INSET := 100.0       # gauntlet spawns land this far inside BASEMENT_RADIUS
 const BASEMENT_ELITE_INTERVAL := 10.0   # seconds between each forced-elite gauntlet spawn
 const BASEMENT_STRAGGLER_RADIUS := 2000.0  # ascend cleanup: enemies past this dist from the surface point are gauntlet stragglers, freed on sight
+
+# --- Coworkers (roadmap-4 Pack C, v0.1.64) ---
+const COWORKER_CRATE_PRICE := 800               # STAFF FILE store price (coins)
+const COWORKER_TRAIT_MIN_RARITY := 5            # rarity floor for a coworker to roll a trait (Savage/purple and up)
+const COWORKER_STAT_PER_RARITY := 0.18          # Coworkers.stat_mult() slope per rarity tier above 1
+const COWORKER_CAT_RATE := 4.0                  # seconds between cat pounces (base, pre rate_mult)
+const COWORKER_CAT_DAMAGE := 40.0               # cat pounce base damage
+const COWORKER_CAT_RANGE := 500.0               # px cat pounce target-acquire range
+const COWORKER_CAT_PIN := 0.45                  # seconds a cat pounce pins its target
+const COWORKER_DRONE_RATE := 1.1                # seconds between drone shots (base)
+const COWORKER_DRONE_DAMAGE := 9.0              # drone shot base damage
+const COWORKER_DRONE_RANGE := 420.0             # px drone target-acquire range
+const COWORKER_DRONE_ORBIT := 90.0              # px drone hover-orbit radius around the player
+const COWORKER_MANNEQUIN_CD := 12.0             # seconds between mannequin decoy placements
+const COWORKER_MANNEQUIN_HP := 150.0            # mannequin decoy base HP
+const COWORKER_MANNEQUIN_TAUNT_RADIUS := 400.0  # px radius the decoy taunts enemies within
+const COWORKER_MANNEQUIN_TAUNT_TIME := 4.0      # seconds each taunt tick lasts

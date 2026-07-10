@@ -16,6 +16,8 @@ const DEFAULTS := {
 	"best_bosses": 0,
 	"weapons": [],            # rolled weapon-loot instances (see LootRoller)
 	"equipped_weapon": "",    # uid of the equipped instance
+	"coworkers": [],          # rolled coworker instances (see Coworkers.gd, Pack C)
+	"equipped_coworker": "",  # uid of the equipped coworker ("" = none)
 	"unlocked_characters": ["ryan"],   # character ids the player owns (Ryan free)
 	"crates": {},             # owned unopened crates: crate_id -> count
 	"scrap": 0,               # EMPLOYEE BENEFITS currency — byproduct of deconstructs (Pack A)
@@ -484,6 +486,21 @@ func equipped_weapon() -> String:
 
 func set_equipped_weapon(uid: String) -> void:
 	_data["equipped_weapon"] = uid
+
+# --- Coworker inventory (Pack C, v0.1.64) — mirrors the weapon-loot accessors above verbatim;
+# no Inventory.gd wrapper, since coworkers aren't weapons and don't share its cap/scrap chokepoints.
+
+func coworkers() -> Array:
+	return _data.get("coworkers", [])
+
+func set_coworkers(list: Array) -> void:
+	_data["coworkers"] = list
+
+func equipped_coworker() -> String:
+	return String(_data.get("equipped_coworker", ""))
+
+func set_equipped_coworker(uid: String) -> void:
+	_data["equipped_coworker"] = uid
 
 # --- First-run onboarding hints ---
 
