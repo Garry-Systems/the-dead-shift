@@ -4,6 +4,14 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.63 — Check the Walk-In (2026-07-10)
+
+Someone has to.
+- **NEW: THE BASEMENT** — a cellar door sometimes appears mid-shift (wave 3+). Stand on it and go down: sixty seconds, sealed walls, dense hordes, guaranteed elites. Survive and a real crate comes back up with you — better crates the deeper into the night you find the door.
+- The shift clock keeps running while you're down there. Basement time is stolen time.
+- Twice a night at most, the door doesn't wait forever, and it won't show up near dawn — the chopper outranks the cellar. Not available in Boss Rush.
+- Your pay-stub now counts BASEMENTS CLEARED.
+
 ## v0.1.62 — The Benefits Package (2026-07-10)
 
 You're a valued employee now. Valued employees get BENEFITS:
