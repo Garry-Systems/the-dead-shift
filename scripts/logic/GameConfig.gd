@@ -94,7 +94,7 @@ const RELIC_MAX_HEALTH := 40.0        # vital_surge: +max HP (and heals the same
 # §1/§2: the pick-1-of-2 drop moment + slots/scrapping.
 const RELIC_CURSED_CHANCE := 0.35     # card B: chance the second roll is a CURSED relic instead of A's standard/prototype mix (card A is NEVER cursed)
 const RELIC_DRY_COINS := 150          # paid instead of a choice when the un-held pool can't offer even one card
-const RELIC_SKIP_COINS := 75          # paid when the player taps SKIP on a RELIC CHOICE instead of taking either card
+const RELIC_SKIP_COINS := 100         # paid when the player taps SKIP on a RELIC CHOICE instead of taking either card — equal to RELIC_SCRAP_COINS (standard scrap value): kills the take-then-scrap arb; starter value
 const RELIC_SCRAP_COINS := 100        # pause-menu SCRAP: coins paid for freeing a held STANDARD/PROTOTYPE relic's slot
 const RELIC_CURSED_SCRAP_COINS := 25  # SCRAP payout for a held CURSED relic (cheaper — the power already got used)
 

@@ -216,11 +216,13 @@ func _add_relic_card(id: String, cb: Callable) -> void:
 	_vbox.add_child(b)
 
 ## Scrap-phase card: name + family tag + scrap value (cursed relics scrap cheap — the power
-## already got used).
+## already got used). Value comes straight from RelicBar.scrap_value(id) — the SAME function
+## scrap() itself calls to decide the payout (PauseMenu._populate_relics' idiom, PauseMenu.gd:165)
+## — never re-derived here, so this card's number can never drift from what tapping it pays.
 func _add_scrap_card(id: String, cb: Callable) -> void:
 	var r := Relics.get_relic(id)
 	var cursed := String(r.get("family", "")) == "cursed"
-	var value := GameConfig.RELIC_CURSED_SCRAP_COINS if cursed else GameConfig.RELIC_SCRAP_COINS
+	var value: int = int(_bar.call("scrap_value", id)) if _bar != null else 0
 	var b := _make_card_button(cursed, _SCRAP_CARD_SIZE, 20)
 	b.pressed.connect(cb)
 	var content := _card_content(b)

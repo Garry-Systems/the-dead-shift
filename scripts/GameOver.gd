@@ -257,8 +257,9 @@ func _finish_run(is_win: bool) -> void:
 	# the refreshed instance back for the pay-stub's XP line (post-gain level/talent state).
 	# HARDCORE doubles this at the flush (Pack G); the "Punch Card" relic (Relics Overhaul)
 	# composes into the SAME multiplier via RunStats.weapon_xp_mult — both round together, once,
-	# mirroring CoinReward.final_payout's single int(round(float * mult)) idiom — the one
-	# Inventory.add_run_xp chokepoint.
+	# mirroring CoinReward.final_payout's single int(round(float * mult)) idiom. Two call sites
+	# must stay in lockstep: this one (GameOver._finish_run) and PauseMenu._abandon_run_payout's
+	# quit twin — both read the SAME RunStats.weapon_xp_mult and round once the SAME way.
 	var equipped_uid := Inventory.equipped_uid()
 	var xp_amount := kills + wave * 10 + bosses * 50
 	var xp_mult := RunStats.weapon_xp_mult

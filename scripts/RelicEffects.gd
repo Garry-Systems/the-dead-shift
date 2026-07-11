@@ -344,13 +344,16 @@ func _on_player_hurt(player: Player) -> void:
 ## fire a method on a freed instance. Damage-only: no light_fuse, no loot, no second hazard zone —
 ## just a second Shockwave.blast() at RELIC_DOUBLE_FUSE_PCT power, hit_destructibles=false (the
 ## v0.1.36 recursion lesson — an echo must never re-trigger the barrel/shelf chain).
+## process_always=false: the echo honors the pause contract every Destructible fuse honors — a
+## crate popped right before a pause menu / level-up / RELIC CHOICE freezes the tree must not keep
+## ticking down and detonating behind the paused overlay.
 func _on_hazard_burst(pos: Vector2, radius: float, damage: float, force: float) -> void:
 	if not held("double_fuse"):
 		return
 	var tree := get_tree()
 	if tree == null:
 		return
-	tree.create_timer(GameConfig.RELIC_DOUBLE_FUSE_DELAY).timeout.connect(
+	tree.create_timer(GameConfig.RELIC_DOUBLE_FUSE_DELAY, false).timeout.connect(
 		_static_echo_blast.bind(tree, pos, radius, damage, force))
 
 static func _static_echo_blast(tree: SceneTree, pos: Vector2, radius: float, damage: float, force: float) -> void:

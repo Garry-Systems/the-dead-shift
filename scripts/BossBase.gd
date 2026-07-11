@@ -220,6 +220,11 @@ func _touching_player() -> bool:
 func take_damage(amount: float) -> void:
 	if _health.is_dead():
 		return
+	# Relics Overhaul (accelerant): mirrors Enemy.take_damage's identical read — the desc promises
+	# "everything on fire" and bosses are the marquee burn target this relic was written for.
+	# Static flag read — zero cost, byte-identical when the relic isn't held.
+	if _burn_time > 0.0 and RelicEffects.accelerant:
+		amount *= (1.0 + GameConfig.RELIC_ACCELERANT_PCT)
 	_health.take_damage(amount)
 	if _health.is_dead():
 		_die()
