@@ -156,9 +156,9 @@ const CHAR_ALSTAR_PURPLE_MIN_RARITY := 5    # "purple or above" = Savage (rarity
 const CHAR_ALSTAR_SHOCK_RADIUS := 320.0     # px reach of his dash shockwave (push + damage + talents)
 const CHAR_ALSTAR_SHOCK_DAMAGE := 50.0      # flat damage to every enemy caught in the blast
 const CHAR_ALSTAR_SHOCK_FORCE := 1200.0     # px/sec knockback impulse away from him (decays via Enemy.KNOCKBACK_DECAY)
-# Ryan Ace: his dash purges every enemy projectile + instant-reloads an equipped AK.
-const CHAR_RYAN_PURGE_FX_RADIUS := 520.0    # px radius of the (cosmetic) purge pulse ring
-const CHAR_RYAN_ABILITY_COOLDOWN := 15.0    # seconds between purges (the dash itself stays on DASH_COOLDOWN)
+# Ryan Ace: his dash instant-reloads an equipped AK (the old projectile-purge + radial push
+# moved to his CLEAR OUT ability — see ABILITY_CLEAROUT_* below, which still shares this FX radius).
+const CHAR_RYAN_PURGE_FX_RADIUS := 520.0    # px radius of CLEAR OUT's cosmetic pulse ring
 
 # --- Reload (Spec 2) ---
 const RELOAD_TIME_FLOOR := 0.15             # seconds; minimum effective reload after speed bonuses
@@ -861,10 +861,11 @@ const TRUCK_RELIC_COST := 400            # MYSTERY FLAVOR price
 # AbilityButton.gd. All 7 abilities are RUN-SCOPED — nothing here persists to SaveManager.
 const ABILITY_BUTTON_SIZE := 148.0        # px square HUD cast button
 
-# CLEAR OUT (Ryan Ace): zero-damage map purge + radial knockback push (Task 2 wires the effect;
-# replaces his old dash-purge — see CHAR_RYAN_ABILITY_COOLDOWN's own doc, deleted alongside it).
+# CLEAR OUT (Ryan Ace): zero-damage map purge + radial knockback push — replaces his old
+# dash-purge (CHAR_RYAN_ABILITY_COOLDOWN, deleted; the FX radius const lives on as
+# CHAR_RYAN_PURGE_FX_RADIUS, still shared by this ability's visual pulse).
 const ABILITY_CLEAROUT_CD := 40.0         # seconds
-const ABILITY_CLEAROUT_RADIUS := 520.0    # px knockback reach (matches the old purge FX ring)
+const ABILITY_CLEAROUT_RADIUS := 520.0    # px knockback reach (matches the purge FX ring)
 const ABILITY_CLEAROUT_FORCE := 1400.0    # px/sec knockback impulse — zero damage, push only
 
 # SENTRY TURRET (Jackson Killa): cap-1 auto-turret, talent-free CompanionBullet fire (Task 4).

@@ -60,7 +60,7 @@ var _revive_invuln_time := 0.0   # seconds remaining of post-UNION-REP-revive in
                                   # pre-existing spawn-protection mechanism was found anywhere in
                                   # this codebase — grepped invuln/spawn_protect/_protect across
                                   # every .gd file and found nothing to reuse; this is a new,
-                                  # minimal timer, gated the same way _fire_lock_time/_ability_cd are)
+                                  # minimal timer, gated the same way _fire_lock_time is)
 
 ## The player's weapon node (gun upgrade cards modify it). Set in _ready.
 var gun: Gun
@@ -76,7 +76,6 @@ var _sprite: Sprite2D
 var _facing := 2          # index into DIR_TEX; 2 = south (faces the camera at start)
 var _fire_lock_time := 0.0   # boss "jam" debuff: gun can't fire while > 0
 var _dash_ability := ""      # special dash effect for the chosen character ("" = plain dash); set by Main
-var _ability_cd := 0.0       # Ryan's purge cooldown remaining (seconds); the dash movement is unaffected
 ## Boss "slow" debuff: one {factor, remaining} entry per source (see apply_slow) instead of a
 ## single merged factor/time pair — avoids mixing one source's strength with another source's
 ## duration. Live entries are ticked/pruned in _physics_process; effective move-speed multiplier
@@ -105,8 +104,6 @@ func _physics_process(delta: float) -> void:
 	_dash.tick(delta)
 	if _flash_cd > 0.0:
 		_flash_cd -= delta
-	if _ability_cd > 0.0:
-		_ability_cd -= delta
 	if _fire_lock_time > 0.0:
 		_fire_lock_time -= delta
 	if _revive_invuln_time > 0.0:
@@ -206,8 +203,9 @@ func _on_dash_started() -> void:
 	match _dash_ability:
 		"shockwave":
 			_spawn_shockwave()
-		"purge":
-			_purge_projectiles()
+		"ak_reload":
+			if gun != null and gun.weapon_id == "ak47":
+				gun.instant_reload()
 		"slick":
 			_spawn_slick()
 		"mine":
@@ -220,25 +218,6 @@ func _spawn_shockwave() -> void:
 	sw.global_position = global_position
 	sw.blast(GameConfig.CHAR_ALSTAR_SHOCK_RADIUS, GameConfig.CHAR_ALSTAR_SHOCK_DAMAGE,
 		GameConfig.CHAR_ALSTAR_SHOCK_FORCE, gun, self)
-
-## Ryan Ace: wipe every enemy projectile off the map, instant-reload an equipped AK, and fire
-## a white screen flash + pulse ring. On its own cooldown — the dash (movement) still happens
-## while it's recharging, it just doesn't purge.
-func _purge_projectiles() -> void:
-	if _ability_cd > 0.0:
-		return
-	_ability_cd = GameConfig.CHAR_RYAN_ABILITY_COOLDOWN
-	SoundManager.play("purge")
-	for p in get_tree().get_nodes_in_group("enemy_projectiles"):
-		if is_instance_valid(p):
-			p.queue_free()
-	if gun != null and gun.weapon_id == "ak47":
-		gun.instant_reload()
-	get_tree().current_scene.add_child(ScreenFlash.new())   # full-screen white flash
-	var fx := Shockwave.new()
-	get_tree().current_scene.add_child(fx)
-	fx.global_position = global_position
-	fx.flash(GameConfig.CHAR_RYAN_PURGE_FX_RADIUS)
 
 ## The Janitor: dash leaves a mop-bucket slick — a HazardZone tuned to hurt NOBODY (dps 0,
 ## hurts_player false) that only slows enemies standing in it. Rides the SAME shared
@@ -263,15 +242,7 @@ func _spawn_slick() -> void:
 func _spawn_delivery_mine() -> void:
 	Mine.spawn(global_position, GameConfig.CHAR_DELIVERY_MINE_DMG, GameConfig.CHAR_DELIVERY_MINE_RADIUS, get_tree())
 
-## --- Dash-ability readouts for the HUD ---
-
-## True if this run's character has the purge dash ability (gates the HUD cooldown readout).
-func has_purge_ability() -> bool:
-	return _dash_ability == "purge"
-
-## Seconds left on the purge cooldown (0 = ready).
-func ability_cooldown_remaining() -> float:
-	return maxf(_ability_cd, 0.0)
+## --- Dash state readout ---
 
 ## True while a dash is currently in progress. No dash-start signal exists, so the
 ## first-run hint controller polls this to detect the player's first dash.

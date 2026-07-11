@@ -17,7 +17,6 @@ var _boss_was_revealed := false  # edge-detects "a REVEALED boss wave starts" fo
 var _last_shift_toast := -999.0   # engine-clock seconds of the last SHIFT CHANGE toast (debounce)
 var _ammo_label: Label
 var _reload_bar: ProgressBar
-var _ability_label: Label   # Ryan's purge cooldown, shown above the ammo (only when he has it)
 var _hp_bar: ProgressBar
 var _hp_label: Label
 var _player: Player
@@ -139,15 +138,6 @@ func _ready() -> void:
 	_reload_bar.visible = false
 	add_child(_reload_bar)
 
-	_ability_label = Label.new()
-	_ability_label.anchor_top = 1.0
-	_ability_label.anchor_bottom = 1.0
-	_ability_label.offset_left = 14
-	_ability_label.offset_top = -184    # sits above the reload bar / ammo readout, bottom-left
-	_ability_label.offset_bottom = -136
-	_ability_label.visible = false
-	add_child(_ability_label)
-
 	_apply_pixel_style()
 
 	_hints = FirstRunHints.new()
@@ -184,7 +174,6 @@ func _apply_pixel_style() -> void:
 	_label_px(_clock_label, 22, PixelTheme.TEXT)
 	_label_px(_boss_name_label, 24, PixelTheme.ACCENT)   # C4 — boss name over the (C3 DANGER) HP bar
 	_label_px(_ammo_label, 48, PixelTheme.ACCENT)
-	_label_px(_ability_label, 28, PixelTheme.ACCENT)
 	_style_bar(_bar, PixelTheme.SELECT)        # XP — C4 lavender (full-width strip up top)
 	_style_bar(_hp_bar, PixelTheme.ACCENT)     # health — C4 lavender (player/action color)
 	_style_bar(_boss_bar, PixelTheme.DANGER)   # boss — C3 gray-tan (the enemy/threat color)
@@ -302,19 +291,6 @@ func _process(_delta: float) -> void:
 		else:
 			_ammo_label.text = "%d / %d" % [gun.ammo(), gun.mag_size]
 			_reload_bar.visible = false
-
-	# Ryan's purge cooldown, above the ammo (hidden for characters without the ability).
-	if _player.has_purge_ability():
-		_ability_label.visible = true
-		var cd := _player.ability_cooldown_remaining()
-		if cd > 0.0:
-			_ability_label.text = "PURGE  %ds" % int(ceil(cd))
-			_ability_label.add_theme_color_override("font_color", PixelTheme.TEXT_DIM)
-		else:
-			_ability_label.text = "PURGE READY"
-			_ability_label.add_theme_color_override("font_color", PixelTheme.SELECT)
-	else:
-		_ability_label.visible = false
 
 	# Special Abilities (v0.1.70): live cooldown-fill poll, only for a character that has a button.
 	if _ability_button != null and _ability_controller != null and is_instance_valid(_ability_controller):

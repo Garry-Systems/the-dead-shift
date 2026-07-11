@@ -62,7 +62,7 @@ func try_cast() -> bool:
 
 	match String(_row.get("id", "")):
 		"clear_out":
-			_cast_clear_out()
+			_cast_clear_out(player)
 		"turret":
 			_cast_turret()
 		"dead_eye":
@@ -77,10 +77,38 @@ func try_cast() -> bool:
 			_cast_air_drop()
 	return true
 
-## CLEAR OUT (Ryan Ace): zero-damage map-wide projectile purge + radial knockback push.
-## Callout-only this task — effect lands in Task 2.
-func _cast_clear_out() -> void:
+## CLEAR OUT (Ryan Ace): zero-damage map-wide projectile purge + radial knockback push. Frees
+## every "enemy_projectiles" node, then shoves every "enemies" node within ABILITY_CLEAROUT_RADIUS
+## of the player (has_method-guarded — a boss without the knockback channel is skipped free, not
+## damaged). Hand-rolled instead of Shockwave.blast — blast() always deals damage, and this
+## ability never does. Visuals + SFX are the exact purge-FX recipe the old dash-purge used
+## (ScreenFlash + Shockwave.flash + "purge"), now triggered from here instead of the dash.
+func _cast_clear_out(player: Player) -> void:
 	_last_cast_id = "clear_out"
+	for p in get_tree().get_nodes_in_group("enemy_projectiles"):
+		if is_instance_valid(p):
+			p.queue_free()
+	SoundManager.play("purge")
+	if player == null or not is_instance_valid(player):
+		return
+	var origin := player.global_position
+	var r2 := GameConfig.ABILITY_CLEAROUT_RADIUS * GameConfig.ABILITY_CLEAROUT_RADIUS
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e):
+			continue
+		var node := e as Node2D
+		if node.global_position.distance_squared_to(origin) > r2:
+			continue
+		var dir := origin.direction_to(node.global_position)
+		if dir == Vector2.ZERO:
+			dir = Vector2.RIGHT
+		if e.has_method("apply_knockback"):
+			e.apply_knockback(dir * GameConfig.ABILITY_CLEAROUT_FORCE)
+	get_tree().current_scene.add_child(ScreenFlash.new())
+	var fx := Shockwave.new()
+	get_tree().current_scene.add_child(fx)
+	fx.global_position = origin
+	fx.flash(GameConfig.CHAR_RYAN_PURGE_FX_RADIUS)
 
 ## SENTRY TURRET (Jackson Killa): cap-1 auto-turret, talent-free CompanionBullet fire.
 ## Callout-only this task — effect lands in Task 4.
