@@ -11,6 +11,7 @@ var _inv_panel: Control
 var _records_panel: Control
 var _records_vbox: VBoxContainer   # records list content (rebuilt by _populate_records)
 var _records_scroll: ScrollContainer   # current records list scroll (null when not shown)
+var _records_tab := "records"   # current RECORDS-panel tab: "records" | "badges" | "challenges" — resets to "records" on page open (see _show_records)
 var _benefits_panel: Control
 var _benefits_vbox: VBoxContainer   # benefits list content (rebuilt by _populate_benefits)
 var _benefits_scroll: ScrollContainer   # current benefits list scroll (null when not shown)
@@ -411,11 +412,18 @@ func _unlocked_location_ids(rank: int) -> Array:
 
 ## Restores the last-picked location at menu load. Guard: a saved id that's somehow no longer
 ## unlocked (hand-edited save; ranks themselves never regress) falls back to forecourt rather than
-## trusting stale/invalid save data.
+## trusting stale/invalid save data — and persists that correction back (same set_last_location +
+## save_game chokepoint _on_cycle_location uses) so a stale/invalid saved id doesn't just get
+## silently re-corrected in memory on every single boot forever.
 func _restore_selected_location() -> void:
 	var saved := SaveManager.last_location()
 	var rank := Ranks.rank_for(SaveManager.rank_xp())
-	_selected_location = saved if Locations.unlocked(saved, rank) else "forecourt"
+	if Locations.unlocked(saved, rank):
+		_selected_location = saved
+	else:
+		_selected_location = "forecourt"
+		SaveManager.set_last_location("forecourt")
+		SaveManager.save_game()
 
 ## Refreshes the LOCATION row's visibility + text to the player's current rank. Called every time
 ## the mode panel is about to show (mirrors _refresh_daily_button/_refresh_mode_lock_buttons above
@@ -875,6 +883,7 @@ func _build_records_panel() -> void:
 	# Contents are (re)built on every show by _populate_records().
 
 func _show_records() -> void:
+	_records_tab = "records"   # tab state resets on page open, per the RECORDS-tabs contract
 	_populate_records()
 	_show_only(_records_panel)
 
@@ -986,12 +995,18 @@ func _commendation_row(parent: VBoxContainer, row: Dictionary) -> void:
 
 	parent.add_child(line)
 
+## RECORDS-panel shell: title, the RECORDS/BADGES/CHALLENGES tab row, and the shared scroll+list
+## wrapper (drag-scroll registration lives here, once per rebuild — same _records_scroll idiom the
+## page always used). Only the ONE active tab's content function renders into `list`; switching
+## tabs re-runs this whole function (see _records_tab_button), so drag-scroll is always freshly
+## registered for whichever tab is now showing.
 func _populate_records() -> void:
 	for c in _records_vbox.get_children():
 		c.queue_free()
 	_records_scroll = null   # cleared each rebuild; re-set below
 
 	_make_title(_records_vbox, "RECORDS", 44)
+	_records_vbox.add_child(_records_tab_row())
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1009,16 +1024,58 @@ func _populate_records() -> void:
 	list.custom_minimum_size = Vector2(660, 0)
 	center_row.add_child(list)
 
-	# --- Pack C: TODAY'S CHALLENGES (3 rows: desc, progress text, reward-crate icon) ---
-	var challenge_header := Label.new()
-	challenge_header.text = "TODAY'S CHALLENGES"
-	challenge_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(challenge_header, 22, PixelTheme.ACCENT)
-	list.add_child(challenge_header)
-	for row in SaveManager.active_challenges():
-		_challenge_row(list, row)
-	list.add_child(_spacer(6))
+	match _records_tab:
+		"badges":
+			_populate_badges_tab(list)
+		"challenges":
+			_populate_challenges_tab(list)
+		_:
+			_populate_records_tab(list)
 
+	var back := _make_button("BACK", _guarded(func(): _show_only(_hub)))
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_records_vbox.add_child(back)
+
+## The 3-button RECORDS/BADGES/CHALLENGES tab row, under the title. The current tab renders in
+## the Button's own built-in "pressed" look (toggle_mode + button_pressed=true reuses
+## PixelTheme.style_button's "pressed" stylebox override — full ACCENT fill/border, DARK text —
+## permanently, instead of only while physically held) so no new styling is introduced; the other
+## two tabs render normal (BTN_BG fill / ACCENT_DIM border).
+func _records_tab_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	row.add_child(_records_tab_button("RECORDS", "records"))
+	row.add_child(_records_tab_button("BADGES", "badges"))
+	row.add_child(_records_tab_button("CHALLENGES", "challenges"))
+	return row
+
+## One tab button. 3x312px + 2x8 separation = 952px, inside the ~968px card content width
+## (1080 viewport - 2x24 MarginContainer margin - 2x32 PixelTheme.style_card content margin) —
+## same "compute width vs 1080" check the hub's SFX/MUSIC/EFFECTS toggle-row comment documents.
+## `_guarded` (not a plain `.pressed` connect) so a tab tap that's actually the release-end of a
+## records-list scroll drag doesn't also switch tabs. Rebuilds the WHOLE records panel
+## unconditionally on every tap, even a re-tap of the already-active tab: cheap (every other
+## panel in this file already fully rebuilds on any state change), and it sidesteps toggle_mode's
+## own press/release flip on the JUST-TAPPED button — that button gets queue_free()'d and replaced
+## by a fresh one built straight from `_records_tab` a moment later, so the transient internal
+## toggle-off never has a frame to render.
+func _records_tab_button(label_text: String, id: String) -> Button:
+	var b := Button.new()
+	b.text = label_text
+	PixelTheme.style_button(b, Vector2(312, 72), 22)
+	b.toggle_mode = true
+	b.button_pressed = _records_tab == id
+	b.pressed.connect(_guarded(func():
+		_records_tab = id
+		_populate_records()
+	))
+	return b
+
+## RECORDS tab (default): lifetime bests (incl. per-location), general stats, and kills-by-weapon.
+## Everything the old single-page _populate_records had EXCEPT Pack C's TODAY'S CHALLENGES board
+## (now _populate_challenges_tab) and Pack H's commendations wall (now _populate_badges_tab).
+func _populate_records_tab(list: VBoxContainer) -> void:
 	var best_clockout := SaveManager.best_clockout_seconds()
 	var clockout_text := ShiftClock.clock_string(best_clockout) if best_clockout > 0.0 else "—"
 	var best_daily := SaveManager.best_daily_score()
@@ -1059,19 +1116,6 @@ func _populate_records() -> void:
 	_stat_row(list, "COMMENDATIONS", "%d/%d" % [SaveManager.commendations_earned_count(), Commendations.all().size()])
 	_stat_row(list, "BEST DAILY SCORE", "%d" % best_daily if best_daily > 0 else "—")
 
-	# --- Pack H: COMMENDATIONS wall (badge grid/list, folded into RECORDS per the spec's own
-	# "own view or RECORDS extension — implementer judgment" — this reuses the already-working
-	# scroll + drag-scroll idiom this whole panel already has, and the icon+desc+progress row
-	# shape _challenge_row above already proved fits inside this 660px list). ---
-	list.add_child(_spacer(6))
-	var comm_header := Label.new()
-	comm_header.text = "COMMENDATIONS %d/%d" % [SaveManager.commendations_earned_count(), Commendations.all().size()]
-	comm_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	PixelTheme.style_label(comm_header, 22, PixelTheme.ACCENT)
-	list.add_child(comm_header)
-	for row in Commendations.all():
-		_commendation_row(list, row)
-
 	list.add_child(_spacer(6))
 	var gun_header := Label.new()
 	gun_header.text = "KILLS BY WEAPON"
@@ -1094,9 +1138,30 @@ func _populate_records() -> void:
 		for e in entries:
 			_stat_row(list, String(Weapons.name_for(String(e[0]))).to_upper(), "%d" % int(e[1]))
 
-	var back := _make_button("BACK", _guarded(func(): _show_only(_hub)))
-	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_records_vbox.add_child(back)
+## BADGES tab (Pack H): the commendations wall — N/18 header + one row per badge. Folded out of
+## the old single-page RECORDS body per the spec's own "own view or RECORDS extension —
+## implementer judgment"; reuses the already-working scroll + drag-scroll idiom the shell
+## (_populate_records) sets up, and the icon+desc+progress row shape _challenge_row already
+## proved fits inside the shared 660px list.
+func _populate_badges_tab(list: VBoxContainer) -> void:
+	var comm_header := Label.new()
+	comm_header.text = "COMMENDATIONS %d/%d" % [SaveManager.commendations_earned_count(), Commendations.all().size()]
+	comm_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(comm_header, 22, PixelTheme.ACCENT)
+	list.add_child(comm_header)
+	for row in Commendations.all():
+		_commendation_row(list, row)
+
+## CHALLENGES tab (Pack C): TODAY'S CHALLENGES header + the daily board rows (desc, progress
+## text, reward-crate icon per row via _challenge_row).
+func _populate_challenges_tab(list: VBoxContainer) -> void:
+	var challenge_header := Label.new()
+	challenge_header.text = "TODAY'S CHALLENGES"
+	challenge_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(challenge_header, 22, PixelTheme.ACCENT)
+	list.add_child(challenge_header)
+	for row in SaveManager.active_challenges():
+		_challenge_row(list, row)
 
 # --- benefits: spend scrap on permanent QoL tracks (Employee Benefits Pack A) ---
 func _build_benefits_panel() -> void:

@@ -106,8 +106,11 @@ func _build_ui() -> void:
 	# SECOND OPINION: half-height pixel button under the card row. Hidden whenever the
 	# player has no charges left (default 0 charges = never shown, matching every other
 	# unowned Benefits track reading as absent rather than as a dead/disabled control).
+	# Deep Clean (Task 3): clip_contents=true + height 94 (exact half of the 188px card buttons
+	# above, matching their own clip_contents=true) — was 92 (uncropped, off by 2 from "exact half").
 	_reroll_btn = Button.new()
-	PixelTheme.style_button(_reroll_btn, Vector2(760, 92), 24)
+	_reroll_btn.clip_contents = true
+	PixelTheme.style_button(_reroll_btn, Vector2(760, 94), 24)
 	_reroll_btn.pressed.connect(_on_reroll_pressed)
 	vbox.add_child(_reroll_btn)
 

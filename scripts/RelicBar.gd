@@ -33,8 +33,12 @@ func _ready() -> void:
 func _build_ui() -> void:
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	center.offset_top = 34
-	center.offset_bottom = 80
+	# Deep Clean (Task 3): was offset_top=34/offset_bottom=80, overlapping Hud._bar (the XP bar,
+	# offset_top=10/offset_bottom=58 — see Hud._ready) by 24px (y 34-58). Pushed down to clear it
+	# (58 + a 6px gap), same 46px band height preserved. The XP bar itself is untouched — it's
+	# muscle memory, per the brief.
+	center.offset_top = 64
+	center.offset_bottom = 110
 	add_child(center)
 
 	_hbox = HBoxContainer.new()
