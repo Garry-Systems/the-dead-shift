@@ -526,7 +526,9 @@ func _populate_characters() -> void:
 		list.add_child(row)
 
 	_char_vbox.add_child(_spacer(4))
-	_char_vbox.add_child(_make_button("BACK", _guarded(func(): _show_only(_hub))))
+	var back := _make_button("BACK", _guarded(func(): _show_only(_hub)))
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_char_vbox.add_child(back)
 	_refresh_char_labels()
 
 func _select_character(id: String) -> void:
