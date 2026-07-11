@@ -781,3 +781,4 @@ const SHOPPER_REVEALED_SPEED_MULT := 1.7    # revealed persistent chase pace —
 const SHOPPER_CADENCE := 2.8                # seconds between revealed lunge casts (per spec)
 const SHOPPER_CHARGE_SPEED := 480.0         # px/sec — a short slash lunge, well under Courier's 650 arena-crossing charge
 const SHOPPER_CHARGE_DURATION := 0.35       # seconds — short, per spec ("fast slash combos", not a long dash)
+const SHOPPER_REVEALED_SCALE := 2.4         # revealed Sprite2D scale (Courier's baked .tscn value); concealed stays at the shambler's baked 1.0 — the reveal visibly GROWS her to boss size

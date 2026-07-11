@@ -14,7 +14,6 @@ xp_gem_scene = ExtResource("3_gem")
 relic_pickup_scene = ExtResource("5_relic")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-z_index = -1
 scale = Vector2(1, 1)
 texture = ExtResource("2_tex")
 
