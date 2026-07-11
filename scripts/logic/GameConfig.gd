@@ -874,6 +874,7 @@ const ABILITY_TURRET_LIFETIME := 12.0     # seconds before the turret expires
 const ABILITY_TURRET_INTERVAL := 0.5      # seconds between retarget/fire ticks
 const ABILITY_TURRET_DAMAGE := 26.0       # flat damage per shot
 const ABILITY_TURRET_RANGE := 620.0       # px retarget/fire acquire range
+const ABILITY_TURRET_FLASH_RADIUS := 80.0 # px expiry-flash ring (Shockwave.flash, cosmetic only)
 
 # DEAD EYE (Jimbo James): bullet time via a Juice.base_scale owner (Task 5).
 const ABILITY_DEADEYE_CD := 50.0          # seconds

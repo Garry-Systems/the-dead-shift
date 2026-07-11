@@ -162,6 +162,7 @@ func _descend() -> void:
 	SoundManager.play("basement_descend")
 	_surface_pos = _player.global_position
 	_player.global_position = GameConfig.BASEMENT_OFFSET
+	_free_turret()
 	_set_suspended(true)
 	in_basement = true
 	_phase = Phase.GAUNTLET
@@ -283,6 +284,7 @@ func _ascend() -> void:
 	_free_stragglers()
 	_free_stranded_gems()
 	_free_stranded_decoys()
+	_free_turret()
 	if _crate != null and is_instance_valid(_crate):
 		_crate.queue_free()
 	_crate = null
@@ -341,6 +343,18 @@ func _free_stranded_decoys() -> void:
 			continue
 		if (d as Node2D).global_position.distance_to(_surface_pos) > GameConfig.BASEMENT_STRAGGLER_RADIUS:
 			d.queue_free()
+
+## SENTRY TURRET (Task 4): stationary hardware can't ride a teleport — the same
+## COWORKER_LEASH_SNAP reasoning Companion.gd:141 documents for the companion, except a turret
+## has no reactive per-frame distance check of its own, so Basement has to sweep it explicitly.
+## Called at BOTH descent and ascent: descent-only would leave a surface turret shooting at
+## nothing while the player's underground (its lifetime keeps ticking down uselessly at the
+## surface spot); ascent too covers the same case in reverse if a future ability variant ever
+## let one be cast during the gauntlet itself.
+func _free_turret() -> void:
+	for t in get_tree().get_nodes_in_group("player_turret"):
+		if is_instance_valid(t):
+			t.queue_free()
 
 func _set_suspended(v: bool) -> void:
 	var spawner := get_tree().get_first_node_in_group("spawner")

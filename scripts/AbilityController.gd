@@ -64,7 +64,7 @@ func try_cast() -> bool:
 		"clear_out":
 			_cast_clear_out(player)
 		"turret":
-			_cast_turret()
+			_cast_turret(player)
 		"dead_eye":
 			_cast_dead_eye()
 		"ghost":
@@ -110,10 +110,14 @@ func _cast_clear_out(player: Player) -> void:
 	fx.global_position = origin
 	fx.flash(GameConfig.CHAR_RYAN_PURGE_FX_RADIUS)
 
-## SENTRY TURRET (Jackson Killa): cap-1 auto-turret, talent-free CompanionBullet fire.
-## Callout-only this task — effect lands in Task 4.
-func _cast_turret() -> void:
+## SENTRY TURRET (Jackson Killa): cap-1 auto-turret, talent-free CompanionBullet fire
+## (Turret.gd, Task 4). Same null-guard idiom as _cast_clear_out — the whole effect is anchored
+## on the player's position, so there's nothing to do at all without a valid one.
+func _cast_turret(player: Player) -> void:
 	_last_cast_id = "turret"
+	if player == null or not is_instance_valid(player):
+		return
+	Turret.spawn(player.global_position, get_tree())
 
 ## DEAD EYE (Jimbo James): bullet time via a Juice.base_scale owner + a move-speed/frenzy comp.
 ## Callout-only this task — effect lands in Task 5.
