@@ -97,9 +97,9 @@ func try_cast() -> bool:
 		"jackpot":
 			_cast_jackpot(player)
 		"closing_time":
-			_cast_closing_time()
+			_cast_closing_time(player)
 		"air_drop":
-			_cast_air_drop()
+			_cast_air_drop(player)
 	return true
 
 ## CLEAR OUT (Ryan Ace): zero-damage map-wide projectile purge + radial knockback push. Frees
@@ -304,12 +304,52 @@ func _jackpot_callout_color(word: String) -> Color:
 		_:
 			return Hazards.ORANGE
 
-## CLOSING TIME (The Janitor): one giant slick + a per-kill coin window inside it.
-## Callout-only this task — effect lands in Task 8.
-func _cast_closing_time() -> void:
+## CLOSING TIME (The Janitor): one giant slick + a per-kill coin window inside it. The cfg dict
+## is Player._spawn_slick's OWN cfg, copied verbatim, except radius (SLICK_RADIUS x the ability's
+## RADIUS_MULT) and duration (ABILITY_CLOSING_DURATION) — same "hurts nobody, only slows" shape
+## as the Janitor's own dash puddle (dps 0 / hurts_player false / slow+slow_dur reused as-is).
+##
+## Deliberately does NOT call HazardZone.cap_player_pools(): this ability is already capped to
+## one cast per ABILITY_CLOSING_CD (45s) by try_cast()'s own cooldown gate — the cooldown IS its
+## cap, so it can never itself flood the shared player_pools group. Calling cap_player_pools()
+## here would only evict some UNRELATED existing pool member (an Acid Cannon shell, or one of the
+## Janitor's own smaller dash slicks) for no reason — the TrailDash precedent (its own "own-group"
+## fuel-pool cap, HazardZone.gd) for a spawn site that already has its own natural cap not riding
+## the shared eviction too. The zone still JOINS "player_pools" via configure_hazard's own
+## unconditional add (hurts_player == false) — that membership is unavoidable/harmless and
+## unrelated to this cap-call omission; it just means a LATER Janitor dash slick could eventually
+## evict this zone the same way any two player_pools members can evict each other, which is
+## existing, expected behavior this ability doesn't change.
+func _cast_closing_time(player: Player) -> void:
 	_last_cast_id = "closing_time"
+	if player == null or not is_instance_valid(player):
+		return
+	var radius := GameConfig.CHAR_JANITOR_SLICK_RADIUS * GameConfig.ABILITY_CLOSING_RADIUS_MULT
+	var cfg := {
+		"color": PixelTheme.ACCENT, "dps": 0.0, "radius": radius,
+		"duration": GameConfig.ABILITY_CLOSING_DURATION,
+		"slow": GameConfig.CHAR_JANITOR_SLICK_SLOW, "slow_dur": GameConfig.CHAR_JANITOR_SLICK_SLOW_DUR,
+		"stun": 0.0, "chain": 0, "drift": 0.0, "hurts_player": false,
+	}
+	var zone := HazardZone.new()
+	get_tree().current_scene.add_child(zone)
+	zone.global_position = player.global_position
+	zone.configure_hazard(cfg)
+	# Arms the T7 kill_coin_bonus() seam for the SAME area + duration as the zone itself —
+	# engine-clock seconds, the Hud._last_shift_toast idiom (matches _coin_window_until above).
+	_coin_zone_center = player.global_position
+	_coin_zone_radius = radius
+	_coin_zone_until = Time.get_ticks_msec() / 1000.0 + GameConfig.ABILITY_CLOSING_DURATION
 
-## AIR DROP (The Delivery Girl): telegraphed blast + a healing/gem care package.
-## Callout-only this task — effect lands in Task 8.
-func _cast_air_drop() -> void:
+## AIR DROP (The Delivery Girl): drops a telegraphed AirDropMarker at a SNAPSHOT of the player's
+## position at cast time. The marker is a get_tree().current_scene child, not a child of (or
+## reference-holding on) the player — see AirDropMarker.gd's own header comment — so the drop
+## lands on schedule ABILITY_AIRDROP_DELAY seconds later even if the caster dies, dashes away, or
+## the run otherwise moves on mid-telegraph.
+func _cast_air_drop(player: Player) -> void:
 	_last_cast_id = "air_drop"
+	if player == null or not is_instance_valid(player):
+		return
+	var marker: Node2D = preload("res://scripts/AirDropMarker.gd").new()
+	get_tree().current_scene.add_child(marker)
+	marker.global_position = player.global_position
