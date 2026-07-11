@@ -4,6 +4,14 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.68 — Night Shift Stories (2026-07-11)
+
+The night got two new problems and three new guests. Roster's at eleven.
+- **THE MYSTERY SHOPPER** — she's already in the horde. She looks exactly like the rest of them, right up until she doesn't. Find her, unmask her, and try to keep track when she slips back into the crowd. Fire won't flush her out. We checked.
+- **THE MASCOT** — the store costume, three layers deep. Every layer you knock off, what's underneath is smaller, faster, and still smiling.
+- **VISITORS** — sometimes the night brings company: the **ICE CREAM TRUCK** (spend your shift's coins mid-run — heal, reroll, or a mystery flavor; it all itemizes as SNACKS on your stub), a **CRYPTID** worth chasing before it vanishes, and the occasional **DRIVE-BY** that doesn't check who's standing in the lane.
+- The truck doesn't wait for people in basements. It'll come back.
+
 ## v0.1.67 — Deep Clean (2026-07-10)
 
 The store got one quiet night. We used it.
