@@ -159,6 +159,7 @@ func _descend() -> void:
 		in_basement = false
 		return
 	get_tree().current_scene.add_child(ScreenFlash.new())
+	SoundManager.play("basement_descend")
 	_surface_pos = _player.global_position
 	_player.global_position = GameConfig.BASEMENT_OFFSET
 	_set_suspended(true)

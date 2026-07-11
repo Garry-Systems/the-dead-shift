@@ -15,7 +15,7 @@ const SFX_IDS: Array[String] = [
 	"shot_pistol", "shot_smg", "shot_shotgun", "shot_rifle", "shot_sniper", "shot_heavy",
 	"shot_special", "hit_enemy", "die_enemy", "explosion", "gem", "coin", "crate_win",
 	"level_up", "ui_tap", "purchase", "dash", "purge", "player_hurt", "death_sting",
-	"boss_roar", "dawn_sting",
+	"boss_roar", "dawn_sting", "car_alarm", "relic_choice", "cursed_reveal", "basement_descend",
 ]
 const MUSIC_IDS: Array[String] = ["menu_loop", "run_loop"]
 

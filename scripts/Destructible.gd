@@ -231,20 +231,18 @@ func _taunt_nearby() -> void:
 		if e is Enemy and is_instance_valid(e) and global_position.distance_squared_to((e as Node2D).global_position) <= r2:
 			(e as Enemy).taunt(self, GameConfig.WAIL_TAUNT_DUR)
 
-## Reuses "boss_roar" (the loudest, most "look over here" existing SFX id — grepped SoundManager's
-## SFX_IDS; no "alarm"/"ui_denied" id actually exists in this codebase, so the brief's suggested
-## names were speculative) as a placeholder car-alarm sting, throttled via a STATIC (shared across
-## every wailing car, not per-instance) min-gap so a dense multi-car wail can't machine-gun it —
-## SoundManager.play()'s own MIN_INTERVAL_MS dict only throttles per-id calls made close together
-## in time regardless of caller, but WAIL_SFX_MIN_GAP_MS below is a second, independent throttle
-## layered on top of that (deliberately looser than SoundManager's own gate would need — this one
-## exists so the alarm reads as a periodic "whoop-whoop", not a per-tick retrigger every 0.5s).
+## Plays the car-alarm sting, throttled via a STATIC (shared across every wailing car, not
+## per-instance) min-gap so a dense multi-car wail can't machine-gun it — SoundManager.play()'s
+## own MIN_INTERVAL_MS dict only throttles per-id calls made close together in time regardless
+## of caller, but WAIL_SFX_MIN_GAP_MS below is a second, independent throttle layered on top of
+## that (deliberately looser than SoundManager's own gate would need — this one exists so the
+## alarm reads as a periodic "whoop-whoop", not a per-tick retrigger every 0.5s).
 func _play_wail_sfx() -> void:
 	var now := Time.get_ticks_msec()
 	if now - _last_wail_sfx_ms < GameConfig.WAIL_SFX_MIN_GAP_MS:
 		return
 	_last_wail_sfx_ms = now
-	SoundManager.play("boss_roar")
+	SoundManager.play("car_alarm")
 
 func _die() -> void:
 	if _detonating:

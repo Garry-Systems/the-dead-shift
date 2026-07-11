@@ -114,6 +114,16 @@ func _show_next() -> void:
 	_rebuild_choice()
 	_root.visible = true
 	get_tree().paused = true
+	# Play discovery sting on open
+	SoundManager.play("relic_choice")
+	# If B is cursed, layer a cursed sting 0.3s later (runs during pause via process_always=true).
+	var b_relic := Relics.get_relic(_b_id) if _b_id != "" else {}
+	if String(b_relic.get("family", "")) == "cursed":
+		# SceneTreeTimer with process_always=true fires even while get_tree().paused is true,
+		# matching the overlay's own PROCESS_MODE_ALWAYS behavior.
+		var timer := get_tree().create_timer(0.3, false, true)
+		await timer.timeout
+		SoundManager.play("cursed_reveal")
 
 func _rebuild_choice() -> void:
 	_clear_vbox()
