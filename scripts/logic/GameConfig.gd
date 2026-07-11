@@ -854,3 +854,65 @@ const TRUCK_HEAL_COST := 150             # HEAL SCOOP price (run coins)
 const TRUCK_HEAL_FRAC := 0.30            # HEAL SCOOP: fraction of max HP restored via player.heal()
 const TRUCK_REROLL_COST := 200           # SECOND OPINION TO GO price
 const TRUCK_RELIC_COST := 400            # MYSTERY FLAVOR price
+
+# --- Special Abilities "Company Equipment" (v0.1.70): one signature active ability per
+# character on a flat-cooldown HUD button. Registry = scripts/logic/Abilities.gd; controller =
+# scripts/AbilityController.gd (cooldown machine + cast dispatch); button = scripts/ui/
+# AbilityButton.gd. All 7 abilities are RUN-SCOPED — nothing here persists to SaveManager.
+const ABILITY_BUTTON_SIZE := 148.0        # px square HUD cast button
+
+# CLEAR OUT (Ryan Ace): zero-damage map purge + radial knockback push (Task 2 wires the effect;
+# replaces his old dash-purge — see CHAR_RYAN_ABILITY_COOLDOWN's own doc, deleted alongside it).
+const ABILITY_CLEAROUT_CD := 40.0         # seconds
+const ABILITY_CLEAROUT_RADIUS := 520.0    # px knockback reach (matches the old purge FX ring)
+const ABILITY_CLEAROUT_FORCE := 1400.0    # px/sec knockback impulse — zero damage, push only
+
+# SENTRY TURRET (Jackson Killa): cap-1 auto-turret, talent-free CompanionBullet fire (Task 4).
+const ABILITY_TURRET_CD := 45.0           # seconds
+const ABILITY_TURRET_LIFETIME := 12.0     # seconds before the turret expires
+const ABILITY_TURRET_INTERVAL := 0.5      # seconds between retarget/fire ticks
+const ABILITY_TURRET_DAMAGE := 26.0       # flat damage per shot
+const ABILITY_TURRET_RANGE := 620.0       # px retarget/fire acquire range
+
+# DEAD EYE (Jimbo James): bullet time via a Juice.base_scale owner (Task 5).
+const ABILITY_DEADEYE_CD := 50.0          # seconds
+const ABILITY_DEADEYE_DURATION := 3.0     # REAL seconds the window lasts (ignore_time_scale timer)
+const ABILITY_DEADEYE_SCALE := 0.3        # Engine.time_scale during the window
+const ABILITY_DEADEYE_MOVE_COMP := 2.5    # player move-speed multiplier while time is slowed
+const ABILITY_DEADEYE_FRENZY := 0.6       # gun.add_frenzy fire-rate bonus (maxf-merged)
+
+# ONE OF THEM (Zombie Bob): the horde loses target lock on him (Task 6).
+const ABILITY_GHOST_CD := 45.0            # seconds
+const ABILITY_GHOST_DURATION := 4.0       # seconds; bosses are unaffected by construction
+
+# JACKPOT (Alstar Tuck): four-roll slot machine, equal odds (Task 7).
+const ABILITY_JACKPOT_CD := 60.0                  # seconds
+const ABILITY_JACKPOT_NUKE_RADIUS := 480.0        # NUKE: Shockwave.blast radius
+const ABILITY_JACKPOT_NUKE_DAMAGE := 220.0        # NUKE: Shockwave.blast damage
+const ABILITY_JACKPOT_NUKE_FORCE := 1400.0        # NUKE: Shockwave.blast knockback force
+const ABILITY_JACKPOT_FREEZE_DUR := 3.0           # DEEP FREEZE: apply_freeze duration
+const ABILITY_JACKPOT_PAYDAY_COINS := 2           # PAYDAY: bonus coins per kill while armed
+const ABILITY_JACKPOT_PAYDAY_DURATION := 10.0     # PAYDAY: window length (seconds)
+const ABILITY_JACKPOT_FRENZY := 0.4               # TRIGGER HAPPY: gun.add_frenzy fire-rate bonus
+const ABILITY_JACKPOT_FRENZY_DUR := 6.0           # TRIGGER HAPPY: frenzy duration (seconds)
+
+# CLOSING TIME (The Janitor): one giant slick + a per-kill coin window inside it (Task 8).
+const ABILITY_CLOSING_CD := 45.0          # seconds
+const ABILITY_CLOSING_RADIUS_MULT := 3.0  # x CHAR_JANITOR_SLICK_RADIUS for the giant zone
+const ABILITY_CLOSING_DURATION := 8.0     # seconds the zone + its coin window last
+const ABILITY_CLOSING_COINS := 2          # bonus coins per kill landed inside the zone
+
+# AIR DROP (The Delivery Girl): telegraphed blast + healing/gem care package (Task 8).
+const ABILITY_AIRDROP_CD := 40.0          # seconds
+const ABILITY_AIRDROP_DELAY := 1.5        # seconds of telegraph before the blast lands
+const ABILITY_AIRDROP_RADIUS := 300.0     # blast + scatter radius
+const ABILITY_AIRDROP_DAMAGE := 160.0     # Shockwave.blast damage (no gun — no talents)
+const ABILITY_AIRDROP_FORCE := 1200.0     # Shockwave.blast knockback force
+const ABILITY_AIRDROP_HEAL := 25.0        # HP restored per dropped HealthPack
+const ABILITY_AIRDROP_PACKS := 2          # HealthPacks spawned
+const ABILITY_AIRDROP_GEMS := 3           # XpGems spawned
+const ABILITY_AIRDROP_GEM_VALUE := 3      # XP value per spawned gem
+
+# Jackson Killa (new 7th character, Task 3): heavy-weapons specialist.
+const CHAR_JACKSON_HEAVY_DMG_PCT := 0.25   # +damage with minigun/grenade_launcher/lmg
+const CHAR_JACKSON_HEAVY_FIRE_PCT := 0.15  # +fire rate with the same

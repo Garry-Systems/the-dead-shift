@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=28 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Texture2D" path="res://art/ground.png" id="10_ground"]
@@ -26,6 +26,7 @@
 [ext_resource type="Script" path="res://scripts/ui/RelicChoice.gd" id="25_relicchoice"]
 [ext_resource type="Script" path="res://scripts/Visitors.gd" id="26_visitors"]
 [ext_resource type="Script" path="res://scripts/ui/TruckShop.gd" id="27_truckshop"]
+[ext_resource type="Script" path="res://scripts/AbilityController.gd" id="28_abilities"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("11_main")
@@ -84,6 +85,9 @@ script = ExtResource("26_visitors")
 
 [node name="Juice" type="Node" parent="."]
 script = ExtResource("22_juice")
+
+[node name="AbilityController" type="Node" parent="."]
+script = ExtResource("28_abilities")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("4_hud")

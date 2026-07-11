@@ -23,6 +23,12 @@ var _hp_label: Label
 var _player: Player
 var _hints: FirstRunHints   # first-run onboarding hint strip (no-op once SaveManager.tutorial_done())
 
+# --- Special Abilities "Company Equipment" (v0.1.70) ---
+var _ability_controller: AbilityController   # group lookup — set once in _ready (Juice/Visitors
+                                              # sit earlier in Main.tscn, so its own _ready has
+                                              # already run and joined the "ability_controller" group)
+var _ability_button: AbilityButton           # built only when Abilities.for_character(...) is non-empty
+
 var _dawn_fired := false    # DAWN banner + coin bonus fire once per run (Hud is rebuilt each run)
 
 # --- Full-screen toast banner (self-freeing, presentation-only; mirrors ScreenFlash's
@@ -147,6 +153,28 @@ func _ready() -> void:
 	_hints = FirstRunHints.new()
 	add_child(_hints)
 	_hints.setup(_player)
+
+	_build_ability_button()
+
+## Special Abilities (v0.1.70): only characters with a row (Abilities.for_character) get a
+## button at all — a character with no ability (until every row is filled) shows nothing here.
+func _build_ability_button() -> void:
+	_ability_controller = get_tree().get_first_node_in_group("ability_controller") as AbilityController
+	var row := Abilities.for_character(RunConfig.character_id)
+	if row.is_empty():
+		return
+	_ability_button = AbilityButton.new()
+	_ability_button.setup(row)
+	_ability_button.pressed.connect(_on_ability_button_pressed)
+	add_child(_ability_button)
+
+## A denied press (still cooling) gets a small visual nudge and nothing else — spec: no spam,
+## so no sound plays on a failed cast attempt.
+func _on_ability_button_pressed() -> void:
+	if _ability_controller == null or not is_instance_valid(_ability_controller):
+		return
+	if not _ability_controller.try_cast():
+		_ability_button.nudge()
 
 ## Applies the shared PixelTheme look to every HUD label and bar.
 func _apply_pixel_style() -> void:
@@ -287,6 +315,10 @@ func _process(_delta: float) -> void:
 			_ability_label.add_theme_color_override("font_color", PixelTheme.SELECT)
 	else:
 		_ability_label.visible = false
+
+	# Special Abilities (v0.1.70): live cooldown-fill poll, only for a character that has a button.
+	if _ability_button != null and _ability_controller != null and is_instance_valid(_ability_controller):
+		_ability_button.set_cooldown_fraction(_ability_controller.cooldown_fraction())
 
 ## Once-per-run dawn banner. Thin wrapper over _show_banner (Pack 7 extracted the node-building
 ## so the SHIFT CHANGE toast below can reuse it verbatim). Reframed for Dawn Extraction (Pack A):
