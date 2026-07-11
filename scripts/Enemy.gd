@@ -70,6 +70,14 @@ var _fear_time := 0.0          # seconds remaining feared (Night Terror talent);
 var _taunt_node: Node2D        # Coworkers (Mannequin decoy, T3): steer-to + contact target while active
 var _taunt_time := 0.0         # seconds remaining taunted; 0 = not taunted
 var _knockback := Vector2.ZERO # decaying impulse (Concussive talent)
+## ONE OF THEM: the last PRE-knockback chase velocity computed on a non-ghosted frame — the
+## "wander heading" a ghosted enemy keeps walking. Ghosted frames re-base `velocity` from this
+## every tick instead of inheriting last frame's END state, because that end state already had
+## `_knockback` added into it: re-adding knockback on top of an inherited sum would COMPOUND the
+## push every frame (a ghosted enemy hit by GravityWell/Concussive/CLEAR OUT would accelerate
+## into a rocket instead of wandering off). Re-basing keeps `velocity += _knockback` one-shot-
+## and-decaying, identical to non-ghosted frames.
+var _last_desired := Vector2.ZERO
 var _contact_cd := 0.0         # bite cooldown: counts down between contact hits so we bounce, not stick
 var _flash_mat: ShaderMaterial
 var _flash_cd := 0.0            # counts down between hit-flashes (see FLASH_CD)
@@ -473,15 +481,21 @@ func _physics_process(delta: float) -> void:
 	if _target == null or not is_instance_valid(_target):
 		return
 
-	# ONE OF THEM: gate the RE-AIM only, never zero velocity here — CharacterBody2D persists
-	# whatever velocity was set last frame, so a ghosted enemy just keeps walking its last
-	# heading and wanders off (reads as "lost you"). Zeroing would read as frozen instead.
+	# ONE OF THEM: gate the RE-AIM only, never zero velocity here — a ghosted enemy keeps
+	# walking its last chase heading and wanders off (reads as "lost you"; zeroing would read
+	# as frozen instead). The ghosted branch re-bases from `_last_desired` (the stored PRE-
+	# knockback heading) rather than letting last frame's velocity carry over, because last
+	# frame's END state already had `_knockback` added into it — inheriting it and adding
+	# knockback again below would compound the push every frame (see _last_desired's comment).
 	# Fear/taunt below OUTRANK ghost on purpose: they're separate if/elif branches that still
 	# unconditionally overwrite `velocity` after this, exactly like they already outrank a plain
 	# unghosted chase — a taunted or feared enemy was never "targeting the player" to begin with,
 	# so ghost has nothing to suppress there.
 	if not _target_ghosted():
 		velocity = _desired_velocity() * _slow_factor * (1.0 + _elite_buff_speed)
+		_last_desired = velocity
+	else:
+		velocity = _last_desired
 
 	# Night Terror (`onhit_fear`): enforced HERE at the base, like the frozen/pin zeroing below,
 	# so a subclass _desired_velocity override (RangedEnemy's standoff-keeping) can't bypass it —
