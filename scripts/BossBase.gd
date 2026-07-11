@@ -65,6 +65,15 @@ func _base_tint() -> Color:
 func boss_id() -> String:
 	return ""
 
+## Night Shift Stories (v0.1.68): the concealed-boss seam. Default true — every existing boss
+## is always "revealed" and stays byte-identical (this is the ONLY behavior BossBase gains for
+## the seam; everything else — disguise sprite, reveal triggers, re-cloak — lives entirely in
+## the concealed boss's own subclass, e.g. MysteryShopper). Hud.gd gates the boss bar/name/toast
+## on this instead of "a boss node exists" so a concealed boss (shared trash art, no HUD
+## presence) can walk the arena as ordinary-looking horde filler until it chooses to reveal.
+func revealed() -> bool:
+	return true
+
 ## Override per boss: returns the phase table. Each entry is a Dictionary:
 ##   { "at": float,           # enter when health_fraction() <= at; phases[0].at MUST be 1.0
 ##     "patterns": Array,     # entries: { "scene": PackedScene, "params": Dictionary }

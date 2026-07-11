@@ -13,6 +13,7 @@ const BOSS_LINES := {
 	"courier": "signature required. he will collect it.",
 	"karen": "she asked for corporate. corporate is dead.",
 	"tanker": "pump 3 called for a refill. he's still delivering.",
+	"mystery_shopper": "she's been shopping since tuesday. nothing in the basket.",
 }
 
 const DEATH_QUIPS := [

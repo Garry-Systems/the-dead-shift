@@ -8,7 +8,12 @@ var _wave_label: Label
 var _clock_label: Label     # night-shift clock (endless only), just under the wave/timer label
 var _boss_bar: ProgressBar
 var _boss_name_label: Label   # boss display name, shown just above the boss HP bar
-var _boss_was_alive := false  # edge-detects "a boss wave starts" for the SHIFT CHANGE toast
+var _boss_was_revealed := false  # edge-detects "a REVEALED boss wave starts" for the SHIFT CHANGE toast
+# (Night Shift Stories v0.1.68: renamed from _boss_was_alive. A concealed boss — e.g. THE MYSTERY
+# SHOPPER, disguised as ordinary horde filler — doesn't count as "a boss wave starts" until it
+# reveals, so the edge this tracks is "a REVEALED boss is visible", not merely "a boss node
+# exists". Every existing boss's revealed() is always true, so for them this edge is still
+# exactly the old "no boss -> boss" edge, byte-identical.)
 var _last_shift_toast := -999.0   # engine-clock seconds of the last SHIFT CHANGE toast (debounce)
 var _ammo_label: Label
 var _reload_bar: ProgressBar
@@ -211,19 +216,27 @@ func _process(_delta: float) -> void:
 			CameraShake.add_trauma(GameConfig.SHAKE_TRAUMA_DAWN)   # Pack D
 			_show_dawn_banner()
 
+	# Night Shift Stories (v0.1.68): every BossBase now has revealed() (default true — see
+	# BossBase.gd's doc comment on the method), so bar/name/toast all gate on it instead of on
+	# "a boss node exists". For the existing 9 bosses revealed() is always true, so
+	# `boss_revealed` is exactly `boss != null` for them — byte-identical HUD behavior.
 	var boss := get_tree().get_first_node_in_group("boss")
-	if boss != null:
+	var boss_revealed := boss != null and (boss as BossBase).revealed()
+	if boss_revealed:
 		_boss_bar.visible = true
 		_boss_bar.value = (boss as BossBase).health_fraction()
 		var boss_id := (boss as BossBase).boss_id()
 		_boss_name_label.visible = true
 		_boss_name_label.text = Bosses.name_for(boss_id)
-		if not _boss_was_alive:
-			_boss_was_alive = true
-			# Debounced: the "no boss -> boss" edge can flicker in Boss Rush (a boss dying and
-			# the refill spawning can straddle a Hud _process depending on sibling order), and
-			# the toast shouldn't re-fire on every refill anyway. Engine clock, not run time —
-			# monotonic and pause-proof.
+		if not _boss_was_revealed:
+			_boss_was_revealed = true
+			# Debounced: the "no revealed boss -> revealed boss" edge can flicker in Boss Rush (a
+			# boss dying and the refill spawning can straddle a Hud _process depending on sibling
+			# order), and the toast shouldn't re-fire on every refill anyway. Engine clock, not
+			# run time — monotonic and pause-proof. A concealed boss revealing LATER (e.g. THE
+			# MYSTERY SHOPPER, mid-fight) crosses this same edge — _boss_was_revealed was reset to
+			# false while it was concealed (see the else branch below) — so the toast still fires
+			# exactly once per reveal, same debounce as any other boss-appears edge.
 			var now := Time.get_ticks_msec() / 1000.0
 			if now - _last_shift_toast >= GameConfig.SHIFT_TOAST_COOLDOWN:
 				_last_shift_toast = now
@@ -241,7 +254,7 @@ func _process(_delta: float) -> void:
 	else:
 		_boss_bar.visible = false
 		_boss_name_label.visible = false
-		_boss_was_alive = false
+		_boss_was_revealed = false
 
 	var gun := _player.gun
 	if gun != null:

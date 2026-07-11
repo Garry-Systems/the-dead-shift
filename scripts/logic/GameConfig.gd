@@ -766,3 +766,18 @@ const GARAGE_ARM_HALF_SIZE := Vector2(70.0, 8.0)      # barrier arm half-extent 
 const GARAGE_ARM_OFFSET_X := 150.0                    # each arm's X offset from center (left/right)
 const GARAGE_ARM_Y := -150.0                          # both arms' Y position (between the booth and the spawn apron)
 const GARAGE_ARM_HP := 40.0   ## breakable gate arm — walk-through props must never eat bullets forever
+
+# --- THE MYSTERY SHOPPER (boss #10, Night Shift Stories v0.1.68): concealed-boss seam ---
+# Starts disguised as ordinary horde filler (shared enemy.png, no boss bar/toast) and reveals
+# on either trigger below, then re-cloaks at every phase edge (0.66 / 0.33 health fraction).
+const SHOPPER_HP := 1800.0                  # between Karen (1600) and Fryer (2000)
+const SHOPPER_REVEAL_DAMAGE := 60.0         # cumulative damage taken since the last cloak that forces a reveal
+const SHOPPER_REVEAL_RANGE := 120.0         # px — player closing to this range also forces a reveal (strike range)
+# Bosses share a fixed, non-wave-scaled chase base (BOSS_MOVE_SPEED 45 — see DifficultyCurve.
+# boss_stats) unlike trash (which scales per-wave off ENEMY_MOVE_SPEED), so these two multipliers
+# are a relative-parity choice, not literal parity with Enemies.gd's shambler/runner spd_mult:
+const SHOPPER_CONCEALED_SPEED_MULT := 0.35  # concealed drift toward the player — reads as a slow shambler amble, not a chase
+const SHOPPER_REVEALED_SPEED_MULT := 1.7    # revealed persistent chase pace — matches STOCKER_SPEED_MULT's "fast" anchor (closest existing runner-class boss)
+const SHOPPER_CADENCE := 2.8                # seconds between revealed lunge casts (per spec)
+const SHOPPER_CHARGE_SPEED := 480.0         # px/sec — a short slash lunge, well under Courier's 650 arena-crossing charge
+const SHOPPER_CHARGE_DURATION := 0.35       # seconds — short, per spec ("fast slash combos", not a long dash)
