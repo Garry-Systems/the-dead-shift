@@ -782,3 +782,27 @@ const SHOPPER_CADENCE := 2.8                # seconds between revealed lunge cas
 const SHOPPER_CHARGE_SPEED := 480.0         # px/sec — a short slash lunge, well under Courier's 650 arena-crossing charge
 const SHOPPER_CHARGE_DURATION := 0.35       # seconds — short, per spec ("fast slash combos", not a long dash)
 const SHOPPER_REVEALED_SCALE := 2.4         # revealed Sprite2D scale (Courier's baked .tscn value); concealed stays at the shambler's baked 1.0 — the reveal visibly GROWS her to boss size
+
+# --- THE MASCOT (boss #11, Night Shift Stories v0.1.68): shedding, accelerating duel ---
+# Phase = costume layer. Each threshold (0.66 / 0.33) sheds: a RING burst, then the collider
+# radius AND Sprite2D scale are set to MASCOT_SCALE_L* * the Courier-clone .tscn's baked base
+# (radius 46 / scale 2.4) — NOT compounded onto the current value, so the ladder always reads
+# off the same fixed base. Speed climbs via each phase's own speed_mult (BossBase's existing
+# mechanism — no extra code needed). HP is front-loaded: L1's slow bulk carries most of the bar.
+const MASCOT_HP := 2600.0                 # 2nd-tankiest costume boss — between Tanker (2400) and Manager (3000)
+const MASCOT_SCALE_L1 := 1.15             # FULL SUIT — bulked up above the Courier-clone base
+const MASCOT_SCALE_L2 := 0.9              # HALF SUIT — shrinking toward base
+const MASCOT_SCALE_L3 := 0.7              # THE PERFORMER — tiny, runner-fast
+const MASCOT_SPEED_MULT_L1 := 0.55        # slow, tanky presence
+const MASCOT_SPEED_MULT_L2 := 0.9         # charges start landing
+const MASCOT_SPEED_MULT_L3 := 1.35        # relentless — faster than the player's base walk
+const MASCOT_CADENCE_L1 := 4.4            # seconds between casts — ground slam + summon
+const MASCOT_CADENCE_L2 := 3.6            # charge + slam
+const MASCOT_CADENCE_L3 := 2.0            # short erratic dashes — a duel
+const MASCOT_SLAM_RADIUS := 220.0         # L1/L2 ground-slam (RING) radius — matches SLAM_RADIUS's default
+const MASCOT_SLAM_DAMAGE := 30.0          # L1/L2 ground-slam damage
+const MASCOT_SUMMON_COUNT := 2            # "2 fans" summoned by L1's SUMMON cast
+const MASCOT_SHED_RING_RADIUS := 260.0    # the on_enter shed-burst RING (wider than the slam — the costume coming apart)
+const MASCOT_SHED_RING_DAMAGE := 25.0     # shed-burst damage
+const MASCOT_L3_CHARGE_SPEED := 550.0     # px/sec — L3's short erratic dash (faster than Shopper's 480 slash-lunge, under Courier's 650 arena-crosser)
+const MASCOT_L3_CHARGE_DURATION := 0.3    # seconds — short, per spec

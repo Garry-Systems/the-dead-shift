@@ -17,6 +17,7 @@ const _LIST: Array[Dictionary] = [
 	{ "id": "tanker", "scene": preload("res://scenes/bosses/Tanker.tscn"), "name": "THE TANKER" },
 	# Night Shift Stories (v0.1.68)
 	{ "id": "mystery_shopper", "scene": preload("res://scenes/bosses/MysteryShopper.tscn"), "name": "THE MYSTERY SHOPPER" },
+	{ "id": "mascot", "scene": preload("res://scenes/bosses/Mascot.tscn"), "name": "THE MASCOT" },
 ]
 
 static func count() -> int:

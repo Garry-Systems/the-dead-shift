@@ -14,6 +14,7 @@ const BOSS_LINES := {
 	"karen": "she asked for corporate. corporate is dead.",
 	"tanker": "pump 3 called for a refill. he's still delivering.",
 	"mystery_shopper": "she's been shopping since tuesday. nothing in the basket.",
+	"mascot": "the suit stays on. the suit has always been on.",
 }
 
 const DEATH_QUIPS := [
