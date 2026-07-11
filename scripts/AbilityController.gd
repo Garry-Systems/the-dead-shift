@@ -66,8 +66,9 @@ func cooldown_fraction() -> float:
 	return clampf(_cd_remaining / cd, 0.0, 1.0)
 
 ## Attempts to cast this run's ability. False while cooling, or if this character has none at
-## all. On success: restarts the cooldown, pops the generic name callout + staged SFX, then
-## `match`-dispatches to the specific `_cast_<id>()` handler.
+## all. On success: restarts the cooldown, pops the generic name callout + this ability's cast
+## SFX (Abilities.gd's "sfx" key, T9), then `match`-dispatches to the specific `_cast_<id>()`
+## handler.
 func try_cast() -> bool:
 	if _row.is_empty() or not is_ready():
 		return false
@@ -81,9 +82,12 @@ func try_cast() -> bool:
 	if player != null and is_instance_valid(player) and String(_row.get("id", "")) != "jackpot":
 		CombatText.callout(player.global_position, "%s!" % String(_row.get("name", "")), PixelTheme.ACCENT)
 
-	# STAGED: T9 lands the real "ability_ready"-family SFX ids (one per ability). "ui_tap" stands
-	# in for all 7 until then.
-	SoundManager.play("ui_tap")
+	# T9: per-ability cast SFX, read straight off the registry row (Abilities.gd's "sfx" key).
+	# CLEAR OUT's row carries "" — _cast_clear_out plays "purge" itself below, so a generic
+	# play() here would double up (the Task 2 ui_tap+purge bug this wiring closes).
+	var cast_sfx := String(_row.get("sfx", ""))
+	if cast_sfx != "":
+		SoundManager.play(cast_sfx)
 
 	match String(_row.get("id", "")):
 		"clear_out":

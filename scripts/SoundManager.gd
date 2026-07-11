@@ -17,6 +17,8 @@ const SFX_IDS: Array[String] = [
 	"level_up", "ui_tap", "purchase", "dash", "purge", "player_hurt", "death_sting",
 	"boss_roar", "dawn_sting", "car_alarm", "relic_choice", "cursed_reveal", "basement_descend",
 	"truck_jingle", "truck_honk", "driveby_siren",
+	"ability_ready", "ability_turret", "ability_deadeye", "ability_ghost", "ability_jackpot",
+	"ability_airdrop",
 ]
 const MUSIC_IDS: Array[String] = ["menu_loop", "run_loop"]
 

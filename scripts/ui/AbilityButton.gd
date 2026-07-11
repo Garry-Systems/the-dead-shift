@@ -56,12 +56,19 @@ func _setup_icon() -> void:
 	add_child(letter_label)
 
 ## Called every frame by Hud with the controller's live cooldown_fraction() (0 ready .. 1 just
-## cast). Only redraws when the value actually changed.
+## cast). Only redraws when the value actually changed. Plays "ability_ready" exactly once, on
+## the cooling->ready transition edge (T9) — this is the natural place for it: the button
+## already owns `_fraction` and this is the only site that sees both the old and new value, so
+## no separate flag is needed. `was_cooling` guards the very first call too (boot's _fraction
+## starts at 0.0, so an already-ready ability at spawn never fires a false ping).
 func set_cooldown_fraction(f: float) -> void:
 	if is_equal_approx(_fraction, f):
 		return
+	var was_cooling := _fraction > 0.0
 	_fraction = f
 	queue_redraw()
+	if was_cooling and _fraction <= 0.0:
+		SoundManager.play("ability_ready")
 
 ## Small denial nudge for a press while still cooling (spec: "no spam" — no sound, just a brief
 ## visual no). Hud calls this when try_cast() returns false.
