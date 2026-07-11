@@ -25,6 +25,10 @@ func _ready() -> void:
 	# Keep this UI alive and clickable while the rest of the tree is paused.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 10
+	# THE ICE CREAM TRUCK (Night Shift Stories, Task 4): "level_up_ui" group so TruckShop.gd can
+	# reach add_reroll_charge() below via the SAME group + dynamic .call() idiom RelicBar/
+	# RelicChoice already use everywhere in this codebase (this file has no class_name).
+	add_to_group("level_up_ui")
 
 	_player = get_tree().get_first_node_in_group("player") as Player
 	if _player:
@@ -141,6 +145,16 @@ func _refresh_cards() -> void:
 func _update_reroll_button() -> void:
 	_reroll_btn.visible = _rerolls_left > 0
 	_reroll_btn.text = "REROLL (%d)" % _rerolls_left
+
+## THE ICE CREAM TRUCK's "SECOND OPINION TO GO" (Night Shift Stories, Task 4): grants one extra
+## reroll charge from OUTSIDE the normal Benefits.reroll_charges() _ready()-time read — the one
+## external mutation point for _rerolls_left. Reached via the "level_up_ui" group + dynamic .call()
+## from TruckShop.gd. Safe to call whether or not the level-up card overlay is currently open/
+## visible — _update_reroll_button() only touches the (already-built) button, never the paused/
+## root-visible state, so a mid-run purchase can't accidentally pop the level-up screen.
+func add_reroll_charge() -> void:
+	_rerolls_left += 1
+	_update_reroll_button()
 
 func _on_reroll_pressed() -> void:
 	if _rerolls_left <= 0:

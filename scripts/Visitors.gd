@@ -12,12 +12,12 @@ extends Node2D
 ## Which visitor = a seeded uniform pick among the not-yet-seen-this-run kinds
 ## (VisitorsLogic.pick, backed by RunConfig.rand_int()) — no repeats within a run.
 ##
-## THE ICE CREAM TRUCK is the third visitor kind (Task 4 implements it in full); this task wires
-## it into the pick pool/rotation/no-repeat bookkeeping so that shape is already correct, but
-## _start_truck() itself is a push_warning STUB — the one sanctioned stub in this task, per the
-## brief. Picking it still counts against VISITOR_MAX_PER_RUN and the no-repeat set (so an
-## endless run that happens to roll the truck this task doesn't get a "free" extra
-## cryptid/drive-by later — Task 4 replaces this one function body and nothing else changes).
+## THE ICE CREAM TRUCK is the third visitor kind — _start_truck() spawns a real IceCreamTruck
+## (scripts/IceCreamTruck.gd), which owns its own arrival/park/shop-zone/departure lifecycle
+## end to end. Task 4's own determinism invariant: nothing this dispatcher (or the truck's own
+## lifecycle) touches ever calls RunConfig.rand_float()/rand_int() — the seeded Daily Shift stream
+## only ever sees the ONE draw that already happened in _roll_visitor's pick() call, before this
+## kind was even chosen.
 
 const VISITOR_CRYPTID := "cryptid"
 const VISITOR_DRIVEBY := "driveby"
@@ -141,14 +141,19 @@ func _start_driveby() -> bool:
 	_active_node = lane
 	return true
 
-## THE ICE CREAM TRUCK (Task 4's own visitor). Stubbed here ONLY so the pick pool/rotation is
-## already the right shape (3 kinds, no-repeat, per-run cap) before Task 4's real implementation
-## lands — the ONE sanctioned stub in this task, per the task brief. Returns true (the slot IS
-## consumed, per the brief — Task 4 replaces this body and nothing else changes) but leaves
-## _active_node null, so active_kind never latches (nothing was actually spawned).
+## THE ICE CREAM TRUCK (Night Shift Stories, Task 4). Same shape as _start_cryptid/_start_driveby:
+## bail (consume nothing) on a null/invalid player, else spawn + latch _active_node so
+## active_kind latches too (see _start_visitor's success-ordered bookkeeping above). IceCreamTruck
+## computes its own lane/park position from the player's CURRENT position in its own _ready() (the
+## DrivebyLane precedent — this dispatcher doesn't set global_position, matching _start_driveby's
+## own shape exactly), so no positioning work belongs here.
 func _start_truck() -> bool:
-	push_warning("Visitors: THE ICE CREAM TRUCK not yet implemented (Task 4) — visitor consumed with no arrival")
-	_active_node = null
+	if _player == null or not is_instance_valid(_player):
+		return false
+	_banner("THE ICE CREAM TRUCK", "you know the jingle")
+	var t := IceCreamTruck.new()
+	get_tree().current_scene.add_child(t)
+	_active_node = t
 	return true
 
 ## Basement-descent refund (review item 2, adjudicated): the active visitor departs immediately

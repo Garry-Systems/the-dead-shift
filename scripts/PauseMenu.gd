@@ -260,9 +260,11 @@ func _abandon_run_payout() -> void:
 		SaveManager.record_daily_score(earned)
 	# Best single-run payout (Pack H: PAYDAY commendation) — mirrors GameOver._finish_run's twin
 	# call. Deep Clean (item 4): PRE-coin_mult subtotal now, not the QUIT_PAYOUT_FRAC-haircut
-	# `earned` — see CoinReward.pre_mult_total's doc comment. Keep in lockstep with GameOver.
-	var pre_mult := CoinReward.pre_mult_total(wave, bosses, kills, bonus)
-	SaveManager.record_best_run_payout(pre_mult)
+	# `earned` — see CoinReward.pre_mult_total's doc comment. THE ICE CREAM TRUCK (Task 4): also net
+	# of snacks_spent now (CoinReward.net_pre_mult_total) — same reasoning as GameOver's twin call,
+	# see that file's comment. Keep in lockstep with GameOver.
+	var net_pre_mult := CoinReward.net_pre_mult_total(wave, bosses, kills, bonus)
+	SaveManager.record_best_run_payout(net_pre_mult)
 	# Commendations (Pack H): mirrors GameOver._finish_run's twin call — same guarded block, same
 	# exactly-once contract, called before this block's own save_game() below.
 	SaveManager.check_and_grant_commendations()

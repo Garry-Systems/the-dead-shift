@@ -832,3 +832,24 @@ const DRIVEBY_ACTIVE := 4.0              # seconds the lane deals damage — 2 +
 const DRIVEBY_DPS := 80.0                # damage/sec to anything in-lane (enemies AND the player), ticked at HAZARD_TICK_INTERVAL (~5Hz)
 const DRIVEBY_THICKNESS := 90.0          # px half-width of the damaging lane — a lane, not a beam (compare AIMED_BAND_THICKNESS's 26px)
 const DRIVEBY_LANE_LENGTH := 2400.0      # px lane length, centered on the telegraphed aim-point snapshot — crosses the arena from any reasonable spawn point
+
+# --- THE ICE CREAM TRUCK (Night Shift Stories v0.1.68): the game's first mid-run coin spend ---
+const TRUCK_STAY := 25.0                 # seconds parked before an unpurchased-out departure
+const TRUCK_PARK_DIST := 600.0           # px from the player the truck parks (spec: "~600px")
+const TRUCK_SPAWN_DIST := 1400.0         # px from the player the truck's drive starts/ends, well off-
+                                          # screen — this task's own pick (spec gives no literal lane
+                                          # length, only "drives in along a lane"), mirrors CRYPTID_
+                                          # MOVE_SPEED/DRIVEBY_THICKNESS's own "own pick" precedent
+const TRUCK_DRIVE_SPEED := 260.0         # px/sec drive-in/drive-out speed — this task's own pick
+const TRUCK_SHOP_RING := 110.0           # standing-distance radius that opens the shop (BasementDoor
+                                          # ring idiom); wider than BASEMENT_DOOR_RING (90) — the
+                                          # truck's 64x32 footprint is bigger than a floor hatch
+const TRUCK_JINGLE_INTERVAL := 2.0       # seconds between "truck_jingle" re-triggers while parked —
+                                          # SoundManager.play() has no native loop; this simulates one
+                                          # (Destructible's WAIL_TAUNT_TICK precedent) at roughly the
+                                          # WAV's own length (spec: "loop-ish 2s")
+const TRUCK_PURCHASE_CAP := 3            # purchases (any mix of the 3 items) before an early departure
+const TRUCK_HEAL_COST := 150             # HEAL SCOOP price (run coins)
+const TRUCK_HEAL_FRAC := 0.30            # HEAL SCOOP: fraction of max HP restored via player.heal()
+const TRUCK_REROLL_COST := 200           # SECOND OPINION TO GO price
+const TRUCK_RELIC_COST := 400            # MYSTERY FLAVOR price

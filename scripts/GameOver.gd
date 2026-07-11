@@ -153,6 +153,7 @@ func _finish_run(is_win: bool) -> void:
 	var bonus := RunStats.bonus_coins
 	var mult := RunStats.coin_mult
 	var basements := RunStats.basements_cleared
+	var snacks := RunStats.snacks_spent   # THE ICE CREAM TRUCK (Task 4): pay-stub SNACKS row
 	# SIGNING BONUS (final-review fix): DifficultyManager.run_time is the run's elapsed-seconds
 	# clock (same source ShiftClock's "Clocked out" line and the OVERTIME/HARDCORE best-clockout
 	# records below already read) — vested() below feeds the pay-stub's dedicated row.
@@ -246,10 +247,13 @@ func _finish_run(is_win: bool) -> void:
 	# mirrors record_daily_score's shape but ungated (every run's actual payout counts, not only
 	# Daily Shift runs). Deep Clean (item 4): measures the PRE-coin_mult subtotal now, not the
 	# actual post-mult `earned` payout — see CoinReward.pre_mult_total's doc comment for why
-	# (HARDCORE x3 / REGISTER SKIM / tip_jar no longer trivialize the badge). TWIN call site:
-	# PauseMenu._abandon_run_payout computes the identical line — keep in lockstep.
-	var pre_mult := CoinReward.pre_mult_total(wave, bosses, kills, bonus)
-	SaveManager.record_best_run_payout(pre_mult)
+	# (HARDCORE x3 / REGISTER SKIM / tip_jar no longer trivialize the badge). THE ICE CREAM TRUCK
+	# (Task 4): also net of snacks_spent now (CoinReward.net_pre_mult_total, not the raw
+	# pre_mult_total) — the badge measures coins actually banked, not coins already spent mid-run
+	# on scoops/rerolls/relics. TWIN call site: PauseMenu._abandon_run_payout computes the
+	# identical line — keep in lockstep.
+	var net_pre_mult := CoinReward.net_pre_mult_total(wave, bosses, kills, bonus)
+	SaveManager.record_best_run_payout(net_pre_mult)
 	# Commendations (Pack H): checked + granted (rank XP + crate) here, inside the SAME
 	# RunStats.paid_out guard as every other lifetime counter above, and BEFORE the save_game()
 	# below so a granted badge is part of the same atomic flush write — see
@@ -276,7 +280,7 @@ func _finish_run(is_win: bool) -> void:
 	if RunConfig.daily:
 		_daily_header.text = "DAILY SHIFT — %s" % SaveManager.today_string()
 
-	_populate_stub(wave, bosses, kills, bonus, mult, vested, earned, is_new_best, inst, xp_amount, is_win, promoted, rank_after, basements, clawback)
+	_populate_stub(wave, bosses, kills, bonus, mult, vested, earned, is_new_best, inst, xp_amount, is_win, promoted, rank_after, basements, clawback, snacks)
 	_root.visible = true
 	if is_new_best or is_win or promoted:
 		_celebrate()
@@ -286,7 +290,7 @@ func _finish_run(is_win: bool) -> void:
 ## and the weapon XP line.
 func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float, vested: int, earned: int,
 		is_new_best: bool, inst: Dictionary, xp_amount: int, is_win: bool = false,
-		promoted: bool = false, rank_after: int = 0, basements: int = 0, clawback: int = 0) -> void:
+		promoted: bool = false, rank_after: int = 0, basements: int = 0, clawback: int = 0, snacks: int = 0) -> void:
 	for c in _stub_vbox.get_children():
 		c.queue_free()
 
@@ -306,9 +310,18 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 		_row(_stub_vbox, "BASEMENTS CLEARED", "×%d" % basements)
 	_row(_stub_vbox, "KILLS %d×%d" % [kills, GameConfig.COIN_PER_KILL], "+%d" % kill_pay)
 	_row(_stub_vbox, "TIPS", "+%d" % bonus)
-	# The subtotal above (base+waves+bosses+kills+tips) is exactly CoinReward.payout(...)+bonus;
-	# CoinReward.final_payout multiplies that subtotal by RunStats.coin_mult and rounds once —
-	# showing the same factor here keeps the stub's math identical to what actually got paid.
+	# THE ICE CREAM TRUCK (Task 4): SNACKS — mid-run coin spends (HEAL SCOOP/SECOND OPINION TO GO/
+	# MYSTERY FLAVOR), deducted PRE-mult exactly like CoinReward.net_pre_mult_total does internally
+	# (BASE+WAVES+BOSSES+KILLS+TIPS-SNACKS is precisely what final_payout multiplies by SHIFT BONUS
+	# below) — sits right here, immediately before that multiplier row, so the row-sum==TOTAL
+	# invariant holds (the same placement reasoning CORPORATE CLAWBACK's own comment documents:
+	# each row sits exactly where its operation occurs in the real formula). Hidden on a 0-spend run.
+	if snacks > 0:
+		_row(_stub_vbox, "SNACKS", "-%d" % snacks, PixelTheme.DANGER)
+	# The subtotal above (base+waves+bosses+kills+tips-snacks) is exactly CoinReward.
+	# net_pre_mult_total(...); CoinReward.final_payout multiplies that subtotal by RunStats.coin_mult
+	# and rounds once — showing the same factor here keeps the stub's math identical to what
+	# actually got paid.
 	if not is_equal_approx(mult, 1.0):
 		_row(_stub_vbox, "SHIFT BONUS", "x%.2f" % mult, PixelTheme.SELECT)
 	# SIGNING BONUS (final-review fix): the vested amount is added POST-mult inside

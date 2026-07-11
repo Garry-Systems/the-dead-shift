@@ -37,6 +37,13 @@ var basements_cleared := 0      # Pack E (THE BASEMENT), Task 5: gauntlets survi
                                  # drop this run — bumped at crate SPAWN (Basement._start_reward),
                                  # not at pickup; read by GameOver's pay-stub INFORMATIONAL row.
 
+var snacks_spent := 0           # THE ICE CREAM TRUCK (Night Shift Stories, v0.1.68): total mid-run
+                                 # coin spends this run (see spend_run_coins below) — deducted
+                                 # PRE-mult inside CoinReward.net_pre_mult_total, which both
+                                 # final_payout (via pre_cut_total) and the PAYDAY commendation's
+                                 # pre-mult record read directly, so this one accumulator feeds
+                                 # every twin site automatically.
+
 ## Zero the counters for a fresh run.
 func reset() -> void:
 	kills = 0
@@ -54,6 +61,7 @@ func reset() -> void:
 	blood_moons_survived = 0
 	power_surge_kills = 0
 	basements_cleared = 0
+	snacks_spent = 0
 
 ## A trash enemy was killed.
 func add_kill() -> void:
@@ -96,4 +104,19 @@ func add_power_surge_kill() -> void:
 ## Basement._start_reward(), at crate spawn (not at pickup — the clear itself is the event).
 func add_basement_cleared() -> void:
 	basements_cleared += 1
+
+## THE ICE CREAM TRUCK (Night Shift Stories, v0.1.68): the game's first mid-run coin spend.
+## Spendable balance = the run's CURRENT pre-mult subtotal net of every snack already bought
+## (CoinReward.net_pre_mult_total, itself pre_mult_total(wave,bosses,kills,bonus) minus
+## snacks_spent) — read from DifficultyManager/RunStats state directly, the same "autoload reads
+## its own inputs" precedent GameOver._finish_run/PauseMenu._abandon_run_payout already establish
+## for these exact 4 terms. Denies (returns false, spends nothing) if `cost` exceeds what's
+## spendable; a successful spend accumulates snacks_spent BEFORE returning true, so an immediately
+## following call in the same purchase flow sees the already-reduced balance.
+func spend_run_coins(cost: int) -> bool:
+	var spendable := CoinReward.net_pre_mult_total(DifficultyManager.wave, bosses_killed, kills, bonus_coins)
+	if spendable < cost:
+		return false
+	snacks_spent += cost
+	return true
 

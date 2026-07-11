@@ -32,13 +32,32 @@ static func vested_signing(bonus: int, run_time: float) -> int:
 static func pre_mult_total(wave: int, bosses: int, kills: int, bonus: int) -> int:
 	return payout(wave, bosses, kills) + bonus
 
-## The run total BEFORE company_card's clawback: (base formula + in-world bonus) × mult, plus the
-## vested signing bonus. Split out of final_payout (pure static, probe-able) so GameOver's
+## THE ICE CREAM TRUCK (Night Shift Stories, Task 4): pre_mult_total NET of RunStats.snacks_spent
+## — mid-run truck spends are deducted PRE-mult (before coin_mult/HARDCORE/tip_jar/company_card
+## ever touch the number), sitting exactly where BASE/WAVES/BOSSES/KILLS/TIPS themselves sit in the
+## formula. Reads RunStats.snacks_spent directly — the SAME "static autoload read, not a threaded
+## param" precedent weapon_xp_payout/final_payout's own company_card read already established — so
+## THREE call sites all read the identical net number and can never drift apart:
+##   1. pre_cut_total below (-> final_payout): the actual money paid out.
+##   2. RunStats.spend_run_coins's own spendable-balance check (its "pre_mult_total minus
+##      snacks_spent" is exactly this function, by construction).
+##   3. The PAYDAY commendation's pre-mult record (GameOver._finish_run / PauseMenu.
+##      _abandon_run_payout, both twin sites) — the badge measures what was actually banked, not
+##      coins already spent mid-run on scoops/rerolls/relics.
+## maxi(0, ...) is a defensive floor only: snacks_spent can never legitimately exceed
+## pre_mult_total at any point in a run (spend_run_coins's own gate guarantees that, and every
+## pre_mult_total term is monotonically non-decreasing over a run), but the clamp keeps this
+## function's contract airtight even if that invariant is ever violated.
+static func net_pre_mult_total(wave: int, bosses: int, kills: int, bonus: int) -> int:
+	return maxi(0, pre_mult_total(wave, bosses, kills, bonus) - RunStats.snacks_spent)
+
+## The run total BEFORE company_card's clawback: (base formula + in-world bonus - snacks) × mult,
+## plus the vested signing bonus. Split out of final_payout (pure static, probe-able) so GameOver's
 ## pay-stub can itemize the clawback with EXACTLY the arithmetic final_payout applies — see
 ## clawback() below. NOT flag-gated: this is the same number final_payout pays whenever
 ## company_card isn't held.
 static func pre_cut_total(wave: int, bosses: int, kills: int, bonus: int, mult: float, signing_bonus: int, run_time: float) -> int:
-	var total := int(round(float(payout(wave, bosses, kills) + bonus) * mult))
+	var total := int(round(float(net_pre_mult_total(wave, bosses, kills, bonus)) * mult))
 	total += vested_signing(signing_bonus, run_time)
 	return total
 
