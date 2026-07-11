@@ -1,7 +1,7 @@
-# Special Abilities — "Company Equipment" (v0.1.68)
+# Special Abilities — "Company Equipment" (v0.1.70)
 
-**Date:** 2026-07-10
-**Target release:** v0.1.68 (Night Shift Stories / boss bench + VISITORS slides to v0.1.69)
+**Date:** 2026-07-10 (retargeted 2026-07-11: v0.1.68 was taken by Night Shift Stories, v0.1.69 by the spawn-drought hotfix)
+**Target release:** v0.1.70
 **Approved by Larry:** character-signature actives (not loadout/drops), flat cooldown (not kill-charge), Ryan = projectile wipe + push, NEW character Jackson Killa gets the turret.
 
 ## Concept
