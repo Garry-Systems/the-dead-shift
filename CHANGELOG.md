@@ -4,6 +4,20 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.70 — Company Equipment (2026-07-11)
+
+Corporate finally issued equipment. One item per employee. No sharing.
+- **SPECIAL ABILITIES** — every character now has a signature move on a big new button, bottom-right. It recharges on its own schedule. Use it or hoard it; the night doesn't care.
+  - RYAN ACE: **CLEAR OUT** — every enemy projectile on the map, gone. The horde nearby, shoved. His dash still reloads the AK.
+  - JIMBO JAMES: **DEAD EYE** — three seconds where the world crawls and you don't.
+  - ZOMBIE BOB: **ONE OF THEM** — four seconds where the horde forgets you exist. Bosses remember. They always remember.
+  - ALSTAR TUCK: **JACKPOT** — pull the lever: a nuke, a deep freeze, double pay, or a full mag and a hair trigger. RNG is king.
+  - THE JANITOR: **CLOSING TIME** — a slick the size of a parking lot. Everything that dies in it tips extra.
+  - THE DELIVERY GIRL: **AIR DROP** — mark the spot, count to two, packages hit hard enough to matter. Snacks and health inside.
+- **NEW HIRE: JACKSON KILLA** (3,600c) — heavy-weapons guy. Drops a **SENTRY TURRET** that holds the line for twelve seconds. Bonus damage & fire rate with the Minigun, LMG, and Grenade Launcher.
+- The character list scrolls now. It had to. There are seven of you.
+- First-ever **health packs** (AIR DROP only). HARDCORE ignores them, obviously.
+
 ## v0.1.69 — Restock the Floor (2026-07-11)
 
 Hotfix: the store was going quiet and nobody could say why.
