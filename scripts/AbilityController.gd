@@ -28,6 +28,17 @@ var _dead_eye_active := false
 var _dead_eye_player: Player = null
 var _dead_eye_move_ratio := 1.0
 
+## JACKPOT PAYDAY (this task) / CLOSING TIME zone (Task 8) coin-window state — the seam
+## Enemy.gd's kill-coin site queries through the static kill_coin_bonus() below. Instance
+## fields, NOT static (the RelicEffects statics lesson: per-run gameplay state lives on the
+## per-run controller instance, reached via the SAME group lookup as every other cross-system
+## read). Engine-clock seconds — the Hud._last_shift_toast idiom (Time.get_ticks_msec() /
+## 1000.0), not RunStats/wall-clock time.
+var _coin_window_until := 0.0          # PAYDAY: bonus active while now < this
+var _coin_zone_center := Vector2.ZERO  # CLOSING TIME (Task 8 arms this): zone center
+var _coin_zone_radius := 0.0           # CLOSING TIME (Task 8 arms this): 0 = never armed
+var _coin_zone_until := 0.0            # CLOSING TIME (Task 8 arms this): zone bonus active while now < this
+
 func _ready() -> void:
 	add_to_group("ability_controller")
 	_row = Abilities.for_character(RunConfig.character_id)
@@ -63,7 +74,11 @@ func try_cast() -> bool:
 	_cd_remaining = float(_row.get("cd", 0.0))
 
 	var player: Player = get_tree().get_first_node_in_group("player") as Player
-	if player != null and is_instance_valid(player):
+	# JACKPOT replaces this generic name callout with its OWN per-roll callout ("JACKPOT: DEEP
+	# FREEZE!") — smallest-diff suppress: one extra id check on the existing compound condition,
+	# no new field/signature needed (matches the _cast_dead_eye compound-`and` style already in
+	# this file).
+	if player != null and is_instance_valid(player) and String(_row.get("id", "")) != "jackpot":
 		CombatText.callout(player.global_position, "%s!" % String(_row.get("name", "")), PixelTheme.ACCENT)
 
 	# STAGED: T9 lands the real "ability_ready"-family SFX ids (one per ability). "ui_tap" stands
@@ -80,7 +95,7 @@ func try_cast() -> bool:
 		"ghost":
 			_cast_ghost(player)
 		"jackpot":
-			_cast_jackpot()
+			_cast_jackpot(player)
 		"closing_time":
 			_cast_closing_time()
 		"air_drop":
@@ -204,10 +219,90 @@ func _cast_ghost(player: Player) -> void:
 		return
 	player.set_ghost(GameConfig.ABILITY_GHOST_DURATION)
 
+## Per-kill coin bonus at `pos`, right now — the seam JACKPOT's PAYDAY (this task) and CLOSING
+## TIME's zone (Task 8) both pay into. STATIC + "ability_controller" group lookup, mirroring
+## NightEvents.blood_moon_coins EXACTLY in shape: the Enemy.gd kill site holds no reference to
+## any specific controller instance and must degrade to 0 harmlessly if one isn't in the tree at
+## all (e.g. a corpse's take_damage() resolving mid scene-teardown, run already over — the same
+## null-tree-safe contract blood_moon_coins already honors). Windows stack additively — a kill
+## landed during an open PAYDAY window AND inside an open CLOSING TIME zone pays both.
+static func kill_coin_bonus(pos: Vector2, tree) -> int:
+	if tree == null:
+		return 0
+	var ac := tree.get_first_node_in_group("ability_controller") as AbilityController
+	if ac == null:
+		return 0
+	var now := Time.get_ticks_msec() / 1000.0
+	var bonus := 0
+	if now < ac._coin_window_until:
+		bonus += GameConfig.ABILITY_JACKPOT_PAYDAY_COINS
+	if now < ac._coin_zone_until and pos.distance_to(ac._coin_zone_center) <= ac._coin_zone_radius:
+		bonus += GameConfig.ABILITY_CLOSING_COINS
+	return bonus
+
 ## JACKPOT (Alstar Tuck): four-roll slot machine — NUKE / DEEP FREEZE / PAYDAY / TRIGGER HAPPY.
-## Callout-only this task — effect lands in Task 7.
-func _cast_jackpot() -> void:
+## `randi() % 4` is UN-SEEDED BY DESIGN (the loot-RNG rule — every player-triggered roll is
+## un-seeded; this never touches the Daily's own pre-seeded RNG, so Daily determinism is
+## unaffected). The roll itself is split into `_roll_jackpot` so a probe can drive all 4 arms
+## directly without depending on RNG.
+func _cast_jackpot(player: Player) -> void:
 	_last_cast_id = "jackpot"
+	var word := _roll_jackpot(randi() % 4, player)
+	if player != null and is_instance_valid(player):
+		CombatText.callout(player.global_position, "JACKPOT: %s!" % word, _jackpot_callout_color(word))
+
+## Resolves one roll (0-3) to its effect, returns the callout word. `player` is null-guarded
+## per-arm (same idiom as _cast_clear_out/_cast_turret/_cast_ghost) — a roll must never crash
+## just because it landed with no valid player reference.
+func _roll_jackpot(roll: int, player: Player) -> String:
+	match roll:
+		0:
+			# NUKE — Shockwave.blast WITH the equipped gun's talents (the kept Alstar crit-blast
+			# precedent, Player._spawn_shockwave's own idiom). Gun is null-guarded to null; blast()
+			# already handles a null gun (no talents carried, still pushes + damages).
+			var fx := Shockwave.new()
+			get_tree().current_scene.add_child(fx)
+			var gun: Gun = null
+			if player != null and is_instance_valid(player):
+				fx.global_position = player.global_position
+				gun = player.gun
+			fx.blast(GameConfig.ABILITY_JACKPOT_NUKE_RADIUS, GameConfig.ABILITY_JACKPOT_NUKE_DAMAGE,
+				GameConfig.ABILITY_JACKPOT_NUKE_FORCE, gun, player, true)
+			return "NUKE"
+		1:
+			# DEEP FREEZE — every "enemies" node that has the freeze channel. Bosses lack
+			# apply_freeze entirely (BossBase never defines it) — has_method-skipped, immune free.
+			for e in get_tree().get_nodes_in_group("enemies"):
+				if is_instance_valid(e) and e.has_method("apply_freeze"):
+					e.apply_freeze(GameConfig.ABILITY_JACKPOT_FREEZE_DUR)
+			return "DEEP FREEZE"
+		2:
+			# PAYDAY — arms the coin-window seam kill_coin_bonus() queries above.
+			_coin_window_until = Time.get_ticks_msec() / 1000.0 + GameConfig.ABILITY_JACKPOT_PAYDAY_DURATION
+			return "PAYDAY"
+		_:
+			# TRIGGER HAPPY — instant reload + a frenzy fire-rate window. Fully null-guarded:
+			# no player/gun means no effect at all, not a crash.
+			if player != null and is_instance_valid(player) and player.gun != null and is_instance_valid(player.gun):
+				player.gun.instant_reload()
+				player.gun.add_frenzy(GameConfig.ABILITY_JACKPOT_FRENZY, GameConfig.ABILITY_JACKPOT_FRENZY_DUR)
+			return "TRIGGER HAPPY"
+
+## Callout color per JACKPOT roll — reuses this file's existing color families instead of a new
+## one-off (checked every CombatText.callout usage first): Hazards.BLOOD_RED (damage, matches
+## TalentEngine's "EXECUTED"), Enemy.FROZEN_TINT (freeze, matches "SHATTER"/"BLACK FRIDAY"),
+## Hazards.GOLD (== the sanctioned "ffd700" gold for PAYDAY, matches the crit/mark family),
+## Hazards.ORANGE (fire/frenzy, matches Gun.gd's own FRENZY_ORANGE callout for the same buff).
+func _jackpot_callout_color(word: String) -> Color:
+	match word:
+		"NUKE":
+			return Hazards.BLOOD_RED
+		"DEEP FREEZE":
+			return Enemy.FROZEN_TINT
+		"PAYDAY":
+			return Hazards.GOLD
+		_:
+			return Hazards.ORANGE
 
 ## CLOSING TIME (The Janitor): one giant slick + a per-kill coin window inside it.
 ## Callout-only this task — effect lands in Task 8.

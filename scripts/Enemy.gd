@@ -629,6 +629,11 @@ func take_damage(amount: float) -> void:
 		var moon_coins := NightEvents.blood_moon_coins(get_tree())
 		if moon_coins > 0:
 			RunStats.add_coins(moon_coins)
+		# JACKPOT's PAYDAY window / CLOSING TIME's zone (Task 8) — same guarded-add shape as the
+		# two bonuses above, kept ONE line since kill_coin_bonus() already sums both internally.
+		var ability_bonus := AbilityController.kill_coin_bonus(global_position, get_tree())
+		if ability_bonus > 0:
+			RunStats.add_coins(ability_bonus)
 		SoundManager.play("die_enemy")   # the one alive->dead transition, whatever damage source caused it
 		_drop_gem()
 		if elite_kind == "volatile":
