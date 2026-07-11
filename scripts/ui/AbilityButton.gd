@@ -16,6 +16,13 @@ var _row: Dictionary = {}         # this run's ability row (Abilities.for_charac
 var _fraction := 0.0              # 0 ready ... 1 just cast, set every frame by Hud
 var _rest_offset_left := 0.0      # resting anchor offset the nudge tween returns to
 
+## Final-review fix (Finding 1a): joins "ability_button" so VirtualJoystick/Player can resolve
+## this button by group lookup (the same pattern every cross-system read in this codebase already
+## uses — see VirtualJoystick._resolve_ability_button, Player._unhandled_input) without either
+## needing a direct scene reference to a node Hud builds and owns at runtime.
+func _ready() -> void:
+	add_to_group("ability_button")
+
 ## Positions + styles this button for `row` (an Abilities.for_character() result) and resolves
 ## its icon (real art if T9 has landed it, else a staged initial-letter fallback). Call once,
 ## right after `AbilityButton.new()`.

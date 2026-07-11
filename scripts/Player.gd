@@ -189,6 +189,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not tapped:
 		return
 
+	# Final-review fix (Finding 1b): belt-and-suspenders against the ability button. A GUI-consumed
+	# tap normally never reaches _unhandled_input at all (Godot only calls it once no Control ate
+	# the event first) — but this codebase has never actually run an unpaused, in-run Button
+	# against this dash detector before now (v0.1.70's AbilityButton is the first one), so this is
+	# cheap insurance rather than a fix for an observed double-fire. Same group-lookup + rect check
+	# as VirtualJoystick._touch_on_ability_button (scripts/VirtualJoystick.gd), duplicated rather
+	# than shared: Player holds no reference to that Control, and the check is 3 lines.
+	var pos := Vector2.ZERO
+	if event is InputEventScreenTouch:
+		pos = (event as InputEventScreenTouch).position
+	elif event is InputEventMouseButton:
+		pos = (event as InputEventMouseButton).position
+	var ability_btn := get_tree().get_first_node_in_group("ability_button") as AbilityButton
+	if ability_btn != null and is_instance_valid(ability_btn) and ability_btn.get_global_rect().has_point(pos):
+		return
+
 	var now := Time.get_ticks_msec() / 1000.0
 	# With touch<->mouse emulation on, one physical press can arrive as BOTH a touch and a
 	# mouse event the same frame. Ignore the second so a single tap isn't counted twice.
