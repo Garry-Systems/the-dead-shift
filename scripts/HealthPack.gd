@@ -25,7 +25,7 @@ func _process(delta: float) -> void:
 		# special-casing here, exactly like every other heal source in the codebase (see
 		# Player.heal's own header comment: every live heal source routes through that one gate).
 		_player.heal(GameConfig.ABILITY_AIRDROP_HEAL)
-		SoundManager.play("gem")   # STAGED: T9 lands a dedicated pickup SFX id (this pack's convention — every ability effect plays "ui_tap"/"gem"/etc. until T9)
+		SoundManager.play("gem")   # shares XpGem's pickup SFX by design — T9 (art+audio wiring, see task-9-report.md) shipped without giving HealthPack a dedicated id of its own
 		queue_free()
 		return
 

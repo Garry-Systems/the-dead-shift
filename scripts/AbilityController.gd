@@ -32,12 +32,28 @@ var _dead_eye_move_ratio := 1.0
 ## Enemy.gd's kill-coin site queries through the static kill_coin_bonus() below. Instance
 ## fields, NOT static (the RelicEffects statics lesson: per-run gameplay state lives on the
 ## per-run controller instance, reached via the SAME group lookup as every other cross-system
-## read). Engine-clock seconds — the Hud._last_shift_toast idiom (Time.get_ticks_msec() /
-## 1000.0), not RunStats/wall-clock time.
-var _coin_window_until := 0.0          # PAYDAY: bonus active while now < this
+## read).
+##
+## Final-review fix wave (v0.1.70, Finding 2): these were originally Time.get_ticks_msec()-stamped
+## absolute deadlines (the Hud._last_shift_toast idiom — fine for a cosmetic toast, WRONG here).
+## These windows are ECONOMY, not cosmetics: LevelUpUI/RelicChoice/TruckShop/PauseMenu all pause
+## the tree, and wall-clock time keeps advancing behind the overlay regardless — a PAYDAY (10s) or
+## CLOSING TIME (8s) window could silently expire while the player reads a card, while the paired
+## CLOSING zone (a HazardZone, whose own `_time_left` is a game-time countdown) kept slowing
+## enemies for free after its coin window had already died behind the pause. Now countdown floats,
+## decremented in AbilityController._process(delta) — pause-correct (this controller sets no
+## process_mode override, so it stays PROCESS_MODE_INHERIT and simply stops ticking with the rest
+## of the tree, same as every other un-overridden node here; verified in the probe below) and
+## time_scale-coherent (DEAD EYE's own 0.3x window doesn't stretch these either, matching
+## HazardZone's `_active(delta)` tick). Mirrors two existing precedents exactly: HazardZone's own
+## `_time_left -= delta` (scripts/HazardZone.gd:78 — the very zone CLOSING TIME rides) and
+## NightEvents' Blood Moon `_process` countdown (scripts/NightEvents.gd:34,
+## `_time_left -= delta`), both chosen for the same "this is a live gameplay window, not a fire-
+## and-forget stamp" reasoning.
+var _coin_window_left := 0.0           # PAYDAY: bonus active while > 0.0
 var _coin_zone_center := Vector2.ZERO  # CLOSING TIME (Task 8 arms this): zone center
 var _coin_zone_radius := 0.0           # CLOSING TIME (Task 8 arms this): 0 = never armed
-var _coin_zone_until := 0.0            # CLOSING TIME (Task 8 arms this): zone bonus active while now < this
+var _coin_zone_left := 0.0             # CLOSING TIME (Task 8 arms this): zone bonus active while > 0.0
 
 func _ready() -> void:
 	add_to_group("ability_controller")
@@ -46,6 +62,11 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _cd_remaining > 0.0:
 		_cd_remaining -= delta
+	# Finding 2: pause-safe economy-window countdowns — see the field doc comment above.
+	if _coin_window_left > 0.0:
+		_coin_window_left = maxf(0.0, _coin_window_left - delta)
+	if _coin_zone_left > 0.0:
+		_coin_zone_left = maxf(0.0, _coin_zone_left - delta)
 
 ## This run's ability row (Abilities.for_character result); `{}` if the character has none.
 func ability_row() -> Dictionary:
@@ -236,11 +257,10 @@ static func kill_coin_bonus(pos: Vector2, tree) -> int:
 	var ac := tree.get_first_node_in_group("ability_controller") as AbilityController
 	if ac == null:
 		return 0
-	var now := Time.get_ticks_msec() / 1000.0
 	var bonus := 0
-	if now < ac._coin_window_until:
+	if ac._coin_window_left > 0.0:
 		bonus += GameConfig.ABILITY_JACKPOT_PAYDAY_COINS
-	if now < ac._coin_zone_until and pos.distance_to(ac._coin_zone_center) <= ac._coin_zone_radius:
+	if ac._coin_zone_left > 0.0 and pos.distance_to(ac._coin_zone_center) <= ac._coin_zone_radius:
 		bonus += GameConfig.ABILITY_CLOSING_COINS
 	return bonus
 
@@ -281,8 +301,9 @@ func _roll_jackpot(roll: int, player: Player) -> String:
 					e.apply_freeze(GameConfig.ABILITY_JACKPOT_FREEZE_DUR)
 			return "DEEP FREEZE"
 		2:
-			# PAYDAY — arms the coin-window seam kill_coin_bonus() queries above.
-			_coin_window_until = Time.get_ticks_msec() / 1000.0 + GameConfig.ABILITY_JACKPOT_PAYDAY_DURATION
+			# PAYDAY — arms the coin-window seam kill_coin_bonus() queries above. Game-time
+			# countdown (Finding 2 fix) — ticked in _process, so it can't burn down behind a pause.
+			_coin_window_left = GameConfig.ABILITY_JACKPOT_PAYDAY_DURATION
 			return "PAYDAY"
 		_:
 			# TRIGGER HAPPY — instant reload + a frenzy fire-rate window. Fully null-guarded:
@@ -344,11 +365,13 @@ func _cast_closing_time(player: Player) -> void:
 	# coin zone below kept paying — see the header comment. It rides its own rule instead: the
 	# 45s cooldown means at most one ever exists.
 	zone.remove_from_group("player_pools")
-	# Arms the T7 kill_coin_bonus() seam for the SAME area + duration as the zone itself —
-	# engine-clock seconds, the Hud._last_shift_toast idiom (matches _coin_window_until above).
+	# Arms the T7 kill_coin_bonus() seam for the SAME area + duration as the zone itself — a
+	# game-time countdown now (Finding 2 fix), ticked in _process right alongside the zone's own
+	# HazardZone._time_left, so the coin window and its paired visual/slow can never drift apart
+	# behind a pause (matches _coin_window_left above).
 	_coin_zone_center = player.global_position
 	_coin_zone_radius = radius
-	_coin_zone_until = Time.get_ticks_msec() / 1000.0 + GameConfig.ABILITY_CLOSING_DURATION
+	_coin_zone_left = GameConfig.ABILITY_CLOSING_DURATION
 
 ## AIR DROP (The Delivery Girl): drops a telegraphed AirDropMarker at a SNAPSHOT of the player's
 ## position at cast time. The marker is a get_tree().current_scene child, not a child of (or

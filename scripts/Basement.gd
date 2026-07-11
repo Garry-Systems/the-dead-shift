@@ -284,6 +284,7 @@ func _ascend() -> void:
 	_free_stragglers()
 	_free_stranded_gems()
 	_free_stranded_decoys()
+	_free_stranded_health_packs()
 	_free_turret()
 	if _crate != null and is_instance_valid(_crate):
 		_crate.queue_free()
@@ -343,6 +344,17 @@ func _free_stranded_decoys() -> void:
 			continue
 		if (d as Node2D).global_position.distance_to(_surface_pos) > GameConfig.BASEMENT_STRAGGLER_RADIUS:
 			d.queue_free()
+
+## Uncollected gauntlet-dropped HealthPacks (AIR DROP, "health_packs" group — HealthPack.gd) have
+## no despawn timer of their own either — same fixed-arena stranding as xp_gems/decoys above
+## (Company Equipment final-review fix wave, Finding 3: AIR DROP can be cast during the gauntlet,
+## and an uncollected pack would otherwise sit at the fixed +24000,+24000 arena forever after ascend).
+func _free_stranded_health_packs() -> void:
+	for h in get_tree().get_nodes_in_group("health_packs"):
+		if not is_instance_valid(h):
+			continue
+		if (h as Node2D).global_position.distance_to(_surface_pos) > GameConfig.BASEMENT_STRAGGLER_RADIUS:
+			h.queue_free()
 
 ## SENTRY TURRET (Task 4): stationary hardware can't ride a teleport — the same
 ## COWORKER_LEASH_SNAP reasoning Companion.gd:141 documents for the companion, except a turret
