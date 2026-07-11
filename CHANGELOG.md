@@ -4,6 +4,14 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.66 — Lost & Found (2026-07-10)
+
+The back room had a box. Nobody labeled it. It's yours now.
+- **RELICS, OVERHAULED** — the pool grows from 8 to **27**. Boss drops now open a **choice: two relics, take one** — or skip for cash. Ten new PROTOTYPE relics change the rules (your dash leaves a live wire, barrels detonate twice, boss kills freeze the shift clock), and seven **CURSED** relics offer real power for a real price — a cursed relic only ever appears as the *second* option. The devil doesn't ambush. He offers.
+- **SCRAP relics mid-run** from the pause menu — free the slot, pocket the coins. Cursed relics scrap cheap. You already used the power.
+- OVERSTOCKED (cursed) raises your relic bar to six slots, if you can live with the rest of it.
+- The pay-stub itemizes CORPORATE CLAWBACK when the credit card comes due. The math always adds up. Corporate insists.
+
 ## v0.1.65 — Transfer Request Approved (2026-07-10)
 
 You can work at other stores now. The other stores are not better.
