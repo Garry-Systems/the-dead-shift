@@ -756,7 +756,7 @@ const WAIL_TAUNT_RADIUS := 500.0          # radius (px) a wailing car taunts "en
 const WAIL_TAUNT_TICK := 0.5              # seconds between taunt re-ticks while wailing
 const WAIL_TAUNT_DUR := 1.2               # Enemy.taunt() duration passed on each tick (always outlives the tick — no aggro gap, same idiom as MannequinDecoy's TICK_INTERVAL/taunt_time relationship)
 const WAIL_MAX_CONCURRENT := 2            # global cap on simultaneously wailing cars ("wailing_cars" group). Drop-oldest SILENCES the wail (Destructible.silence_wail) — the car itself is never freed
-const WAIL_SFX_MIN_GAP_MS := 1500         # min ms between "boss_roar" (reused alarm sting, see Destructible._play_wail_sfx) plays, shared across ALL wailing cars combined
+const WAIL_SFX_MIN_GAP_MS := 1500         # min ms between "car_alarm" (see Destructible._play_wail_sfx) plays, shared across ALL wailing cars combined
 # Set-piece (mirrors MartFront's slab/lane footprint; built at world origin, well within the
 # existing FORECOURT_KEEPOUT_RADIUS/FORECOURT_SPAWN_KEEPOUT — those checks are unconditional, not
 # location-gated, so they already protect any location's origin set-piece for free).

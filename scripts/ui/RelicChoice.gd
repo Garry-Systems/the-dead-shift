@@ -45,6 +45,8 @@ extends CanvasLayer
 var _bar
 
 var _pending := 0            # queued, not-yet-shown offers (mirrors LevelUpUI's `_queue` count)
+var _open_gen := 0           # bumped on every open AND every advance/close — the delayed cursed
+                             # sting captures it and only plays if it still matches (see _show_next)
 var _phase := ""             # "" (idle) | "choice" | "scrap"
 var _a_id := ""
 var _b_id := ""
@@ -111,19 +113,25 @@ func _show_next() -> void:
 	_a_id = choice[0]
 	_b_id = choice[1] if choice.size() > 1 else ""
 	_phase = "choice"
+	_open_gen += 1
 	_rebuild_choice()
 	_root.visible = true
 	get_tree().paused = true
 	# Play discovery sting on open
 	SoundManager.play("relic_choice")
-	# If B is cursed, layer a cursed sting 0.3s later (runs during pause via process_always=true).
+	# If B is cursed, layer a darker sting 0.3s after the discovery one.
 	var b_relic := Relics.get_relic(_b_id) if _b_id != "" else {}
 	if String(b_relic.get("family", "")) == "cursed":
-		# SceneTreeTimer with process_always=true fires even while get_tree().paused is true,
-		# matching the overlay's own PROCESS_MODE_ALWAYS behavior.
-		var timer := get_tree().create_timer(0.3, false, true)
-		await timer.timeout
-		SoundManager.play("cursed_reveal")
+		# process_always=TRUE — this sting must fire while the choice overlay holds the tree
+		# paused (opposite of RelicEffects' double_fuse echo, which uses false precisely so
+		# gameplay explosions honor the pause).
+		var gen := _open_gen
+		await get_tree().create_timer(0.3, true).timeout
+		# Only play if THIS offer is still the one on screen: _open_gen bumps on every open and
+		# every advance/close, so a sub-0.3s take/skip (or a chained next offer) invalidates the
+		# captured gen and the stale sting is dropped instead of firing over the wrong screen.
+		if gen == _open_gen:
+			SoundManager.play("cursed_reveal")
 
 func _rebuild_choice() -> void:
 	_clear_vbox()
@@ -190,6 +198,7 @@ func _on_skip_pressed() -> void:
 ## Closes the current phase and either shows the next queued offer immediately (no unpause
 ## flicker in between, mirroring LevelUpUI._on_card_pressed's synchronous chain) or unpauses.
 func _advance() -> void:
+	_open_gen += 1   # invalidate any pending delayed cursed sting for the offer just closed
 	_phase = ""
 	_swap_take_id = ""
 	if _pending > 0:
