@@ -4,6 +4,14 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.67 — Deep Clean (2026-07-10)
+
+The store got one quiet night. We used it.
+- **Sounds like it should**: the car alarm is an actual alarm now, relic choices get a discovery sting (and a darker one when the second card is cursed), and the basement announces itself both directions.
+- **RECORDS got tabs** — RECORDS | BADGES | CHALLENGES. One page, three shelves, no more scrolling past the commendations wall to find your gun kills.
+- **Balance housekeeping**: domino-chained shelves pay gems, not coins (shooting them yourself still pays). The UNION REP's favor costs 900 scrap, down from 1500. Coworker traits now appear from Rare Vintage up — you'll actually meet the trait system. PAYDAY measures base pay before multipliers, so HARDCORE's triple rate doesn't hand it to you. The broken timeclock refuses to work in Boss Rush. Smart clock.
+- Assorted repairs you'll feel but never see: the relic bar no longer sits on the XP bar, a scrapped car stops wailing when it dies, and a whole file of dead code left the building.
+
 ## v0.1.66 — Lost & Found (2026-07-10)
 
 The back room had a box. Nobody labeled it. It's yours now.
