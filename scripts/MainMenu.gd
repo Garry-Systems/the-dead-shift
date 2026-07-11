@@ -33,17 +33,18 @@ var _inv_from_play := false    # true when the inventory was opened by PLAY (no 
 var _detail_popup: WeaponDetailPopup   # reused modal shown when a tile is tapped
 var _coworker_popup: CoworkerDetailPopup   # reused modal for a STAFF tile / STAFF FILE reveal (Task 4)
 
-# Drag-anywhere scrolling for the inventory grid, the store list, the records list, AND the
-# benefits list: a drag that starts ANYWHERE on the screen (even on a tile/button) scrolls; a
-# plain tap still selects.
+# Drag-anywhere scrolling for the inventory grid, the store list, the records list, the
+# benefits list, AND the character list: a drag that starts ANYWHERE on the screen (even on a
+# tile/button) scrolls; a plain tap still selects.
 # Driven from _input so the gesture is caught before the GUI consumes it. State is shared — only
 # one of these lists is visible at a time.
 var _inv_scroll: ScrollContainer       # current inventory grid scroll (null when grid is empty / not shown)
 var _store_scroll: ScrollContainer     # current store list scroll (null when not shown)
+var _char_scroll: ScrollContainer      # current character list scroll (null when not shown)
 var _inv_touch_id := -1
 var _inv_touch_start := Vector2.ZERO
 var _inv_dragging := false
-var _inv_suppress_tap := false         # set on a drag-release so the ending touch is not a tap (inventory tiles + store buttons)
+var _inv_suppress_tap := false         # set on a drag-release so the ending touch is not a tap (inventory tiles + store buttons + character rows)
 const INV_DRAG_THRESHOLD := 24.0       # px of movement before a touch becomes a scroll (vs a tap)
 var _store_panel: Control
 var _store_vbox: VBoxContainer
@@ -452,9 +453,25 @@ func _on_cycle_location() -> void:
 	_location_btn.text = _location_label()
 
 # --- character select ---
+## Mirrors _build_store_panel's construction (MarginContainer full-rect → styled PanelContainer
+## card → a bounded VBox) rather than the shrink-to-fit _card_vbox helper — a CenterContainer
+## doesn't bound the card's height, so with 7 rows the roster no longer fits 1920px tall and a
+## ScrollContainer child would never actually get to scroll. _char_vbox is the persistent outer
+## content (rebuilt by _populate_characters, same pattern as _store_vbox); the scrollable row
+## list is built fresh inside it each populate.
 func _build_char_panel() -> void:
 	_char_panel = _make_panel()
-	_char_vbox = _card_vbox(_char_panel, 14)
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		margin.add_theme_constant_override(side, 24)
+	_char_panel.add_child(margin)
+	var card := PanelContainer.new()
+	PixelTheme.style_card(card)
+	margin.add_child(card)
+	_char_vbox = VBoxContainer.new()
+	_char_vbox.add_theme_constant_override("separation", 14)
+	card.add_child(_char_vbox)
 	# Contents (re)built on show by _populate_characters() so store purchases show up.
 
 func _show_characters() -> void:
@@ -466,8 +483,27 @@ func _populate_characters() -> void:
 	for c in _char_vbox.get_children():
 		c.queue_free()
 	_char_buttons.clear()
+	_char_scroll = null   # cleared each rebuild; re-set below
 	_make_title(_char_vbox, "CHARACTER", 44)
 	_char_vbox.add_child(_spacer(4))
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE   # built-in touch scroll off; we drive it from _input so a drag anywhere (even on a button) scrolls
+	_char_scroll = scroll
+	_char_vbox.add_child(scroll)
+	# Center a fixed-width column inside the full-width scroll so buttons don't stretch
+	# edge-to-edge. The HBox centers; the list shrinks to its widest child (the buttons).
+	var center_row := HBoxContainer.new()
+	center_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	center_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(center_row)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 14)
+	center_row.add_child(list)
+
 	for c in Characters.all():
 		var cid: String = c["id"]
 		var unlocked: bool = SaveManager.is_character_unlocked(cid)
@@ -476,7 +512,7 @@ func _populate_characters() -> void:
 		var label_text: String = String(c["name"]).to_upper()
 		if not unlocked:
 			label_text = "🔒 " + label_text
-		var btn := _make_button(label_text, func(): _select_character(cid))
+		var btn := _make_button(label_text, _guarded(func(): _select_character(cid)))
 		btn.disabled = not unlocked
 		_char_buttons[cid] = btn
 		row.add_child(btn)
@@ -487,9 +523,10 @@ func _populate_characters() -> void:
 		desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		PixelTheme.style_label(desc, 20, PixelTheme.TEXT_DIM)
 		row.add_child(desc)
-		_char_vbox.add_child(row)
+		list.add_child(row)
+
 	_char_vbox.add_child(_spacer(4))
-	_char_vbox.add_child(_make_button("BACK", func(): _show_only(_hub)))
+	_char_vbox.add_child(_make_button("BACK", _guarded(func(): _show_only(_hub))))
 	_refresh_char_labels()
 
 func _select_character(id: String) -> void:
@@ -696,6 +733,8 @@ func _input(event: InputEvent) -> void:
 		sc = _inv_scroll
 	elif _store_panel.visible and _store_scroll != null:
 		sc = _store_scroll
+	elif _char_panel.visible and _char_scroll != null:
+		sc = _char_scroll
 	elif _records_panel.visible and _records_scroll != null:
 		sc = _records_scroll
 	elif _benefits_panel.visible and _benefits_scroll != null:

@@ -38,6 +38,10 @@ static func all() -> Array:
 			"id": "delivery_girl", "name": "The Delivery Girl", "price": 3200,
 			"desc": "DASH drops an armed parcel mine. +20% pickup radius — the packages find you.",
 		},
+		{
+			"id": "jackson", "name": "Jackson Killa", "price": 3600,
+			"desc": "Drops a SENTRY TURRET that holds the line. Bonus damage & fire rate with Heavy weapons.",
+		},
 	]
 
 static func get_character(id: String) -> Dictionary:
@@ -120,6 +124,10 @@ static func apply_weapon(player: Player, id: String) -> void:
 			pass   # no weapon-conditional perk — the slick dash + coin passive are weapon-agnostic
 		"delivery_girl":
 			pass   # no weapon-conditional perk — the mine dash + pickup passive are weapon-agnostic
+		"jackson":
+			if Weapons.category_for(weapon_id) == "Heavy":
+				player.gun.upgrade_damage(GameConfig.CHAR_JACKSON_HEAVY_DMG_PCT)
+				player.gun.upgrade_fire_rate(GameConfig.CHAR_JACKSON_HEAVY_FIRE_PCT)
 
 ## The special double-tap dash ability for a character, or "" for the plain dash. Read by
 ## the Player at run start (via Main) to decide what a dash does beyond the movement.

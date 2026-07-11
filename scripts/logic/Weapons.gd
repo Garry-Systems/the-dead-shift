@@ -181,3 +181,11 @@ static func name_for(id: String) -> String:
 		if String(def["id"]) == id:
 			return String(def.get("name", id))
 	return id
+
+## Weapon category for `id` (e.g. "Heavy", "Sniper", "Shotgun"), or "" if not found. Read by
+## Characters.apply_weapon for Jackson Killa's Heavy-weapon bonus (minigun/grenade_launcher/lmg).
+static func category_for(id: String) -> String:
+	for def in all():
+		if String(def["id"]) == id:
+			return String(def.get("category", ""))
+	return ""
