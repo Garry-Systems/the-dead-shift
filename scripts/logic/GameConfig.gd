@@ -806,3 +806,28 @@ const MASCOT_SHED_RING_RADIUS := 260.0    # the on_enter shed-burst RING (wider 
 const MASCOT_SHED_RING_DAMAGE := 25.0     # shed-burst damage
 const MASCOT_L3_CHARGE_SPEED := 550.0     # px/sec — L3's short erratic dash (faster than Shopper's 480 slash-lunge, under Courier's 650 arena-crosser)
 const MASCOT_L3_CHARGE_DURATION := 0.3    # seconds — short, per spec
+
+# --- VISITORS (Night Shift Stories v0.1.68): physical arrivals — a new event class, distinct
+# from NightEvents' ambient modifiers. Controller = scripts/Visitors.gd; the wave-edge gate is
+# kept pure in scripts/logic/VisitorsLogic.gd (BasementLogic.gd's own "kept pure so it's
+# probe-able" rationale, mirrored verbatim). GATE-FIRST: only a gate PASS ever reaches
+# RunConfig.rand_float() (the Basement door precedent — Daily Shift determinism is preserved by
+# never spending a seeded roll on a wave-edge the gate would have blocked anyway).
+const VISITOR_MIN_WAVE := 4              # first wave a visitor can roll at a wave-edge
+const VISITOR_CHANCE := 0.20             # chance roll once the gate passes (RunConfig.rand_float — Daily stays seeded)
+const VISITOR_COOLDOWN := 90.0           # seconds after a visitor ARRIVES before the next roll is even gate-eligible
+const VISITOR_MAX_PER_RUN := 2           # visitors per run, of 3 possible kinds — no repeats (VisitorsLogic.pick)
+const VISITOR_SPAWN_DIST := SPAWN_RADIUS # CRYPTID's spawn-ring distance — reuses Spawner's own off-screen-entry tuning (SPAWN_RADIUS's doc comment) rather than a redundant near-duplicate constant
+
+# --- THE CRYPTID (Night Shift Stories v0.1.68): a bounty that flees ---
+const CRYPTID_HP := 900.0                # takes full damage — no talent immunity, per spec
+const CRYPTID_COINS := 250               # RunStats.add_coins on a kill inside CRYPTID_WINDOW (+ a crate — see BasementLogic.crate_id_for)
+const CRYPTID_WINDOW := 20.0             # seconds alive before it despawns uncaught ("IT'S GONE")
+const CRYPTID_MOVE_SPEED := 130.0        # px/sec flee speed — above a runner's ~119 (ENEMY_MOVE_SPEED 70 x the runner row's 1.7 spd_mult), genuinely hard to run down
+
+# --- THE DRIVE-BY (Night Shift Stories v0.1.68): a lane of consequences ---
+const DRIVEBY_TELEGRAPH := 2.0           # seconds of siren + lane telegraph before the lane goes live
+const DRIVEBY_ACTIVE := 4.0              # seconds the lane deals damage — 2 + 4 = the spec's 6s total
+const DRIVEBY_DPS := 80.0                # damage/sec to anything in-lane (enemies AND the player), ticked at HAZARD_TICK_INTERVAL (~5Hz)
+const DRIVEBY_THICKNESS := 90.0          # px half-width of the damaging lane — a lane, not a beam (compare AIMED_BAND_THICKNESS's 26px)
+const DRIVEBY_LANE_LENGTH := 2400.0      # px lane length, centered on the telegraphed aim-point snapshot — crosses the arena from any reasonable spawn point
