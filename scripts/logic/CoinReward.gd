@@ -17,6 +17,21 @@ static func payout(wave: int, bosses: int, kills: int) -> int:
 static func vested_signing(bonus: int, run_time: float) -> int:
 	return roundi(float(bonus) * clampf(run_time / GameConfig.SIGNING_BONUS_VEST_TIME, 0.0, 1.0))
 
+## PAYDAY (Deep Clean, item 4): the run subtotal BEFORE RunStats.coin_mult is applied — base
+## formula plus in-world bonus coins, nothing else. Exactly the same "subtotal" pre_cut_total/
+## final_payout multiply by mult (see the "SHIFT BONUS" row comment in GameOver._populate_stub,
+## which already calls this quantity "the subtotal"). Feeds SaveManager.record_best_run_payout so
+## HARDCORE's x3 coin_mult (and REGISTER SKIM/tip_jar composing into the same accumulator) can't
+## trivialize the PAYDAY commendation just by holding a stacked multiplier — the badge now
+## measures actual in-run scale (waves/bosses/kills/bonus), not the multiplier stack. Deliberately
+## excludes the vested signing bonus too (it's added post-mult in pre_cut_total but isn't itself
+## part of "the subtotal" mult composes over) and any win/clawback adjustment — this is the purest
+## pre-mult number, matching "PRE-coin_mult subtotal" from the design doc literally. Both GameOver
+## and PauseMenu call this with the SAME (wave, bosses, kills, bonus) locals they already compute
+## for final_payout, so the two twin call sites can't drift.
+static func pre_mult_total(wave: int, bosses: int, kills: int, bonus: int) -> int:
+	return payout(wave, bosses, kills) + bonus
+
 ## The run total BEFORE company_card's clawback: (base formula + in-world bonus) × mult, plus the
 ## vested signing bonus. Split out of final_payout (pure static, probe-able) so GameOver's
 ## pay-stub can itemize the clawback with EXACTLY the arithmetic final_payout applies — see

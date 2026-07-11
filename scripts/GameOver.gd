@@ -244,8 +244,12 @@ func _finish_run(is_win: bool) -> void:
 		SaveManager.record_daily_score(earned)
 	# Best single-run payout (Pack H: PAYDAY commendation) — max() at the SAME guarded flush,
 	# mirrors record_daily_score's shape but ungated (every run's actual payout counts, not only
-	# Daily Shift runs).
-	SaveManager.record_best_run_payout(earned)
+	# Daily Shift runs). Deep Clean (item 4): measures the PRE-coin_mult subtotal now, not the
+	# actual post-mult `earned` payout — see CoinReward.pre_mult_total's doc comment for why
+	# (HARDCORE x3 / REGISTER SKIM / tip_jar no longer trivialize the badge). TWIN call site:
+	# PauseMenu._abandon_run_payout computes the identical line — keep in lockstep.
+	var pre_mult := CoinReward.pre_mult_total(wave, bosses, kills, bonus)
+	SaveManager.record_best_run_payout(pre_mult)
 	# Commendations (Pack H): checked + granted (rank XP + crate) here, inside the SAME
 	# RunStats.paid_out guard as every other lifetime counter above, and BEFORE the save_game()
 	# below so a granted badge is part of the same atomic flush write — see

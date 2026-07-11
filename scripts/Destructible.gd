@@ -34,6 +34,14 @@ var wail := false      # PARKING GARAGE (Task 4): optional row field, absent -> 
 var _health: Health
 var _detonating := false
 var _fuse := -1.0          # >= 0 = chain fuse counting down to detonation
+# Deep Clean (item 1): true once this instance's death was TRIGGERED by the chain fuse expiring
+# (below, in _process) rather than a direct take_damage() kill. Shared by both fuse sources
+# (the barrel hazard_id=="fire" chain AND the chain_id/"shelf" chain — see light_fuse()) since
+# _process()'s fuse-expiry branch is the one path both funnel through. _drop_loot() below only
+# acts on this when chain_id != "" too (see there for why) — a bare barrel never reaches
+# _drop_loot at all (its row's loot is always ""), so this flag alone never changes barrel
+# behavior; chain_id is the scoping gate that keeps it that way even if a future row did.
+var _fused := false
 var _hit_flash := 0.0
 # PARKING GARAGE (Task 4): car alarm wail state. `_wailed` is a one-way latch (one wail per car
 # EVER, per the brief) — set the instant a wail is triggered and never cleared, so a second
@@ -128,6 +136,7 @@ func _process(delta: float) -> void:
 					_fuse = 0.001    # per-frame budget full — retry next frame (ripple)
 					return
 				_fuse = -1.0
+				_fused = true    # Deep Clean (item 1): this death is fuse-triggered, not direct
 				_die()
 	# PARKING GARAGE (Task 4): wail tick — decays WAIL_TIME, re-taunting every WAIL_TAUNT_TICK.
 	if _wailing:
@@ -292,6 +301,16 @@ func _drop_loot(n: int) -> void:
 			var gem = _XP_GEM_SCENE.instantiate()
 			tree.current_scene.add_child(gem)
 			gem.global_position = global_position + Vector2(randf_range(-20.0, 20.0), randf_range(-20.0, 20.0))
+	# Deep Clean (item 1): a chain_id-fused death (mart shelf chain-reaction) pays gems only —
+	# skip the CRATE_COIN_REWARD add. Gated on chain_id != "" (not _fused alone) so the pre-
+	# existing barrel hazard_id=="fire" chain is untouched even hypothetically: today every
+	# hazard_id=="fire" row's `loot` field is "" (verified against Obstacles.gd), so a barrel
+	# chain never reaches _drop_loot at all and pays no coins with or without this change — but
+	# scoping to chain_id keeps that guarantee explicit instead of accidental. A DIRECT kill
+	# (the shelf that was actually shot, not one lit by a neighbor's fuse) still pays coins
+	# normally, same as today.
+	if _fused and chain_id != "":
+		return
 	RunStats.add_coins(GameConfig.CRATE_COIN_REWARD)
 
 func _draw() -> void:

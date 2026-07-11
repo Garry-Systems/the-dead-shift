@@ -103,7 +103,7 @@ func _show_next() -> void:
 		_advance()          # no relic bar in scene -> nothing to offer; discard safely
 		return
 	var held: Array = _bar.call("held_ids")
-	var choice: Array = Relics.roll_choice(held, RunConfig.hardcore)
+	var choice: Array = Relics.roll_choice(held, RunConfig.hardcore, RunConfig.mode)
 	if choice.is_empty():
 		RunStats.add_coins(GameConfig.RELIC_DRY_COINS)
 		_advance()           # dry pickups never open anything — check the next one immediately

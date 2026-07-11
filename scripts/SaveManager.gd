@@ -57,7 +57,7 @@ const DEFAULTS := {
 	"apocalypse_pulled": 0,              # Pack H: rarity-8 (Apocalypse) instances added to the inventory — same Inventory.add() chokepoint as armageddons_pulled
 	"crates_opened_total": 0,            # Pack H: LIFETIME crates opened — distinct from the challenge board's per-rotation "crates_opened" counter (wipes on a date change); bumped at the Inventory.commit_crate chokepoint
 	"dailies_played": 0,                 # Pack H: lifetime count of Daily Shift attempts STARTED (mirrors last_daily_shift_date's "consumed on start, not completion" semantics)
-	"best_run_payout": 0,                # Pack H: highest single-run actual coin payout (`earned`) ever, across every run — max() at the same paid_out-guarded flush as everything else, both exit paths
+	"best_run_payout": 0,                # Pack H: highest single-run coin payout ever, across every run — max() at the same paid_out-guarded flush as everything else, both exit paths. Deep Clean (item 4, v0.1.67): now fed the PRE-coin_mult subtotal (CoinReward.pre_mult_total) instead of the actual post-mult `earned` payout, so HARDCORE x3/REGISTER SKIM/tip_jar can't trivialize the PAYDAY commendation — migration is a no-op (maxi() keeps whatever was already saved; every pre-existing value was computed from a >=-sized post-mult number, so this is a one-time generosity toward runs recorded before the switch, not a reset)
 	"commendations_earned": [],          # Pack H: ids of one-time Commendations badges already earned (persisted; never un-earned)
 	"pending_commendation_rewards": [],  # Pack H: commendation ids already granted (rank XP + crate), awaiting reveal at the next menu entry
 	"basements_cleared": 0,              # Pack E (THE BASEMENT), Task 5: LIFETIME gauntlets survived to the reward
@@ -568,14 +568,23 @@ func dailies_played() -> int:
 func add_daily_played() -> void:
 	_data["dailies_played"] = dailies_played() + 1
 
-## Highest single-run actual coin payout (`earned`) ever, across EVERY run (contrast
-## best_daily_score above, which is Daily-Shift-only). Flushed at the same paid_out-guarded blocks
-## as everything else, both exit paths. For the PAYDAY commendation.
+## Highest single-run coin payout ever, across EVERY run (contrast best_daily_score above, which
+## is Daily-Shift-only). Flushed at the same paid_out-guarded blocks as everything else, both exit
+## paths. For the PAYDAY commendation. Deep Clean (item 4): the value passed in is now
+## CoinReward.pre_mult_total's PRE-coin_mult subtotal, not the actual post-mult payout — see
+## record_best_run_payout below and the DEFAULTS entry's comment for the migration note.
 func best_run_payout() -> int:
 	return int(_data.get("best_run_payout", 0))
 
-func record_best_run_payout(earned: int) -> void:
-	_data["best_run_payout"] = maxi(best_run_payout(), earned)
+## `pre_mult` is CoinReward.pre_mult_total(wave, bosses, kills, bonus) — the PRE-coin_mult
+## subtotal (Deep Clean, item 4), not the actual coin payout. Both twin call sites (GameOver.
+## _finish_run, PauseMenu._abandon_run_payout) pass the same shape; existing saved values from
+## before this change were post-mult and therefore only ever >= any future pre-mult value, so
+## maxi() below never needs an explicit migration step — the one-time generosity is accepted
+## deliberately (a pre-existing high-water mark just stops climbing until a run's raw subtotal
+## alone clears it).
+func record_best_run_payout(pre_mult: int) -> void:
+	_data["best_run_payout"] = maxi(best_run_payout(), pre_mult)
 
 ## LIFETIME THE BASEMENT gauntlets cleared (Pack E, Task 5) — never resets. Distinct from
 ## RunStats.basements_cleared, which is the per-run count read by the pay-stub row.

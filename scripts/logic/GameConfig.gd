@@ -604,7 +604,7 @@ const RANK_HARDCORE_UNLOCK := 7    # STORE MANAGER
 
 # --- EMPLOYEE BENEFITS (roadmap-4 Pack A, v0.1.62) ---
 const BENEFIT_COSTS := [25, 60, 140, 320, 700]  # scrap cost for level 1..5 of every 5-cap track
-const BENEFIT_REVIVE_COST := 1500        # UNION REP single level
+const BENEFIT_REVIVE_COST := 900         # UNION REP single level (Deep Clean, v0.1.67: 1500 -> 900 — the marquee benefit lands mid-season instead of ~50 runs)
 const BENEFIT_REVIVE_HEAL_FRAC := 0.5    # revive restores this fraction of max HP
 const BENEFIT_REVIVE_INVULN := 2.0       # seconds of post-revive invulnerability
 const BENEFIT_HP_PER_LVL := 4.0          # INSURANCE: flat max HP per level (spawn baseline)
@@ -686,7 +686,7 @@ const BASEMENT_STRAGGLER_RADIUS := 2000.0  # ascend cleanup: enemies past this d
 
 # --- Coworkers (roadmap-4 Pack C, v0.1.64) ---
 const COWORKER_CRATE_PRICE := 800               # STAFF FILE store price (coins)
-const COWORKER_TRAIT_MIN_RARITY := 5            # rarity floor for a coworker to roll a trait (Savage/purple and up)
+const COWORKER_TRAIT_MIN_RARITY := 4            # rarity floor for a coworker to roll a trait (Deep Clean, v0.1.67: 5 -> 4, Lethal/blue and up, ~15% of pulls — visibility, not flattening; the trait ladder itself is untouched)
 const COWORKER_STAT_PER_RARITY := 0.18          # Coworkers.stat_mult() slope per rarity tier above 1
 const COWORKER_CAT_RATE := 4.0                  # seconds between cat pounces (base, pre rate_mult)
 const COWORKER_CAT_DAMAGE := 40.0               # cat pounce base damage

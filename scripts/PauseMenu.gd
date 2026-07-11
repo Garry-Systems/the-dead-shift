@@ -208,13 +208,18 @@ func _abandon_run_payout() -> void:
 	RunStats.paid_out = true
 	var wave := DifficultyManager.wave
 	var bosses := RunStats.bosses_killed
+	# PAYDAY pre-mult seam (Deep Clean, item 4): extracted to locals so this twin site derives
+	# `kills`/`bonus` identically to GameOver._finish_run's own locals, for CoinReward.pre_mult_total
+	# below — same values as the bare RunStats reads this replaced, no behavior change here.
+	var kills := RunStats.kills
+	var bonus := RunStats.bonus_coins
 	# int() truncates here (unchanged from before this card existed) — final_payout() itself
 	# already rounds once for the coin_mult; this only re-truncates the QUIT_PAYOUT_FRAC step.
 	# SIGNING BONUS (final-review fix): passes the SAME vested-at-DifficultyManager.run_time value
 	# GameOver's death/win path computes — an instant quit (run_time ~= 0) vests ~0, and whatever
 	# HAS vested still gets the same 0.75 QUIT_PAYOUT_FRAC haircut as the rest of final_payout,
 	# same as today's behavior for every other term.
-	var earned := int(CoinReward.final_payout(wave, bosses, RunStats.kills, RunStats.bonus_coins, RunStats.coin_mult, RunStats.signing_bonus, DifficultyManager.run_time) * GameConfig.QUIT_PAYOUT_FRAC)
+	var earned := int(CoinReward.final_payout(wave, bosses, kills, bonus, RunStats.coin_mult, RunStats.signing_bonus, DifficultyManager.run_time) * GameConfig.QUIT_PAYOUT_FRAC)
 	SaveManager.add_coins(earned)
 	# Rank XP (Pack G): the ACTUAL (already QUIT_PAYOUT_FRAC-haircut) amount just granted — same
 	# accessor GameOver's death/win flush uses. A quit never shows the pay-stub, so any resulting
@@ -253,8 +258,11 @@ func _abandon_run_payout() -> void:
 	})
 	if RunConfig.daily:
 		SaveManager.record_daily_score(earned)
-	# Best single-run payout (Pack H: PAYDAY commendation) — mirrors GameOver._finish_run's twin call.
-	SaveManager.record_best_run_payout(earned)
+	# Best single-run payout (Pack H: PAYDAY commendation) — mirrors GameOver._finish_run's twin
+	# call. Deep Clean (item 4): PRE-coin_mult subtotal now, not the QUIT_PAYOUT_FRAC-haircut
+	# `earned` — see CoinReward.pre_mult_total's doc comment. Keep in lockstep with GameOver.
+	var pre_mult := CoinReward.pre_mult_total(wave, bosses, kills, bonus)
+	SaveManager.record_best_run_payout(pre_mult)
 	# Commendations (Pack H): mirrors GameOver._finish_run's twin call — same guarded block, same
 	# exactly-once contract, called before this block's own save_game() below.
 	SaveManager.check_and_grant_commendations()

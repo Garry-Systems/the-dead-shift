@@ -20,6 +20,21 @@ class_name Relics
 ##                remove() divides the ratio back out.
 ##   "hook"    -> PROTOTYPE/CURSED relic. apply()/remove() no-op (push_warning on apply); the
 ##                run-rule effect lives in RelicEffects.gd, keyed by the "hook" field.
+##
+## Row exclusion fields (both threaded through pool()/roll_choice() as an explicit parameter,
+## the SAME idiom, kept deliberately parallel — see Deep Clean, item 5):
+##   dead_mans_vest is excluded by an inline id check gated on the caller's `hardcore: bool` —
+##     one-life identity wins, its cheat-death never gets offered at all while hardcore is on.
+##   "not_in_modes": Array[String]  (optional row field, absent/[] = offered in every mode) —
+##     a small DATA exclusion instead of another inline id check, gated on the caller's
+##     `mode: String` (== RunConfig.mode at the one real call site, RelicChoice.gd). Currently
+##     only overtime_clock carries `["boss_rush"]` (Larry-approved, design-doc item 5): BROKEN
+##     TIMECLOCK holds DifficultyManager.run_time RELIC_TIMECLOCK_HOLD seconds on EVERY boss
+##     kill (see RelicEffects._on_boss_kill), and Boss Rush already keeps BOSS_RUSH_BASE_COUNT+
+##     bosses alive at once with them dying constantly — the same "bosses die constantly" reason
+##     BOSS_RUSH_REWARD_MULT/BOSS_RUSH_HEAL_FRAC already tone other boss-kill payouts down for
+##     that mode — so it's simply never offered there, mirroring how dead_mans_vest is never
+##     offered in hardcore.
 
 static func all() -> Array:
 	return [
@@ -43,7 +58,7 @@ static func all() -> Array:
 		{"id": "magnet_coil",    "name": "Magnet Coil",    "desc": "chain 5 kills fast enough and every gem on screen comes to you.", "family": "prototype", "hook": "magnet_coil",    "mode": "hook"},
 		{"id": "intercom",       "name": "The Intercom",   "desc": "drop an elite and the trash nearby remembers they have legs.", "family": "prototype", "hook": "intercom",       "mode": "hook"},
 		{"id": "accelerant",     "name": "Accelerant",     "desc": "anything already on fire takes extra from everything else.",  "family": "prototype", "hook": "accelerant",     "mode": "hook"},
-		{"id": "overtime_clock", "name": "Broken Timeclock", "desc": "every boss kill stalls the clock 10 seconds. management denies this.", "family": "prototype", "hook": "overtime_clock", "mode": "hook"},
+		{"id": "overtime_clock", "name": "Broken Timeclock", "desc": "every boss kill stalls the clock 10 seconds. management denies this.", "family": "prototype", "hook": "overtime_clock", "mode": "hook", "not_in_modes": ["boss_rush"]},
 		{"id": "spare_parts",    "name": "Spare Parts",    "desc": "crates and shelves drop an extra gem, sometimes a coin burst.", "family": "prototype", "hook": "spare_parts",    "mode": "hook"},
 		{"id": "rubber_soles",   "name": "Rubber Soles",   "desc": "slows don't stick anymore. your feet got a little quicker too.", "family": "prototype", "hook": "rubber_soles",   "mode": "hook"},
 		{"id": "adrenal_valve",  "name": "Adrenal Valve",  "desc": "getting bit refunds dash cooldown. silver lining, technically.", "family": "prototype", "hook": "adrenal_valve",  "mode": "hook"},
@@ -71,8 +86,10 @@ static func family_of(id: String) -> String:
 	return String(get_relic(id).get("family", ""))
 
 ## Un-held ids of the given family, excluding dead_mans_vest whenever hardcore is true
-## (one-life identity wins — its cheat-death never gets offered, not even in slot B).
-static func pool(family: String, held: Array, hardcore: bool) -> Array:
+## (one-life identity wins — its cheat-death never gets offered, not even in slot B), AND
+## excluding any row whose "not_in_modes" lists `mode` (Deep Clean, item 5 — see the header
+## doc's "Row exclusion fields" note; the two mechanisms are deliberately parallel).
+static func pool(family: String, held: Array, hardcore: bool, mode: String) -> Array:
 	var out: Array = []
 	for r in all():
 		var id: String = String(r["id"])
@@ -82,6 +99,9 @@ static func pool(family: String, held: Array, hardcore: bool) -> Array:
 			continue
 		if hardcore and id == "dead_mans_vest":
 			continue
+		var not_in_modes: Array = r.get("not_in_modes", [])
+		if mode in not_in_modes:
+			continue
 		out.append(id)
 	return out
 
@@ -90,11 +110,11 @@ static func pool(family: String, held: Array, hardcore: bool) -> Array:
 ## it can never duplicate a held relic OR card A. Degrades gracefully as the un-held pool thins:
 ## returns [a_id, b_id] normally, [a_id] if a second distinct card can't be found, or [] if even
 ## card A can't be found (nothing un-held left to offer).
-static func roll_choice(held: Array, hardcore: bool) -> Array:
-	var a_id := _roll_a(held, hardcore)
+static func roll_choice(held: Array, hardcore: bool, mode: String) -> Array:
+	var a_id := _roll_a(held, hardcore, mode)
 	if a_id == "":
 		return []
-	var b_id := _roll_b(held, hardcore, a_id)
+	var b_id := _roll_b(held, hardcore, mode, a_id)
 	if b_id == "":
 		return [a_id]
 	return [a_id, b_id]
@@ -105,12 +125,12 @@ static func _ab_family() -> String:
 
 ## Card A: rolled family first, falling back to the OTHER standard/prototype family if that pool
 ## is thin. Deliberately never touches the cursed pool — card A is never cursed, even degraded.
-static func _roll_a(held: Array, hardcore: bool) -> String:
+static func _roll_a(held: Array, hardcore: bool, mode: String) -> String:
 	var fam := _ab_family()
 	var other := "prototype" if fam == "standard" else "standard"
-	var p := pool(fam, held, hardcore)
+	var p := pool(fam, held, hardcore, mode)
 	if p.is_empty():
-		p = pool(other, held, hardcore)
+		p = pool(other, held, hardcore, mode)
 	if p.is_empty():
 		return ""
 	return p[randi() % p.size()]
@@ -118,7 +138,7 @@ static func _roll_a(held: Array, hardcore: bool) -> String:
 ## Card B: RELIC_CURSED_CHANCE cursed, else A's 60/40 mix; excludes card A on top of held. Falls
 ## back through the remaining families (cursed included — B CAN be cursed) so a thin pool still
 ## offers something before the card degrades to "no second card".
-static func _roll_b(held: Array, hardcore: bool, a_id: String) -> String:
+static func _roll_b(held: Array, hardcore: bool, mode: String, a_id: String) -> String:
 	var excl: Array = held.duplicate()
 	excl.append(a_id)
 	var fam := "cursed" if randf() < GameConfig.RELIC_CURSED_CHANCE else _ab_family()
@@ -127,7 +147,7 @@ static func _roll_b(held: Array, hardcore: bool, a_id: String) -> String:
 		if not (f in order):
 			order.append(f)
 	for f in order:
-		var p := pool(f, excl, hardcore)
+		var p := pool(f, excl, hardcore, mode)
 		if not p.is_empty():
 			return p[randi() % p.size()]
 	return ""
