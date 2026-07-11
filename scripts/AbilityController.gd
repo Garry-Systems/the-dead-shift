@@ -131,9 +131,10 @@ func _cast_turret(player: Player) -> void:
 
 ## DEAD EYE (Jimbo James): 3-second bullet time. Owns Engine.time_scale jointly with Juice's
 ## crit hit-stop via the shared `Juice.base_scale` field (see Juice.gd's header comment) — this
-## is the only ability that touches global time_scale, so it carries three independent safety
+## is the only ability that touches global time_scale, so it carries four independent safety
 ## nets against ever stranding the game slowed: the end timer below, `player.died` (this func,
-## connected once per cast), and `_exit_tree` (quitting to menu mid-window).
+## connected once per cast), `_exit_tree` (quitting to menu mid-window), and
+## `GameOver._finish_run` (a WIN mid-window — terminal pause, none of the other three fire).
 ##
 ## Move-speed comp is multiplicative and reverted with the exact ratio stored at cast time, so it
 ## commutes cleanly with a move-speed upgrade card taken mid-window (base -> x2.5 (cast) -> x1.2
@@ -150,7 +151,7 @@ func _cast_dead_eye(player: Player) -> void:
 		_dead_eye_move_ratio = GameConfig.ABILITY_DEADEYE_MOVE_COMP
 		player.move_speed *= _dead_eye_move_ratio
 		_dead_eye_player = player
-		if player.gun != null:
+		if player.gun != null and is_instance_valid(player.gun):
 			player.gun.add_frenzy(GameConfig.ABILITY_DEADEYE_FRENZY, GameConfig.ABILITY_DEADEYE_DURATION)
 		# Safety net #2: connected once per Player instance (is_connected-guarded — try_cast()
 		# re-fetches `player` fresh from the group every cast, and re-casting DEAD EYE on the SAME
@@ -166,7 +167,8 @@ func _cast_dead_eye(player: Player) -> void:
 	get_tree().create_timer(GameConfig.ABILITY_DEADEYE_DURATION, false, false, true).timeout.connect(_end_dead_eye)
 
 ## Idempotent close for the DEAD EYE window — guarded by `_dead_eye_active` since the timer,
-## `player.died`, and `_exit_tree` can all reach here for the same cast. Always writes BOTH
+## `player.died`, `_exit_tree`, and GameOver._finish_run (the win path — see its comment) can
+## all reach here for the same cast. Always writes BOTH
 ## `Juice.base_scale` and `Engine.time_scale` back to 1.0 unconditionally: if a crit hit-stop is
 ## mid-flight when the window closes, its own token-guarded `_on_timer_done` will later restore
 ## `Engine.time_scale = base_scale`, which is already 1.0 by then — a harmless re-write, not a
