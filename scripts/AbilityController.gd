@@ -309,17 +309,17 @@ func _jackpot_callout_color(word: String) -> Color:
 ## RADIUS_MULT) and duration (ABILITY_CLOSING_DURATION) — same "hurts nobody, only slows" shape
 ## as the Janitor's own dash puddle (dps 0 / hurts_player false / slow+slow_dur reused as-is).
 ##
-## Deliberately does NOT call HazardZone.cap_player_pools(): this ability is already capped to
-## one cast per ABILITY_CLOSING_CD (45s) by try_cast()'s own cooldown gate — the cooldown IS its
-## cap, so it can never itself flood the shared player_pools group. Calling cap_player_pools()
-## here would only evict some UNRELATED existing pool member (an Acid Cannon shell, or one of the
-## Janitor's own smaller dash slicks) for no reason — the TrailDash precedent (its own "own-group"
-## fuel-pool cap, HazardZone.gd) for a spawn site that already has its own natural cap not riding
-## the shared eviction too. The zone still JOINS "player_pools" via configure_hazard's own
-## unconditional add (hurts_player == false) — that membership is unavoidable/harmless and
-## unrelated to this cap-call omission; it just means a LATER Janitor dash slick could eventually
-## evict this zone the same way any two player_pools members can evict each other, which is
-## existing, expected behavior this ability doesn't change.
+## Deliberately does NOT interact with the shared player_pools cap AT ALL — neither calling
+## HazardZone.cap_player_pools() nor staying a member of the group (the remove_from_group below):
+## this ability is already capped to one live zone by try_cast()'s own ABILITY_CLOSING_CD gate
+## (45s cooldown ≫ 8s duration — the cooldown IS its cap), the boss TrailDash own-pool precedent
+## (HazardZone.gd) for a spawn site whose natural cap means it never rides the shared eviction.
+## Calling cap_player_pools() would evict an UNRELATED pool member (an Acid Cannon shell, one of
+## the Janitor's own smaller dash slicks) for no reason; STAYING in the group would be worse —
+## acid/bile churn hitting MAX_PLAYER_POOLS could evict this zone mid-window (group order ==
+## spawn order, and a long-lived 8s zone quickly becomes "oldest"), killing the visual + slow
+## while the T7 coin window below kept paying — a silent desync between what the player sees and
+## what kills earn.
 func _cast_closing_time(player: Player) -> void:
 	_last_cast_id = "closing_time"
 	if player == null or not is_instance_valid(player):
@@ -335,6 +335,11 @@ func _cast_closing_time(player: Player) -> void:
 	get_tree().current_scene.add_child(zone)
 	zone.global_position = player.global_position
 	zone.configure_hazard(cfg)
+	# Exempt the ability zone from the shared player-pool cap (configure_hazard auto-joins every
+	# hurts_player==false zone): joining would let acid/bile churn evict it mid-window while the
+	# coin zone below kept paying — see the header comment. It rides its own rule instead: the
+	# 45s cooldown means at most one ever exists.
+	zone.remove_from_group("player_pools")
 	# Arms the T7 kill_coin_bonus() seam for the SAME area + duration as the zone itself —
 	# engine-clock seconds, the Hud._last_shift_toast idiom (matches _coin_window_until above).
 	_coin_zone_center = player.global_position
