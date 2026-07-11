@@ -277,6 +277,8 @@ func _start_reward() -> void:
 ## invalid) it's swept up too, so an ignored reward never lingers in the walled-off arena forever.
 func _ascend() -> void:
 	get_tree().current_scene.add_child(ScreenFlash.new())
+	# same stinger both directions — the pipeline has jitter, not pitch scale (spec B8 fallback)
+	SoundManager.play("basement_descend")
 	_free_wall()
 	_free_stragglers()
 	_free_stranded_gems()

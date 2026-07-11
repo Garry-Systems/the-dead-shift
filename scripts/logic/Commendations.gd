@@ -65,7 +65,7 @@ static func all() -> Array:
 			"counter_key": "fusions", "target": GameConfig.COMMENDATION_RECYCLER_TARGET, "tier": TIER_EASY },
 		{ "id": "taskmaster", "name": "TASKMASTER", "desc": "Complete 25 challenges (lifetime). the list never actually ends.",
 			"counter_key": "challenges_completed_total", "target": GameConfig.COMMENDATION_TASKMASTER_TARGET, "tier": TIER_MED },
-		{ "id": "payday", "name": "PAYDAY", "desc": "Earn 2,000+ coins in a single run. corporate is impressed, barely.",
+		{ "id": "payday", "name": "PAYDAY", "desc": "Earn 2,000+ base pay in one shift (before multipliers).",
 			"counter_key": "best_run_payout", "target": GameConfig.COMMENDATION_PAYDAY_TARGET, "tier": TIER_MED },
 	]
 
