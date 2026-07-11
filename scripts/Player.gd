@@ -82,6 +82,12 @@ var _dash_ability := ""      # special dash effect for the chosen character ("" 
 ## is the MIN factor among them (see _current_slow_factor), 1.0 when the list is empty.
 var _slow_stacks: Array = []
 
+## ONE OF THEM (Zombie Bob, Company Equipment v0.1.70): seconds remaining of "the horde forgets
+## Bob exists" — the truth Enemy._target_ghosted() reads every frame off THIS player instance
+## (not the caster-only AbilityController). maxf-merge (see set_ghost), same idiom as
+## _grant_invuln/apply_fire_lock — a recast before expiry extends, never shortens/resets.
+var _ghost_time := 0.0
+
 func _ready() -> void:
 	add_to_group("player")
 	set_collision_mask_value(GameConfig.COVER_LAYER_BIT, true)   # collide with solid cover (|= safe: keeps the default bit 1)
@@ -108,7 +114,13 @@ func _physics_process(delta: float) -> void:
 		_fire_lock_time -= delta
 	if _revive_invuln_time > 0.0:
 		_revive_invuln_time -= delta
+	if _ghost_time > 0.0:
+		_ghost_time -= delta
 	_tick_slow_stacks(delta)
+	# Ring indicator redraw: unconditional every physics frame rather than gated on
+	# _ghost_time>0, so the frame the window expires still redraws (clearing the ring) with no
+	# separate "off" transition to track. _draw() itself is the sole no-op gate (see below).
+	queue_redraw()
 
 	var dir := joystick_direction
 	if dir == Vector2.ZERO:
@@ -540,3 +552,29 @@ func _current_slow_factor() -> float:
 	for entry in _slow_stacks:
 		f = minf(f, float(entry["factor"]))
 	return f
+
+## --- ONE OF THEM (Zombie Bob, AbilityController._cast_ghost) ---
+
+## Arms (or extends) the ghost window. maxf-merge, same shape as apply_fire_lock/_grant_invuln —
+## a recast before expiry extends, never shortens.
+func set_ghost(duration: float) -> void:
+	_ghost_time = maxf(_ghost_time, duration)
+
+## True while ONE OF THEM is active. Enemy._target_ghosted() reads this every frame off its own
+## `_target` reference — no signal/event needed, matching is_frozen()/is_pinned()'s own
+## poll-not-push shape.
+func is_ghost() -> bool:
+	return _ghost_time > 0.0
+
+## Additive indicator ring at the player's feet while ghosted — the C4-lavender, low-alpha
+## "base ring" look VirtualJoystick already uses (draw_circle, Color(0.878, 0.898, 1.0, a)),
+## reused here as an OUTLINE (draw_arc) so it reads as a ground marker, not a filled blob.
+## Deliberately NOT a sprite modulate tint: `lifesteal_blip()` above already owns `_sprite.modulate`
+## for its own transient tween-to-white, and a persistent ghost tint sharing that channel would
+## get stomped mid-window (or fail to restore) the first time a lifesteal blip fires during the
+## 4s. This ring is a separate additive layer — nothing to restore, nothing to fight.
+func _draw() -> void:
+	if not is_ghost():
+		return
+	var ring_col := Color(0.878, 0.898, 1.0, 0.55)   # C4 lavender @ low-ish alpha (brief's exact value)
+	draw_arc(Vector2(0, 20), 14.0, 0.0, TAU, 24, ring_col, 3.0, true)

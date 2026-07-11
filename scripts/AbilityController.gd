@@ -78,7 +78,7 @@ func try_cast() -> bool:
 		"dead_eye":
 			_cast_dead_eye(player)
 		"ghost":
-			_cast_ghost()
+			_cast_ghost(player)
 		"jackpot":
 			_cast_jackpot()
 		"closing_time":
@@ -191,10 +191,18 @@ func _end_dead_eye() -> void:
 func _exit_tree() -> void:
 	_end_dead_eye()
 
-## ONE OF THEM (Zombie Bob): the horde loses target lock on him for a window.
-## Callout-only this task — effect lands in Task 6.
-func _cast_ghost() -> void:
+## ONE OF THEM (Zombie Bob): the horde loses target lock on him for ABILITY_GHOST_DURATION
+## seconds — regular enemies and elites stop re-aiming their chase and hold their bite/fire
+## (Enemy._target_ghosted, RangedEnemy._act). All state lives on the Player instance itself
+## (Player.set_ghost/is_ghost), not here — every enemy reads `_target.is_ghost()` directly, so
+## there's nothing else for this controller to own or revert. Bosses are unaffected by
+## construction (BossBase never defines _target_ghosted). Same null-guard idiom as
+## _cast_clear_out/_cast_turret — nothing to do at all without a valid player.
+func _cast_ghost(player: Player) -> void:
 	_last_cast_id = "ghost"
+	if player == null or not is_instance_valid(player):
+		return
+	player.set_ghost(GameConfig.ABILITY_GHOST_DURATION)
 
 ## JACKPOT (Alstar Tuck): four-roll slot machine — NUKE / DEEP FREEZE / PAYDAY / TRIGGER HAPPY.
 ## Callout-only this task — effect lands in Task 7.

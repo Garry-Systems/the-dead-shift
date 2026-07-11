@@ -361,6 +361,13 @@ func status_snapshot() -> Dictionary:
 func is_hampered() -> bool:
 	return _slow_factor < 1.0 or _frozen or _pinned
 
+## ONE OF THEM (Zombie Bob): true while THIS enemy's own `_target` is under the player's ghost
+## window — "the horde forgets Bob exists". Read fresh every call (not cached), so a mid-frame
+## ghost expiry or target death is picked up immediately by every gated site below. Null/freed
+## targets read false, never crash — mirrors _touching_player()'s own guard shape.
+func _target_ghosted() -> bool:
+	return _target != null and is_instance_valid(_target) and _target.is_ghost()
+
 ## Pure: persistent base tint by status precedence — frozen > pinned > feared > burning >
 ## poisoned > marked > slowed > neutral. Static so a probe can verify the precedence headlessly.
 ## Frozen/pinned are solid tells; feared is a near-solid blend; everything below blends toward
@@ -466,7 +473,15 @@ func _physics_process(delta: float) -> void:
 	if _target == null or not is_instance_valid(_target):
 		return
 
-	velocity = _desired_velocity() * _slow_factor * (1.0 + _elite_buff_speed)
+	# ONE OF THEM: gate the RE-AIM only, never zero velocity here — CharacterBody2D persists
+	# whatever velocity was set last frame, so a ghosted enemy just keeps walking its last
+	# heading and wanders off (reads as "lost you"). Zeroing would read as frozen instead.
+	# Fear/taunt below OUTRANK ghost on purpose: they're separate if/elif branches that still
+	# unconditionally overwrite `velocity` after this, exactly like they already outrank a plain
+	# unghosted chase — a taunted or feared enemy was never "targeting the player" to begin with,
+	# so ghost has nothing to suppress there.
+	if not _target_ghosted():
+		velocity = _desired_velocity() * _slow_factor * (1.0 + _elite_buff_speed)
 
 	# Night Terror (`onhit_fear`): enforced HERE at the base, like the frozen/pin zeroing below,
 	# so a subclass _desired_velocity override (RangedEnemy's standoff-keeping) can't bypass it —
@@ -518,7 +533,7 @@ func _physics_process(delta: float) -> void:
 			away = Vector2.RIGHT
 		apply_knockback(away * GameConfig.ENEMY_BOUNCE_SPEED)
 		_contact_cd = GameConfig.ENEMY_CONTACT_HIT_CD
-	elif _contact_cd <= 0.0 and _touching_player():
+	elif _contact_cd <= 0.0 and not _target_ghosted() and _touching_player():
 		_target.take_damage(touch_damage * elite_damage_mult(), self, true)   # attacker=self (Thorns), is_contact=true (Armor)
 		var away := _target.global_position.direction_to(global_position)
 		if away == Vector2.ZERO:

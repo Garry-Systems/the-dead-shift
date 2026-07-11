@@ -28,7 +28,12 @@ func _desired_velocity() -> Vector2:
 	return Vector2.ZERO
 
 ## Fire a projectile at the player when off cooldown and within range.
+## ONE OF THEM: hold fire entirely while ghosted — top early-return, before the cooldown even
+## ticks, so the cooldown resumes exactly where it left off once the window ends (no free volley
+## banked up from 4s of held fire).
 func _act(delta: float) -> void:
+	if _target_ghosted():
+		return
 	_fire_cd -= delta
 	if _fire_cd > 0.0:
 		return

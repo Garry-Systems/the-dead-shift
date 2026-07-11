@@ -9,13 +9,19 @@ const BLAST_FX := preload("res://art/muzzle.png")
 
 var _detonated := false
 
-## Run the base enemy step (movement, debuffs, contact DPS — which is 0 here), then
-## detonate if we're touching the player.
+## Run the base enemy step (movement, debuffs, contact DPS — which is 0 here per the registry's
+## dmg_mult, so Enemy's own contact-bite gate is a no-op for this type either way), then detonate
+## if we're touching the player. This is Exploder's OWN proximity trigger, separate from the base
+## Enemy contact-bite block — ONE OF THEM: gate it the same way (`not _target_ghosted()`), or a
+## ghosted player standing still could still eat a "no chase, no contact damage" blast just by
+## being walked into. Kill-triggered detonation (take_damage() below) is intentionally left
+## UNGATED — that's a death side-effect of a bullet the player already fired, not the enemy
+## targeting the player, so ghost has nothing to suppress there (see task-6-report.md).
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	if not is_instance_valid(self):
 		return
-	if not _detonated and _touching_player():
+	if not _detonated and not _target_ghosted() and _touching_player():
 		_detonate()
 
 ## Killed by a bullet/DoT -> still detonate (drops its gem via super first).
