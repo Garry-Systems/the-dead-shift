@@ -11,12 +11,16 @@ const ALLOWED_MODES := ["endless", "horde"]
 
 ## Gate for rolling a visitor at a wave-edge: wave floor met, mode allowed, no visitor already
 ## active, VISITOR_COOLDOWN elapsed since the last one arrived, per-run cap not hit, player not
-## inside THE BASEMENT gauntlet. GATE-FIRST: callers (Visitors._on_wave_edge) only ever consume a
-## seeded RunConfig.rand_float() AFTER this returns true — see roll()/pick() below, which both
-## take the already-rolled value/index rather than reading RunConfig themselves, so this whole
-## chain stays probe-able with stubbed numbers instead of live RNG (Basement._roll_door's exact
-## "does NOT re-check the gate; callers are responsible" split, mirrored here).
-static func can_roll(wave: int, mode: String, active: bool, cooldown_left: float, count_this_run: int, in_basement: bool) -> bool:
+## inside THE BASEMENT gauntlet, and not close enough to dawn to straddle the extraction climax
+## (`near_dawn` — computed by the caller off run_time vs ShiftClock.dawn_run_time(), the exact
+## Basement._on_wave_edge precedent, Basement.gd:83; passed in as an already-resolved bool so
+## this stays pure/probe-able with no autoload reads). GATE-FIRST: callers (Visitors.
+## _on_wave_edge) only ever consume a seeded RunConfig.rand_float() AFTER this returns true —
+## see roll()/pick() below, which both take the already-rolled value/index rather than reading
+## RunConfig themselves, so this whole chain stays probe-able with stubbed numbers instead of
+## live RNG (Basement._roll_door's exact "does NOT re-check the gate; callers are responsible"
+## split, mirrored here).
+static func can_roll(wave: int, mode: String, active: bool, cooldown_left: float, count_this_run: int, in_basement: bool, near_dawn: bool) -> bool:
 	if wave < GameConfig.VISITOR_MIN_WAVE:
 		return false
 	if not ALLOWED_MODES.has(mode):
@@ -28,6 +32,8 @@ static func can_roll(wave: int, mode: String, active: bool, cooldown_left: float
 	if count_this_run >= GameConfig.VISITOR_MAX_PER_RUN:
 		return false
 	if in_basement:
+		return false
+	if near_dawn:
 		return false
 	return true
 

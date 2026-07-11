@@ -38,12 +38,19 @@ extends CharacterBody2D
 
 const _RADIUS := 20.0   # collider size — matches Enemy.tscn's own shambler CircleShape2D radius
 
+const FLASH_CD := 0.15  # min seconds between hit-flashes — Enemy.gd's own FLASH_CD value (Enemy.gd:35),
+                        # reimplemented locally for the exact reason it exists there: a continuous
+                        # weapon (flame cone, beam) or a rapid gun calls flash_hit far faster than
+                        # the pulse can fade, which machine-guns the "hit_enemy" sound and pins the
+                        # shimmer's brighten solid. Throttling to readable pulses fixes both.
+
 var move_speed := GameConfig.CRYPTID_MOVE_SPEED
 
 var _health: Health
 var _target: Player
 var _time_left := 0.0
 var _flash_t := 0.0
+var _flash_cd := 0.0    # counts down between hit-flashes (see FLASH_CD)
 var _dead := false
 var _health_bar: EnemyHealthBar
 
@@ -68,10 +75,15 @@ func health_fraction() -> float:
 		return 0.0
 	return _health.current / _health.maxhp
 
-## Bullet.gd's has_method-gated hit-flash call (see Enemy.flash_hit's identical shared signature —
-## `tint` is accepted-and-ignored: this file has no Sprite2D/ShaderMaterial to tint, the shimmer's
-## own _draw() brightens on _flash_t instead, below).
+## Bullet.gd's has_method-gated hit-flash call, with Enemy.flash_hit's identical shared signature
+## AND its FLASH_CD throttle (Enemy.gd:233-241 parity — throttled, not just same-shaped): `tint`
+## is accepted-and-ignored (this file has no Sprite2D/ShaderMaterial to tint; the shimmer's own
+## _draw() brightens on _flash_t instead, below), and a call landing inside the FLASH_CD window
+## is a full no-op — no re-flash, no sound — so rapid weapons pulse instead of spamming.
 func flash_hit(_tint: Color = Color(1, 1, 1, 1)) -> void:
+	if _flash_cd > 0.0:
+		return
+	_flash_cd = FLASH_CD
 	_flash_t = 0.12
 	SoundManager.play("hit_enemy")   # same chokepoint Enemy.flash_hit uses (Enemy.gd:237)
 
@@ -87,6 +99,8 @@ func take_damage(amount: float) -> void:
 func _physics_process(delta: float) -> void:
 	if _dead:
 		return
+	if _flash_cd > 0.0:
+		_flash_cd -= delta
 	if _flash_t > 0.0:
 		_flash_t = maxf(_flash_t - delta, 0.0)
 	_time_left -= delta

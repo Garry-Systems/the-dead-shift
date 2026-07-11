@@ -817,6 +817,7 @@ const VISITOR_MIN_WAVE := 4              # first wave a visitor can roll at a wa
 const VISITOR_CHANCE := 0.20             # chance roll once the gate passes (RunConfig.rand_float — Daily stays seeded)
 const VISITOR_COOLDOWN := 90.0           # seconds after a visitor ARRIVES before the next roll is even gate-eligible
 const VISITOR_MAX_PER_RUN := 2           # visitors per run, of 3 possible kinds — no repeats (VisitorsLogic.pick)
+const VISITOR_DAWN_LOCKOUT := 140.0      # a visitor must never roll close enough to dawn to straddle the extraction sequence (surge + chopper ≈ FINAL_SURGE_SECONDS + EXTRACT_WINDOW = up to 110s) — mirrors BASEMENT_DAWN_LOCKOUT's rationale verbatim; endless-only by construction (horde has no dawn/Extraction)
 const VISITOR_SPAWN_DIST := SPAWN_RADIUS # CRYPTID's spawn-ring distance — reuses Spawner's own off-screen-entry tuning (SPAWN_RADIUS's doc comment) rather than a redundant near-duplicate constant
 
 # --- THE CRYPTID (Night Shift Stories v0.1.68): a bounty that flees ---
