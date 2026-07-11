@@ -18,6 +18,16 @@ var _cd_remaining := 0.0      # seconds left before try_cast() can succeed again
 ## stub this task).
 var _last_cast_id := ""
 
+## DEAD EYE window state. `_dead_eye_active` is the idempotency guard — three independent nets
+## (the end timer, player.died, this controller's own _exit_tree) can all fire for the same
+## window, and only the first may act. `_dead_eye_player`/`_dead_eye_move_ratio` are the cast-time
+## snapshot needed for an exact revert (`move_speed /= ratio`, not `/= GameConfig...` re-read —
+## the multiply/divide pair must use the SAME value so it commutes cleanly with any move-speed
+## upgrade card taken mid-window).
+var _dead_eye_active := false
+var _dead_eye_player: Player = null
+var _dead_eye_move_ratio := 1.0
+
 func _ready() -> void:
 	add_to_group("ability_controller")
 	_row = Abilities.for_character(RunConfig.character_id)
@@ -66,7 +76,7 @@ func try_cast() -> bool:
 		"turret":
 			_cast_turret(player)
 		"dead_eye":
-			_cast_dead_eye()
+			_cast_dead_eye(player)
 		"ghost":
 			_cast_ghost()
 		"jackpot":
@@ -119,10 +129,65 @@ func _cast_turret(player: Player) -> void:
 		return
 	Turret.spawn(player.global_position, get_tree())
 
-## DEAD EYE (Jimbo James): bullet time via a Juice.base_scale owner + a move-speed/frenzy comp.
-## Callout-only this task — effect lands in Task 5.
-func _cast_dead_eye() -> void:
+## DEAD EYE (Jimbo James): 3-second bullet time. Owns Engine.time_scale jointly with Juice's
+## crit hit-stop via the shared `Juice.base_scale` field (see Juice.gd's header comment) — this
+## is the only ability that touches global time_scale, so it carries three independent safety
+## nets against ever stranding the game slowed: the end timer below, `player.died` (this func,
+## connected once per cast), and `_exit_tree` (quitting to menu mid-window).
+##
+## Move-speed comp is multiplicative and reverted with the exact ratio stored at cast time, so it
+## commutes cleanly with a move-speed upgrade card taken mid-window (base -> x2.5 (cast) -> x1.2
+## (card) -> /2.5 (end) == base x1.2, regardless of order). Frenzy uses gun.add_frenzy's
+## maxf-merge semantics (Gun.gd) — safe to overlap with Bloodrush or a second DEAD EYE re-cast
+## with no revert needed; it self-expires on its own duration.
+func _cast_dead_eye(player: Player) -> void:
 	_last_cast_id = "dead_eye"
+	Juice.base_scale = GameConfig.ABILITY_DEADEYE_SCALE
+	Engine.time_scale = GameConfig.ABILITY_DEADEYE_SCALE
+	_dead_eye_active = true
+	_dead_eye_player = null
+	if player != null and is_instance_valid(player):
+		_dead_eye_move_ratio = GameConfig.ABILITY_DEADEYE_MOVE_COMP
+		player.move_speed *= _dead_eye_move_ratio
+		_dead_eye_player = player
+		if player.gun != null:
+			player.gun.add_frenzy(GameConfig.ABILITY_DEADEYE_FRENZY, GameConfig.ABILITY_DEADEYE_DURATION)
+		# Safety net #2: connected once per Player instance (is_connected-guarded — try_cast()
+		# re-fetches `player` fresh from the group every cast, and re-casting DEAD EYE on the SAME
+		# player before this connection is ever cleared must not stack duplicate calls). Fires on
+		# the alive->dead transition so a mid-window kill can never leave the game at 0.3x forever.
+		if not player.died.is_connected(_end_dead_eye):
+			player.died.connect(_end_dead_eye)
+	# Safety net #1: process_always=false is the deliberate pause contract (the double_fuse-echo
+	# precedent, RelicEffects.gd) — a level-up card / pause menu opening mid-window HOLDS the
+	# window open instead of burning it down behind the overlay; ignore_time_scale=true means the
+	# 3.0 is REAL seconds, not 3 seconds of the slowed time_scale it itself created (which would
+	# actually be 10 wall-clock seconds at 0.3x).
+	get_tree().create_timer(GameConfig.ABILITY_DEADEYE_DURATION, false, false, true).timeout.connect(_end_dead_eye)
+
+## Idempotent close for the DEAD EYE window — guarded by `_dead_eye_active` since the timer,
+## `player.died`, and `_exit_tree` can all reach here for the same cast. Always writes BOTH
+## `Juice.base_scale` and `Engine.time_scale` back to 1.0 unconditionally: if a crit hit-stop is
+## mid-flight when the window closes, its own token-guarded `_on_timer_done` will later restore
+## `Engine.time_scale = base_scale`, which is already 1.0 by then — a harmless re-write, not a
+## conflict. This is the simplest rule that's still correct, so no cross-token bookkeeping with
+## Juice is needed here.
+func _end_dead_eye() -> void:
+	if not _dead_eye_active:
+		return
+	_dead_eye_active = false
+	if _dead_eye_player != null and is_instance_valid(_dead_eye_player):
+		_dead_eye_player.move_speed /= _dead_eye_move_ratio
+	_dead_eye_player = null
+	Juice.base_scale = 1.0
+	Engine.time_scale = 1.0
+
+## Safety net #3: this controller is a scenes/Main.tscn sibling (Juice/Visitors idiom) that goes
+## away on scene teardown (quit to menu, run end) — mirrors Juice.gd's own _exit_tree net so a
+## torn-down controller mid-DEAD-EYE-window can never leave Engine.time_scale stuck at 0.3.
+## No-op via the idempotency guard if the window already ended normally.
+func _exit_tree() -> void:
+	_end_dead_eye()
 
 ## ONE OF THEM (Zombie Bob): the horde loses target lock on him for a window.
 ## Callout-only this task — effect lands in Task 6.
