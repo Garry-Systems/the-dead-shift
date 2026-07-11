@@ -118,10 +118,10 @@ func _start_visitor(kind: String) -> void:
 	count_this_run += 1
 	_seen.append(kind)
 	_cooldown = GameConfig.VISITOR_COOLDOWN
-	# The truck stub "arrives" with no node (see _start_truck) — active_kind only latches when
-	# there's a live entity to track (the invalid-poll in _process clears it when that node
-	# frees); a node-less arrival explicitly clears it rather than leaving whatever was there.
-	active_kind = kind if _active_node != null else ""
+	# Every _start_* dispatcher above (_start_cryptid/_start_driveby/_start_truck) sets
+	# _active_node before ever returning true — a successful dispatch always has a live entity to
+	# track, which the invalid-poll in _process clears once that node frees.
+	active_kind = kind
 
 func _start_cryptid() -> bool:
 	if _player == null or not is_instance_valid(_player):

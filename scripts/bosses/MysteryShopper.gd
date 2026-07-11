@@ -86,15 +86,27 @@ func _build_phases() -> Array:
 ## staged-sprite hook). Deliberately does NOT call super — the base version would immediately
 ## load+apply the real 48px art at spawn, which is exactly what concealment must NOT do. Real-art
 ## swap-in is deferred entirely to _reveal() (and reverted by _re_cloak()) instead.
+##
+## She disguises as the most common shopper: the .tscn bakes the legacy shared art/enemy.png
+## (a pre-Pack-F placeholder), but every live trash type has had its own per-type art since Pack F
+## — left as-is, she'd be the ONLY blob-face on screen, concealment DOA. If the shambler's own
+## art/enemies/shambler.png (the horde's most common type) exists, swap it onto the Sprite2D
+## BEFORE caching, so the cache — and every re-cloak via _apply_disguise_sprite (~203), which just
+## replays this cache — carries the real disguise instead of the legacy placeholder.
 func _setup_sprite() -> void:
 	var spr := get_node_or_null("Sprite2D") as Sprite2D
 	if spr == null:
 		return
+	var path := "res://art/enemies/shambler.png"
+	if ResourceLoader.exists(path):
+		spr.texture = load(path)
 	_disguise_tex = spr.texture
 	_disguise_scale = spr.scale
-	# Concealed at spawn: the .tscn's baked shambler texture/scale is left exactly as authored —
-	# no regalia, no real sprite. See _draw() (regalia only drawn once _revealed) and
-	# _apply_real_sprite()/_apply_disguise_sprite() (the two-way texture/scale swap).
+	# Concealed at spawn: scale is left exactly as authored — no regalia, no real sprite. Native
+	# 32px canvas (GameConfig.SPRITE_ENEMY_PX) matches the shambler texture's, so no scale change
+	# is needed on this swap (Enemy._setup_sprite's own comment confirms this for every trash
+	# type). See _draw() (regalia only drawn once _revealed) and _apply_real_sprite()/
+	# _apply_disguise_sprite() (the two-way texture/scale swap).
 
 ## Cumulative-damage reveal trigger (the other trigger, proximity, is checked every physics tick
 ## in _physics_process below since it isn't damage-driven).
@@ -130,6 +142,7 @@ func _reveal() -> void:
 	_speed_mult = GameConfig.SHOPPER_REVEALED_SPEED_MULT
 	touch_damage = _real_touch_damage   # disguise off, gloves off — normal boss contact resumes
 	_apply_real_sprite()
+	SoundManager.play("boss_roar")   # the roar IS the reveal beat — Spawner gates its own spawn-time roar off while concealed (see Spawner._spawn_boss)
 	queue_redraw()
 
 ## Phase-edge on_enter (0.66 / 0.33): the re-cloak. STATE flips immediately — concealed (the HUD
@@ -144,6 +157,13 @@ func _re_cloak() -> void:
 	_revealed = false
 	_damage_since_cloak = 0.0
 	touch_damage = 0.0   # browsing again — contact damage stays off until the next reveal
+	# Fireproof cloak: BossBase._physics_process ticks any live _burn_time/_burn_dps through
+	# take_damage() every physics frame regardless of concealment, which would otherwise refill
+	# _damage_since_cloak and force an auto-reveal ~1s after every cloak on an incendiary build.
+	# The re-find game must survive fire builds — direct hits still count (this only zeroes the
+	# ongoing burn channel, not damage already landed before the cloak).
+	_burn_time = 0.0
+	_burn_dps = 0.0
 	queue_redraw()       # drops the fallback regalia immediately (its _draw gates on _revealed)
 	var spr := get_node_or_null("Sprite2D") as Sprite2D
 	if spr == null:

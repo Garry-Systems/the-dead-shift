@@ -144,4 +144,9 @@ func _spawn_boss(stats: Dictionary) -> void:
 	get_tree().current_scene.add_child(boss)
 	boss.global_position = _pick_spawn_pos()
 	_last_boss_id = String(entry["id"])
-	SoundManager.play("boss_roar")
+	# Concealed-boss seam: a boss that spawns disguised (THE MYSTERY SHOPPER) must NOT roar on
+	# spawn — the roar IS the reveal beat now, fired by the boss's own _reveal() instead (see
+	# MysteryShopper._reveal). Every existing boss's revealed() is always true, so this gate is
+	# byte-identical to the old unconditional play() for them.
+	if (boss as BossBase).revealed():
+		SoundManager.play("boss_roar")

@@ -117,8 +117,11 @@ func open(truck: IceCreamTruck) -> void:
 	get_tree().paused = true
 
 ## Refreshes all 3 buttons' labels/disabled state from CURRENT run state — called on open() and
-## again after every purchase, so a HEAL SCOOP buy that leaves the player unable to afford another
-## relic immediately reflects that, same as RelicBar's own _refresh() re-paint idiom.
+## again after every purchase. Only the two HARD gates are reflected here (hardcore locks HEAL
+## SCOOP, a full relic bar locks MYSTERY FLAVOR) — affordability is NOT: every button stays
+## enabled at any coin total and simply denies on tap (SoundManager "ui_tap", no charge, see each
+## _on_*_pressed handler's spend_run_coins() check) if the player can't cover the price. No live
+## grey-out on an unaffordable button.
 func _refresh() -> void:
 	if RunConfig.hardcore:
 		_heal_btn.text = "NOT IN HARDCORE"

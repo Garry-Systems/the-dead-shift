@@ -218,14 +218,23 @@ func _process(_delta: float) -> void:
 
 	# Night Shift Stories (v0.1.68): every BossBase now has revealed() (default true — see
 	# BossBase.gd's doc comment on the method), so bar/name/toast all gate on it instead of on
-	# "a boss node exists". For the existing 9 bosses revealed() is always true, so
-	# `boss_revealed` is exactly `boss != null` for them — byte-identical HUD behavior.
-	var boss := get_tree().get_first_node_in_group("boss")
-	var boss_revealed := boss != null and (boss as BossBase).revealed()
+	# "a boss node exists". Reads the FIRST REVEALED boss in the group, not just the group-first
+	# one — a concealed boss (THE MYSTERY SHOPPER) sitting group-first would otherwise hide the
+	# bar/name/toast entirely even while a different, already-revealed boss is alive (Boss Rush,
+	# where several bosses share the group) and would force-reset _boss_was_revealed below every
+	# frame despite a revealed boss actually being active. For the existing 9 bosses revealed()
+	# is always true, so this is exactly the group-first boss for them — byte-identical HUD
+	# behavior, and endless (single boss) stays byte-identical too.
+	var boss: BossBase = null
+	for b in get_tree().get_nodes_in_group("boss"):
+		if (b as BossBase).revealed():
+			boss = b as BossBase
+			break
+	var boss_revealed := boss != null
 	if boss_revealed:
 		_boss_bar.visible = true
-		_boss_bar.value = (boss as BossBase).health_fraction()
-		var boss_id := (boss as BossBase).boss_id()
+		_boss_bar.value = boss.health_fraction()
+		var boss_id := boss.boss_id()
 		_boss_name_label.visible = true
 		_boss_name_label.text = Bosses.name_for(boss_id)
 		if not _boss_was_revealed:

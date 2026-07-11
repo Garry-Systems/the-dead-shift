@@ -42,15 +42,35 @@ var _sprite_loaded := false
 func _ready() -> void:
 	add_to_group("ice_cream_truck")
 	_player = get_tree().get_first_node_in_group("player") as Node2D
-	var ang := randf_range(0.0, TAU)   # unseeded — cosmetic arrival direction only, see file doc
-	_dir = Vector2(cos(ang), sin(ang))
 	var origin := Vector2.ZERO
 	if _player != null and is_instance_valid(_player):
 		origin = _player.global_position
-	_park_pos = origin + _dir * GameConfig.TRUCK_PARK_DIST
+	_pick_lane(origin)
 	_away_pos = _park_pos + _dir * GameConfig.TRUCK_SPAWN_DIST
 	global_position = origin + _dir * GameConfig.TRUCK_SPAWN_DIST
 	_build_sprite()
+
+## Rolls the (unseeded, cosmetic-only — see file doc) lane direction, keeping the park spot clear
+## of the forecourt set-pieces near world origin: Spawner._pick_spawn_pos / Visitors._spawn_pos's
+## own reroll-up-to-8 idiom, reimplemented here (this file has no dependency on either) since the
+## truck derives BOTH _park_pos and _away_pos/global_position from the SAME straight-line _dir,
+## not just one standalone position like those two callers. Sets `_dir`/`_park_pos` directly.
+func _pick_lane(origin: Vector2) -> void:
+	var keep2 := GameConfig.FORECOURT_SPAWN_KEEPOUT * GameConfig.FORECOURT_SPAWN_KEEPOUT
+	for i in 8:
+		var ang := randf_range(0.0, TAU)
+		_dir = Vector2(cos(ang), sin(ang))
+		_park_pos = origin + _dir * GameConfig.TRUCK_PARK_DIST
+		if _park_pos.distance_squared_to(Vector2.ZERO) >= keep2:
+			return
+	# All 8 rerolls still landed inside the keep-out (Spawner's own fallback, reused): push the
+	# lane's heading itself out to the keep-out distance from world origin so the WHOLE lane (not
+	# just Spawner's single returned point) clears the forecourt.
+	var out_dir := _park_pos.normalized()
+	if out_dir == Vector2.ZERO:
+		out_dir = Vector2.RIGHT
+	_dir = out_dir
+	_park_pos = _dir * GameConfig.FORECOURT_SPAWN_KEEPOUT
 
 func _process(delta: float) -> void:
 	match _state:
@@ -128,7 +148,7 @@ func _depart() -> void:
 ## art has landed, else a code-drawn fallback rect in the strict 4-color palette. Warns once per
 ## instance (Mascot._warned_missing_art's precedent), not once globally — each visit is fresh.
 func _build_sprite() -> void:
-	var path := "res://art/env/truck.png"
+	var path := "res://art/env/ice_cream_truck.png"
 	if ResourceLoader.exists(path):
 		var spr := Sprite2D.new()
 		spr.texture = load(path)
