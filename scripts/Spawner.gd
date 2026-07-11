@@ -38,7 +38,7 @@ func _process_endless(delta: float) -> void:
 	_check_boss()
 	_timer += delta
 	var interval := DifficultyManager.spawn_interval()
-	if _boss_alive():
+	if _revealed_boss_alive():
 		interval /= GameConfig.BOSS_SPAWN_RATE_MULT   # mult 0.5 -> interval doubles -> fewer
 	if _timer < interval:
 		return
@@ -83,6 +83,19 @@ func _player_level() -> int:
 # --- shared ---
 func _boss_alive() -> bool:
 	return get_tree().get_first_node_in_group("boss") != null
+
+## True only when a boss the player can actually SEE is alive. The while-a-boss-lives trash
+## slowdown (BOSS_SPAWN_RATE_MULT) exists to clear room for an active duel; a CONCEALED Mystery
+## Shopper browsing the horde is not a duel — halving spawns through her browse window just
+## empties the store with no boss bar to explain why (the v0.1.69 "where did everyone go" fix).
+## _check_boss deliberately still gates on plain _boss_alive(): one boss at a time, concealed
+## or not — her reveal must never land on top of a freshly spawned second boss.
+func _revealed_boss_alive() -> bool:
+	for b in get_tree().get_nodes_in_group("boss"):
+		var boss := b as BossBase
+		if boss != null and boss.revealed():
+			return true
+	return false
 
 ## A ring position SPAWN_RADIUS from the player, kept out of the forecourt: near the origin a
 ## blind random angle could drop a spawn INSIDE the store building. Dumb + deterministic — no

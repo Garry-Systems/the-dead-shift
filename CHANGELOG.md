@@ -4,6 +4,12 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.69 — Restock the Floor (2026-07-11)
+
+Hotfix: the store was going quiet and nobody could say why.
+- **The horde is back.** While THE MYSTERY SHOPPER browsed in disguise, the game treated her like an active boss fight and quietly ran spawns at half rate — with no boss bar to explain the empty aisles. Spawns now only ease off once a boss is actually revealed and fighting you.
+- **She got impatient.** The shopper won't browse forever anymore: stay out of her reach long enough (45s per disguise) and she reveals herself. No more invisible boss squatting on the boss slot while the waves pass by.
+
 ## v0.1.68 — Night Shift Stories (2026-07-11)
 
 The night got two new problems and three new guests. Roster's at eleven.

@@ -773,6 +773,7 @@ const GARAGE_ARM_HP := 40.0   ## breakable gate arm — walk-through props must 
 const SHOPPER_HP := 1800.0                  # between Karen (1600) and Fryer (2000)
 const SHOPPER_REVEAL_DAMAGE := 60.0         # cumulative damage taken since the last cloak that forces a reveal
 const SHOPPER_REVEAL_RANGE := 120.0         # px — player closing to this range also forces a reveal (strike range)
+const SHOPPER_BROWSE_TIMEOUT := 45.0        # seconds of any one cloak before she loses patience and reveals HERSELF — concealment must be bounded: a browsing shopper occupies the one-boss slot with no bar/toast, and a kiting player may never trip the damage/range triggers (v0.1.69 "where did everyone go" fix, with Spawner._revealed_boss_alive)
 # Bosses share a fixed, non-wave-scaled chase base (BOSS_MOVE_SPEED 45 — see DifficultyCurve.
 # boss_stats) unlike trash (which scales per-wave off ENEMY_MOVE_SPEED), so these two multipliers
 # are a relative-parity choice, not literal parity with Enemies.gd's shambler/runner spd_mult:

@@ -27,6 +27,7 @@ const BOSS_ID := "mystery_shopper"
 
 var _revealed := false
 var _damage_since_cloak := 0.0
+var _conceal_time := 0.0       # seconds spent in the CURRENT cloak — drives the browse timeout (see _tick_conceal_timeout)
 
 ## The configured (wave-scaled) contact damage, held aside while concealed: she's shopping, not
 ## biting — the menace is the reveal, and an invisible 46px boss hitbox grinding boss-DPS contact
@@ -129,11 +130,26 @@ func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
 	if _dead:
 		return
+	_tick_conceal_timeout(delta)
 	if not _revealed and _target != null and is_instance_valid(_target):
 		if global_position.distance_to(_target.global_position) <= GameConfig.SHOPPER_REVEAL_RANGE:
 			_reveal()
 	if not _revealed and _phase_idx >= 0 and _phase_idx < phases.size():
 		_pat_clock = float(phases[_phase_idx].get("cadence", 4.0))
+
+## Browse timeout (v0.1.69): concealment must be BOUNDED. A cloaked shopper occupies the
+## one-boss slot (Spawner._check_boss) with no bar/toast to explain it, and the two organic
+## reveal triggers can both stall forever — a kiting player never strays within
+## SHOPPER_REVEAL_RANGE of a 0.35x-amble boss, and never lands SHOPPER_REVEAL_DAMAGE on a
+## target auto-aim doesn't prefer. After SHOPPER_BROWSE_TIMEOUT seconds of any one cloak she
+## loses patience and reveals herself. (Trash spawn rate is already fixed independently —
+## Spawner only halves cadence for a REVEALED boss — so this bounds the boss drought, not that.)
+func _tick_conceal_timeout(delta: float) -> void:
+	if _revealed or _dead:
+		return
+	_conceal_time += delta
+	if _conceal_time >= GameConfig.SHOPPER_BROWSE_TIMEOUT:
+		_reveal()
 
 func _reveal() -> void:
 	if _revealed or _dead:
@@ -156,6 +172,7 @@ func _reveal() -> void:
 func _re_cloak() -> void:
 	_revealed = false
 	_damage_since_cloak = 0.0
+	_conceal_time = 0.0   # the browse timeout is per-cloak — every re-cloak buys a fresh window
 	touch_damage = 0.0   # browsing again — contact damage stays off until the next reveal
 	# Fireproof cloak: BossBase._physics_process ticks any live _burn_time/_burn_dps through
 	# take_damage() every physics frame regardless of concealment, which would otherwise refill
