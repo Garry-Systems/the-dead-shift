@@ -68,3 +68,19 @@ static func final_payout(wave: int, bosses: int, kills: int, bonus: int, mult: f
 	if RelicEffects.company_card:
 		total -= clawback(total)
 	return total
+
+## Weapon-loot run-XP payout (Deep Clean, item 17): the amount awarded to the equipped weapon's
+## own XP track (Inventory.add_run_xp) at run end. Base formula `kills + wave*10 + bosses*50`,
+## times `RunStats.weapon_xp_mult` (the "Punch Card" relic, Relics Overhaul) times
+## GameConfig.HARDCORE_WEAPON_XP_MULT when RunConfig.hardcore — both mults compose into ONE float
+## and round ONCE (`int(round(...))`), mirroring final_payout's own single-round idiom. Reads
+## RunStats/RunConfig directly (same precedent as final_payout reading RelicEffects.company_card
+## above — a static class-level/autoload flag read, not a node dependency) rather than taking them
+## as params, so the twin call sites (GameOver._finish_run, PauseMenu._abandon_run_payout) can
+## never let their own copies of the mult composition drift apart — there's only one copy, here.
+static func weapon_xp_payout(kills: int, wave: int, bosses: int) -> int:
+	var xp_amount := kills + wave * 10 + bosses * 50
+	var xp_mult := RunStats.weapon_xp_mult
+	if RunConfig.hardcore:
+		xp_mult *= GameConfig.HARDCORE_WEAPON_XP_MULT
+	return int(round(float(xp_amount) * xp_mult))

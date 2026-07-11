@@ -10,16 +10,19 @@ var _prev_wave := 1
 var suspended := false   # THE BASEMENT (Pack E): controller pauses surface spawning/scatter while below
 var location_obstacle_mults: Dictionary = {}   # TRANSFER STORES (Task 2): set once by Main.gd
 # from the run's Locations row; passed straight through to Obstacles.pick(). This {} is just the
-# pre-_ready() default — forecourt's actual row value is `{"shelf": 0.0}`, NOT empty, so
-# Obstacles._weight takes its multiply branch (roundi(w * mults.get(id, 1.0))) rather than the
-# mults.is_empty() short-circuit. Every non-"shelf" id still defaults to mult 1.0, and
-# roundi(w * 1.0) == w exactly for Obstacles.gd's integer weights, so forecourt stays
-# byte-identical to before this pack no matter which branch runs.
+# pre-_ready() default — Deep Clean (item 16): forecourt's actual row value is ALSO {} now (the
+# old `{"shelf": 0.0}` pin was removed once Obstacles.gd's `locations` allowlist took over keeping
+# "shelf" out of forecourt), so Obstacles._weight takes its `mults.is_empty()` short-circuit for
+# forecourt exactly like every other location-agnostic row always has.
 var _gimmick := ""   # BIG MART (Task 3)/PARKING GARAGE (Task 4): Locations.gd's gimmick for
 # RunConfig.location, read ONCE at _ready() — the run's location is fixed for the whole run (same
 # "read once at run start" pattern Main._apply_location already documents). "" (forecourt) means
 # neither the freezer-patch wave-edge roll nor the lattice pass/car-alarm hook below ever arm;
 # "mart" arms freezer only, "garage" arms the lattice + car-alarm hook only.
+var _location_id := ""   # Deep Clean (item 16): RunConfig.location, read ONCE at _ready() (same
+# read-once-at-run-start moment as `_gimmick` right above, same source) and threaded into every
+# Obstacles.pick() call alongside `location_obstacle_mults` so the new `locations` allowlist can
+# filter shelf/pillar-family rows by the run's actual location — see Obstacles.pick()'s own doc.
 var _lattice_cells: Dictionary = {}   # PARKING GARAGE (Task 4): Vector2i(gx,gy) -> spawned pillar
 # Destructible. Garage-only in practice — _lattice_pass() no-ops immediately on any other
 # _gimmick, so this stays empty {} for the rest of this run everywhere else. Entries are added by
@@ -31,6 +34,7 @@ func _ready() -> void:
 	_player = get_tree().get_first_node_in_group("player") as Node2D
 	_prev_wave = DifficultyManager.wave
 	_gimmick = String(Locations.by_id(RunConfig.location).get("gimmick", ""))
+	_location_id = RunConfig.location
 
 func _process(delta: float) -> void:
 	if suspended:
@@ -110,7 +114,10 @@ func _spawn_at(pos: Vector2, row: Dictionary = {}) -> void:
 		return   # never scatter into the forecourt (Pack 5) — it's a fixed structure, not ambient clutter
 	# TRANSFER STORES (Task 2): location_obstacle_mults biases the ambient roll ({} = untouched
 	# default); Rush Hour's forced `row` above bypasses Obstacles.pick entirely, so it's unaffected.
-	var picked := row if not row.is_empty() else Obstacles.pick(DifficultyManager.wave, location_obstacle_mults)
+	# Deep Clean (item 16): _location_id also threads through so the `locations` allowlist gates
+	# location-exclusive rows (shelf/pillar) the same way mults gates weight -- Rush Hour's forced
+	# `row` bypasses this exactly the same way it already bypasses mults, for the same reason.
+	var picked := row if not row.is_empty() else Obstacles.pick(DifficultyManager.wave, location_obstacle_mults, _location_id)
 	# PARKING GARAGE (Task 4): CAR ALARM gimmick hook. This is the ONE chokepoint every "car" row
 	# passes through — ambient top-up, wave-cluster drop, AND Rush Hour's forced row all funnel
 	# through here — so gating on `_gimmick == "garage"` here covers all three placements for

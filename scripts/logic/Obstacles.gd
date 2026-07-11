@@ -35,6 +35,16 @@ class_name Obstacles
 ##                       garage's gimmick hook (ObstacleField._spawn_at) duplicates a picked "car"
 ##                       row and injects this flag only when gimmick == "garage". See
 ##                       Destructible._start_wail()/_taunt_nearby().
+##   locations : Array[String] (optional, Deep Clean item 16) absent/empty = spawns at every
+##                       location; non-empty = spawns ONLY at these Locations.gd ids. Checked by
+##                       Obstacles.pick() against the `location_id` it's called with, alongside
+##                       (not instead of) the existing wave/mults gates. Replaces the old
+##                       mechanism of pinning a globally-weighted row to 0.0 in every OTHER
+##                       location's obstacle_mults (Locations.gd used to do this for "shelf") —
+##                       a systemic footgun future locations would have had to remember to repeat.
+##                       "pillar" also carries this field for documentation parity even though its
+##                       weight:0 already keeps it out of pick()'s pool regardless (lattice-only,
+##                       fetched via by_id() — see that row's own comment).
 
 const C3 := Color(0.549, 0.522, 0.451)   # gray-tan props (palette)
 # PARKING GARAGE (Transfer Stores, Task 4): pillar/concrete family. The SAME hex as
@@ -65,19 +75,20 @@ static func all() -> Array:
 		# drop on death, chains via chain_id (NOT hazard_id -- hazard_id stays "" so it never
 		# blasts or spawns a hazard zone, see Destructible._die()'s chain_id branch), and
 		# spawns as a run of units via ObstacleField's formation pass (both ambient + cluster
-		# paths -- see ObstacleField._spawn_formation()). weight 55 only matters where the
-		# location's obstacle_mults actually allow it: forecourt + parking_garage both pin
-		# "shelf" to 0.0 (Locations.gd) so this new row can't silently appear in either -- only
-		# big_mart's mults set it to 1.0. min_wave 1 like crate/barrel (no gating beyond location).
-		{ "id":"shelf", "kind":"loot", "shape":"rect", "size":GameConfig.SHELF_HALF_W, "size_y":GameConfig.SHELF_HALF_H, "solid":false, "hp":GameConfig.SHELF_HP, "hazard_id":"", "loot":"gems", "gem_count":GameConfig.SHELF_GEMS, "color":C3, "weight":55, "min_wave":1, "chain_id":"shelf", "formation":true },
+		# paths -- see ObstacleField._spawn_formation()). weight 55 matters everywhere the
+		# `locations` allowlist below permits -- Deep Clean (item 16) confines it to big_mart via
+		# that field instead of the old "pin every OTHER location's mult to 0.0" mechanism.
+		# min_wave 1 like crate/barrel (no gating beyond location).
+		{ "id":"shelf", "kind":"loot", "shape":"rect", "size":GameConfig.SHELF_HALF_W, "size_y":GameConfig.SHELF_HALF_H, "solid":false, "hp":GameConfig.SHELF_HP, "hazard_id":"", "loot":"gems", "gem_count":GameConfig.SHELF_GEMS, "color":C3, "weight":55, "min_wave":1, "chain_id":"shelf", "formation":true, "locations":["big_mart"] },
 		# PARKING GARAGE (Transfer Stores, Task 4): weight 0 -- this row can NEVER be returned by
 		# pick()'s weighted roll (see pick()'s `if w <= 0: continue`; _weight() returns 0 for a
 		# 0-weight row regardless of `mults`, so even a future non-empty mults dict can't turn it
 		# on by accident). Pillars exist ONLY via ObstacleField._lattice_pass()'s deterministic
 		# per-world-cell placement, which fetches this row directly via by_id() and configure()s a
 		# plain Destructible with it -- pick()'s pool never sees it. Indestructible (hp -1) circle
-		# cover, same "solid":true family as car/rubble.
-		{ "id":"pillar", "kind":"cover", "shape":"circle", "size":GameConfig.PILLAR_RADIUS, "solid":true, "hp":-1.0, "hazard_id":"", "loot":"", "gem_count":0, "color":C2, "weight":0, "min_wave":1 },
+		# cover, same "solid":true family as car/rubble. `locations` kept parallel to shelf's for
+		# data-model consistency even though weight:0 already makes it moot for pick()'s pool.
+		{ "id":"pillar", "kind":"cover", "shape":"circle", "size":GameConfig.PILLAR_RADIUS, "solid":true, "hp":-1.0, "hazard_id":"", "loot":"", "gem_count":0, "color":C2, "weight":0, "min_wave":1, "locations":["parking_garage"] },
 	]
 
 ## A weighted-random row among types whose min_wave <= wave. Falls back to the first row.
@@ -87,17 +98,29 @@ static func all() -> Array:
 ## multiply, byte-identical weights/roll/total to today). A non-empty dict re-weights
 ## `roundi(weight * mult)` per eligible row (missing id = mult 1.0); a row that rounds to <= 0
 ## is excluded from the pool entirely (0.0 = "never spawns here" per the registry's contract).
-static func pick(wave: int, mults: Dictionary = {}) -> Dictionary:
+##
+## `location_id` (Deep Clean, item 16): the CURRENT run's Locations.gd id, threaded through the
+## same way `mults` already is (ObstacleField is the one caller, both params set once at run
+## start). A row carrying a non-empty `locations` field is excluded from the pool unless
+## `location_id` is one of its entries — checked BEFORE the weight/mults gate below, same
+## short-circuit shape as the min_wave check right above it. Default "" is the pre-existing
+## code path for every row whose `locations` field is absent/empty (every row except shelf/
+## pillar) -- those rows' eligibility is completely unaffected by this param.
+static func pick(wave: int, mults: Dictionary = {}, location_id: String = "") -> Dictionary:
 	var rows := all()
 	var pool: Array = []
 	var total := 0
 	for e in rows:
-		if int(e["min_wave"]) <= wave:
-			var w := _weight(e, mults)
-			if w <= 0:
-				continue
-			pool.append(e)
-			total += w
+		if int(e["min_wave"]) > wave:
+			continue
+		var locs: Array = e.get("locations", [])
+		if not locs.is_empty() and not locs.has(location_id):
+			continue
+		var w := _weight(e, mults)
+		if w <= 0:
+			continue
+		pool.append(e)
+		total += w
 	if pool.is_empty() or total <= 0:
 		return rows[0]
 	var roll := randi() % total

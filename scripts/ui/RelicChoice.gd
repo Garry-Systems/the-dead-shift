@@ -23,7 +23,8 @@ extends CanvasLayer
 ## equally structurally blocked: XP only accrues from gem pickups, which need player movement,
 ## which is frozen the instant RelicChoice pauses the tree. No changes were needed to LevelUpUI.gd.
 ##
-## Two phases share the same card list (built via the RelicMenu `_clear_vbox`/`_add_*` idiom):
+## Two phases share the same card list (built via the `_clear_vbox`/`_add_*` idiom, originally
+## RelicMenu.gd's before that file was deleted as dead code — Deep Clean, item 14):
 ##   CHOICE — 1-2 cards (A is never cursed, B may be) + a SKIP button (pays RELIC_SKIP_COINS),
 ##            styled like LevelUpUI's reroll button (secondary, sits under the cards).
 ##   SCRAP  — shown only when the bar is full and a card was taken: one card per SCRAPPABLE held
@@ -207,7 +208,7 @@ func _advance() -> void:
 		_root.visible = false
 		get_tree().paused = false
 
-# --- tiny UI builders (RelicMenu's clear/rebuild-vbox idiom + LevelUpUI's rich card content) ---
+# --- tiny UI builders (the old RelicMenu clear/rebuild-vbox idiom + LevelUpUI's rich card content) ---
 
 func _clear_vbox() -> void:
 	for c in _vbox.get_children():

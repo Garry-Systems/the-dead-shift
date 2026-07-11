@@ -89,12 +89,14 @@ func _ready() -> void:
 ##   banner at run start, so this location banner never collides with anything.
 ## - Bias: hands the row's spawn_mults/obstacle_mults dicts to the three Enemies.pick/
 ##   Obstacles.pick call sites (Spawner, ObstacleField, Basement — verified exhaustively, see
-##   Locations.gd's field doc). forecourt's spawn_mults is {} — Enemies._weight's
-##   `mults.is_empty()` short-circuit keeps that path byte-identical. forecourt's obstacle_mults is
-##   NOT empty (`{"shelf": 0.0}`, pinning the mart-only "shelf" row off everywhere else), so it
-##   takes Obstacles._weight's multiply branch instead — every non-"shelf" id still defaults to
-##   mult 1.0 there, and `roundi(float(w) * 1.0) == w` exactly for Obstacles.gd's integer weights,
-##   so forecourt stays byte-identical regardless of which branch actually runs.
+##   Locations.gd's field doc). forecourt's spawn_mults AND obstacle_mults are both {} — Enemies'/
+##   Obstacles' `mults.is_empty()` short-circuit keeps both paths byte-identical.
+##   Deep Clean (item 16): the mart-only "shelf"/garage-only "pillar" rows are now kept out of
+##   every other location via Obstacles.gd's own `locations` allowlist (checked by Obstacles.pick
+##   against ObstacleField's own `_location_id`, read directly from RunConfig.location at
+##   ObstacleField._ready() — same read-once-at-run-start moment as its `_gimmick`, NOT threaded
+##   through this function), rather than via a per-location mults pin, so forecourt's
+##   obstacle_mults no longer needs a "shelf": 0.0 entry to stay byte-identical.
 func _apply_location(loc: Dictionary) -> void:
 	if loc.is_empty():
 		return

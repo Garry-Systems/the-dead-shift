@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="Texture2D" path="res://art/ground.png" id="10_ground"]
@@ -9,7 +9,6 @@
 [ext_resource type="Script" path="res://scripts/Hud.gd" id="4_hud"]
 [ext_resource type="Script" path="res://scripts/LevelUpUI.gd" id="5_levelup"]
 [ext_resource type="Script" path="res://scripts/RelicBar.gd" id="8_relicbar"]
-[ext_resource type="Script" path="res://scripts/RelicMenu.gd" id="9_relicmenu"]
 [ext_resource type="Script" path="res://scripts/Main.gd" id="11_main"]
 [ext_resource type="Script" path="res://scripts/GameOver.gd" id="12_gameover"]
 [ext_resource type="Script" path="res://scripts/PauseMenu.gd" id="13_pause"]
@@ -92,9 +91,6 @@ script = ExtResource("24_relics")
 
 [node name="RelicBar" type="CanvasLayer" parent="."]
 script = ExtResource("8_relicbar")
-
-[node name="RelicMenu" type="CanvasLayer" parent="."]
-script = ExtResource("9_relicmenu")
 
 [node name="RelicChoice" type="CanvasLayer" parent="."]
 script = ExtResource("25_relicchoice")

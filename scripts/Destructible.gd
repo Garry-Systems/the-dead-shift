@@ -248,6 +248,12 @@ func _die() -> void:
 	if _detonating:
 		return
 	_detonating = true
+	# Deep Clean (item 15): a wailing car dies with its wail — without this, a lethal hit landing
+	# mid-wail left `_wailing` true and the freed instance stuck in "wailing_cars" for one extra
+	# frame (queue_free() below doesn't remove group membership until the frame actually flushes),
+	# a dead-frame ghost tick TS Task 4's own report flagged as a 2-line fix candidate.
+	_wailing = false
+	remove_from_group("wailing_cars")
 	var tree := get_tree()
 	# Barrel: instant Shockwave burst + chain-fuse nearby barrels. UNCHANGED from before this task.
 	if hazard_id == "fire":

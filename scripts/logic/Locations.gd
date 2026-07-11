@@ -26,21 +26,26 @@ class_name Locations
 ## resolves a missing dict entry to 1.0, so forecourt runs are byte-identical to today's arena
 ## (the #1 regression risk of this pack) — nothing about forecourt's actual spawn behavior
 ## changes by this registry existing.
-## TASK 3 CATCH: that byte-identity invariant only held for the 6 rows Obstacles.gd had when this
-## registry was written. Task 3 adds a 7th row ("shelf", weight 55 — nonzero, since it must be
-## pickable via the normal weighted roll in big_mart) to the SAME shared Obstacles.all() pool
-## every location draws from. A missing dict entry defaults to mult 1.0, so leaving forecourt's
-## dict empty would let "shelf" start appearing in forecourt too — forecourt is no longer
-## byte-identical the moment a new globally-weighted row exists, regardless of this file's own
-## code. Same problem for parking_garage (a mart-themed shelf has no business in a garage either).
-## Fix: both non-mart locations now explicitly pin "shelf" to 0.0 — the registry's own
-## "0.0 = never spawns here" contract — so only big_mart's explicit "shelf": 1.0 turns it on.
+## TASK 3 CATCH (superseded by Deep Clean item 16 — kept for history): Task 3 added a 7th row
+## ("shelf", weight 55 — nonzero, since it must be pickable via the normal weighted roll in
+## big_mart) to the SAME shared Obstacles.all() pool every location draws from. A missing dict
+## entry defaults to mult 1.0, so back then this file pinned "shelf" to 0.0 in every non-mart
+## location's obstacle_mults to keep it out — a footgun any FUTURE globally-weighted,
+## location-exclusive row would have had to remember to repeat. Deep Clean (item 16) replaced
+## that mechanism: Obstacles.gd rows now carry their own optional `locations` allowlist
+## (`"shelf": ["big_mart"]`, `"pillar": ["parking_garage"]`), checked by Obstacles.pick() against
+## the location_id ObstacleField threads through — the exclusion now lives with the row it
+## protects, not scattered across every OTHER location that must opt it out. forecourt's
+## obstacle_mults is back to {} (byte-identical to the pre-Task-3 registry), and parking_garage's
+## dict no longer carries a "shelf" entry either — both rely on the allowlist instead. Pool-parity
+## verified: the probe captures forecourt/big_mart/parking_garage's candidate row-id sets under
+## both mechanisms and asserts they match exactly.
 const _LIST: Array[Dictionary] = [
 	{
 		"id": "forecourt", "name": "THE FORECOURT", "rank_unlock": 0,
 		"banner_sub": "", "memo": "",
 		"ground": "res://art/ground.png",
-		"obstacle_mults": { "shelf": 0.0 }, "spawn_mults": {}, "gimmick": "",
+		"obstacle_mults": {}, "spawn_mults": {}, "gimmick": "",
 	},
 	{
 		"id": "big_mart", "name": "BIG MART", "rank_unlock": GameConfig.LOC_MART_RANK,
@@ -54,7 +59,7 @@ const _LIST: Array[Dictionary] = [
 		"id": "parking_garage", "name": "THE PARKING GARAGE", "rank_unlock": GameConfig.LOC_GARAGE_RANK,
 		"banner_sub": "level 3 stays closed.", "memo": "level 3 has been closed for a while.",
 		"ground": "res://art/ground_garage.png",
-		"obstacle_mults": { "car": 2.2, "transformer": 0.0, "crate": 0.6, "pillar": 1.0, "shelf": 0.0 },
+		"obstacle_mults": { "car": 2.2, "transformer": 0.0, "crate": 0.6, "pillar": 1.0 },
 		"spawn_mults": { "shambler": 1.3, "exploder": 1.5 },
 		"gimmick": "garage",
 	},

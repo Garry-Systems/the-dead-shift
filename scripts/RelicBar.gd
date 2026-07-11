@@ -152,17 +152,6 @@ func scrap(id: String) -> int:
 func scrap_value(id: String) -> int:
 	return GameConfig.RELIC_CURSED_SCRAP_COINS if Relics.family_of(id) == "cursed" else GameConfig.RELIC_SCRAP_COINS
 
-## Takes a relic; if the bar is full, replaces the oldest held one. No-op if already owned.
-## Superseded by RelicChoice's player-driven "pick one to scrap" swap flow (Task 3) — kept only
-## because RelicMenu.gd (orphaned since the auto-collect refactor; nothing calls RelicMenu.open()
-## today, see RelicPickup.gd) still references it directly.
-func take_or_replace(id: String) -> void:
-	if has_relic(id):
-		return
-	if is_full() and not _held.is_empty():
-		remove_relic(_held[0]["id"])
-	take(id)
-
 ## Rolls one relic id that is not already owned; "" if none available. Superseded by
 ## Relics.roll_choice() (Task 1) for the RELIC CHOICE overlay's pair draw — kept only for
 ## BossBase.gd's existing single-roll drop-gate call (see RelicPickup.gd's header comment).

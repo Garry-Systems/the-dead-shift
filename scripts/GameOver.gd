@@ -259,17 +259,12 @@ func _finish_run(is_win: bool) -> void:
 
 	# Weapon-loot: award XP to the equipped weapon so its talents unlock over time, then read
 	# the refreshed instance back for the pay-stub's XP line (post-gain level/talent state).
-	# HARDCORE doubles this at the flush (Pack G); the "Punch Card" relic (Relics Overhaul)
-	# composes into the SAME multiplier via RunStats.weapon_xp_mult — both round together, once,
-	# mirroring CoinReward.final_payout's single int(round(float * mult)) idiom. Two call sites
-	# must stay in lockstep: this one (GameOver._finish_run) and PauseMenu._abandon_run_payout's
-	# quit twin — both read the SAME RunStats.weapon_xp_mult and round once the SAME way.
+	# Deep Clean (item 17): the HARDCORE/Punch-Card compose-and-round-once formula now lives in
+	# ONE place, CoinReward.weapon_xp_payout — this call site and PauseMenu._abandon_run_payout's
+	# quit twin both call it with their own (kills, wave, bosses) locals, so the two can no longer
+	# drift apart the way the old hand-duplicated inline block could.
 	var equipped_uid := Inventory.equipped_uid()
-	var xp_amount := kills + wave * 10 + bosses * 50
-	var xp_mult := RunStats.weapon_xp_mult
-	if RunConfig.hardcore:
-		xp_mult *= GameConfig.HARDCORE_WEAPON_XP_MULT
-	xp_amount = int(round(float(xp_amount) * xp_mult))
+	var xp_amount := CoinReward.weapon_xp_payout(kills, wave, bosses)
 	Inventory.add_run_xp(xp_amount)
 	var inst := Inventory.get_item(equipped_uid)
 
