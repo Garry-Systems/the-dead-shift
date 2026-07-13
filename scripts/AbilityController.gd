@@ -18,15 +18,12 @@ var _cd_remaining := 0.0      # seconds left before try_cast() can succeed again
 ## stub this task).
 var _last_cast_id := ""
 
-## DEAD EYE window state. `_dead_eye_active` is the idempotency guard — three independent nets
-## (the end timer, player.died, this controller's own _exit_tree) can all fire for the same
-## window, and only the first may act. `_dead_eye_player`/`_dead_eye_move_ratio` are the cast-time
-## snapshot needed for an exact revert (`move_speed /= ratio`, not `/= GameConfig...` re-read —
-## the multiply/divide pair must use the SAME value so it commutes cleanly with any move-speed
-## upgrade card taken mid-window).
-var _dead_eye_active := false
-var _dead_eye_player: Player = null
-var _dead_eye_move_ratio := 1.0
+## SECOND SHIFT (Zombie Bob, v0.1.71): the once-per-run passive revive charge. Armed in _ready()
+## for the character whose row is passive; consumed by try_second_shift() below (static +
+## group-lookup — Player.take_damage's death chain calls it FIRST, before UNION REP). Instance
+## field, NOT static (the RelicEffects statics lesson: per-run gameplay state lives on the
+## per-run controller instance).
+var _second_shift_available := false
 
 ## JACKPOT PAYDAY (this task) / CLOSING TIME zone (Task 8) coin-window state — the seam
 ## Enemy.gd's kill-coin site queries through the static kill_coin_bonus() below. Instance
@@ -58,6 +55,8 @@ var _coin_zone_left := 0.0             # CLOSING TIME (Task 8 arms this): zone b
 func _ready() -> void:
 	add_to_group("ability_controller")
 	_row = Abilities.for_character(RunConfig.character_id)
+	# SECOND SHIFT: a passive row spawns pre-armed — there is no cast moment to arm it later.
+	_second_shift_available = bool(_row.get("passive", false))
 
 func _process(delta: float) -> void:
 	if _cd_remaining > 0.0:
@@ -80,7 +79,12 @@ func is_ready() -> bool:
 
 ## 0.0 = ready, 1.0 = just cast, linear drain in between. 0.0 for a character with no ability
 ## (cd is 0 — matches is_ready()'s corresponding true) so a stray poll can never divide by zero.
+## Passive rows (SECOND SHIFT) repurpose the same scale as a binary state the button already
+## renders correctly with zero new code: armed = 0.0 (bright ready outline), spent = 1.0 (full
+## cooling veil, forever — there is no recharge).
 func cooldown_fraction() -> float:
+	if bool(_row.get("passive", false)):
+		return 0.0 if _second_shift_available else 1.0
 	var cd := float(_row.get("cd", 0.0))
 	if cd <= 0.0:
 		return 0.0
@@ -91,6 +95,10 @@ func cooldown_fraction() -> float:
 ## SFX (Abilities.gd's "sfx" key, T9), then `match`-dispatches to the specific `_cast_<id>()`
 ## handler.
 func try_cast() -> bool:
+	# SECOND SHIFT: passive rows have no tap-cast at all — the button press just nudges (Hud's
+	# existing false-path), which is the intended "this one works on its own" communication.
+	if bool(_row.get("passive", false)):
+		return false
 	if _row.is_empty() or not is_ready():
 		return false
 	_cd_remaining = float(_row.get("cd", 0.0))
@@ -117,8 +125,6 @@ func try_cast() -> bool:
 			_cast_turret(player)
 		"dead_eye":
 			_cast_dead_eye(player)
-		"ghost":
-			_cast_ghost(player)
 		"jackpot":
 			_cast_jackpot(player)
 		"closing_time":
@@ -169,80 +175,39 @@ func _cast_turret(player: Player) -> void:
 		return
 	Turret.spawn(player.global_position, get_tree())
 
-## DEAD EYE (Jimbo James): 3-second bullet time. Owns Engine.time_scale jointly with Juice's
-## crit hit-stop via the shared `Juice.base_scale` field (see Juice.gd's header comment) — this
-## is the only ability that touches global time_scale, so it carries four independent safety
-## nets against ever stranding the game slowed: the end timer below, `player.died` (this func,
-## connected once per cast), `_exit_tree` (quitting to menu mid-window), and
-## `GameOver._finish_run` (a WIN mid-window — terminal pause, none of the other three fire).
-##
-## Move-speed comp is multiplicative and reverted with the exact ratio stored at cast time, so it
-## commutes cleanly with a move-speed upgrade card taken mid-window (base -> x2.5 (cast) -> x1.2
-## (card) -> /2.5 (end) == base x1.2, regardless of order). Frenzy uses gun.add_frenzy's
-## maxf-merge semantics (Gun.gd) — safe to overlap with Bloodrush or a second DEAD EYE re-cast
-## with no revert needed; it self-expires on its own duration.
+## AIMBOT (Jimbo James, v0.1.71 — replaced DEAD EYE's bullet time; the internal id stays
+## "dead_eye" because the icon and cast SFX assets are keyed by it): arms the Player's aimbot
+## window — for ABILITY_AIMBOT_DURATION the gun aims itself at the nearest "enemies" member in
+## gun range and fires even while moving (Player's gun-drive site bypasses the stop-to-shoot/
+## _has_moved gates while a target exists). All state lives on the Player instance
+## (set_aimbot/_aimbot_time — the set_ghost idiom), ticked in _physics_process, so a pause holds
+## the window with zero extra machinery and there is NOTHING here to revert. The old DEAD EYE
+## Engine.time_scale two-owner apparatus (4 safety nets, _end_dead_eye, _exit_tree) died with the
+## ability — Juice is the sole time_scale owner again (its base_scale restore-target seam stays).
 func _cast_dead_eye(player: Player) -> void:
 	_last_cast_id = "dead_eye"
-	Juice.base_scale = GameConfig.ABILITY_DEADEYE_SCALE
-	Engine.time_scale = GameConfig.ABILITY_DEADEYE_SCALE
-	_dead_eye_active = true
-	_dead_eye_player = null
-	if player != null and is_instance_valid(player):
-		_dead_eye_move_ratio = GameConfig.ABILITY_DEADEYE_MOVE_COMP
-		player.move_speed *= _dead_eye_move_ratio
-		_dead_eye_player = player
-		if player.gun != null and is_instance_valid(player.gun):
-			player.gun.add_frenzy(GameConfig.ABILITY_DEADEYE_FRENZY, GameConfig.ABILITY_DEADEYE_DURATION)
-		# Safety net #2: connected once per Player instance (is_connected-guarded — try_cast()
-		# re-fetches `player` fresh from the group every cast, and re-casting DEAD EYE on the SAME
-		# player before this connection is ever cleared must not stack duplicate calls). Fires on
-		# the alive->dead transition so a mid-window kill can never leave the game at 0.3x forever.
-		if not player.died.is_connected(_end_dead_eye):
-			player.died.connect(_end_dead_eye)
-	# Safety net #1: process_always=false is the deliberate pause contract (the double_fuse-echo
-	# precedent, RelicEffects.gd) — a level-up card / pause menu opening mid-window HOLDS the
-	# window open instead of burning it down behind the overlay; ignore_time_scale=true means the
-	# 3.0 is REAL seconds, not 3 seconds of the slowed time_scale it itself created (which would
-	# actually be 10 wall-clock seconds at 0.3x).
-	get_tree().create_timer(GameConfig.ABILITY_DEADEYE_DURATION, false, false, true).timeout.connect(_end_dead_eye)
-
-## Idempotent close for the DEAD EYE window — guarded by `_dead_eye_active` since the timer,
-## `player.died`, `_exit_tree`, and GameOver._finish_run (the win path — see its comment) can
-## all reach here for the same cast. Always writes BOTH
-## `Juice.base_scale` and `Engine.time_scale` back to 1.0 unconditionally: if a crit hit-stop is
-## mid-flight when the window closes, its own token-guarded `_on_timer_done` will later restore
-## `Engine.time_scale = base_scale`, which is already 1.0 by then — a harmless re-write, not a
-## conflict. This is the simplest rule that's still correct, so no cross-token bookkeeping with
-## Juice is needed here.
-func _end_dead_eye() -> void:
-	if not _dead_eye_active:
-		return
-	_dead_eye_active = false
-	if _dead_eye_player != null and is_instance_valid(_dead_eye_player):
-		_dead_eye_player.move_speed /= _dead_eye_move_ratio
-	_dead_eye_player = null
-	Juice.base_scale = 1.0
-	Engine.time_scale = 1.0
-
-## Safety net #3: this controller is a scenes/Main.tscn sibling (Juice/Visitors idiom) that goes
-## away on scene teardown (quit to menu, run end) — mirrors Juice.gd's own _exit_tree net so a
-## torn-down controller mid-DEAD-EYE-window can never leave Engine.time_scale stuck at 0.3.
-## No-op via the idempotency guard if the window already ended normally.
-func _exit_tree() -> void:
-	_end_dead_eye()
-
-## ONE OF THEM (Zombie Bob): the horde loses target lock on him for ABILITY_GHOST_DURATION
-## seconds — regular enemies and elites stop re-aiming their chase and hold their bite/fire
-## (Enemy._target_ghosted, RangedEnemy._act). All state lives on the Player instance itself
-## (Player.set_ghost/is_ghost), not here — every enemy reads `_target.is_ghost()` directly, so
-## there's nothing else for this controller to own or revert. Bosses are unaffected by
-## construction (BossBase never defines _target_ghosted). Same null-guard idiom as
-## _cast_clear_out/_cast_turret — nothing to do at all without a valid player.
-func _cast_ghost(player: Player) -> void:
-	_last_cast_id = "ghost"
 	if player == null or not is_instance_valid(player):
 		return
-	player.set_ghost(GameConfig.ABILITY_GHOST_DURATION)
+	player.set_aimbot(GameConfig.ABILITY_AIMBOT_DURATION)
+
+## SECOND SHIFT (Zombie Bob, v0.1.71 — replaced ONE OF THEM): consumes the once-per-run passive
+## revive charge, if this run's controller has one armed. STATIC + "ability_controller" group
+## lookup — the kill_coin_bonus() contract exactly: Player.take_damage's death chain must degrade
+## to false harmlessly when no controller is in the tree (scene teardown, non-run scenes).
+## HARDCORE is gated at the call site alongside UNION REP's own gate (one-life identity — this
+## controller never needs to know). The revive itself lives on Player
+## (ability_second_shift_revive — the UNION REP direct-_health-write recipe); this side only owns
+## the charge, so the once-per-run guarantee has exactly one owner.
+static func try_second_shift(player: Player, tree) -> bool:
+	if player == null or tree == null:
+		return false
+	var ac := tree.get_first_node_in_group("ability_controller") as AbilityController
+	if ac == null or not ac._second_shift_available:
+		return false
+	ac._second_shift_available = false
+	ac._last_cast_id = "second_shift"
+	player.ability_second_shift_revive()
+	return true
 
 ## Per-kill coin bonus at `pos`, right now — the seam JACKPOT's PAYDAY (this task) and CLOSING
 ## TIME's zone (Task 8) both pay into. STATIC + "ability_controller" group lookup, mirroring

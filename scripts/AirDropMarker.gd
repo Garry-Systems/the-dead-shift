@@ -17,9 +17,9 @@ func _ready() -> void:
 	z_index = 40
 	# Pause-safe telegraph: process_always=false (3rd arg) means a level-up card / pause menu
 	# opening mid-telegraph HOLDS the countdown instead of burning it down behind the overlay —
-	# the same double_fuse-echo pause contract AbilityController._cast_dead_eye's own end-timer
-	# comment documents. ignore_time_scale is left false (4th arg, default) — unlike DEAD EYE,
-	# nothing here fights over Engine.time_scale, so the delay can ride whatever scale is active.
+	# the double_fuse-echo pause contract (RelicEffects). ignore_time_scale is left false (4th
+	# arg, default) — nothing here fights over Engine.time_scale, so the delay simply rides
+	# whatever scale is active (hit-stop included).
 	get_tree().create_timer(GameConfig.ABILITY_AIRDROP_DELAY, false, false).timeout.connect(_land)
 
 func _draw() -> void:

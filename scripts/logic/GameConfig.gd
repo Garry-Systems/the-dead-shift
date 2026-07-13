@@ -869,23 +869,33 @@ const ABILITY_CLEAROUT_RADIUS := 520.0    # px knockback reach (matches the purg
 const ABILITY_CLEAROUT_FORCE := 1400.0    # px/sec knockback impulse — zero damage, push only
 
 # SENTRY TURRET (Jackson Killa): cap-1 auto-turret, talent-free CompanionBullet fire (Task 4).
+# Indestructible BY CONSTRUCTION (Turret.gd is a plain Node2D — no health, nothing targets it);
+# it only expires. v0.1.71: lifetime 12 -> 60 (Larry's call) — with the 45s CD the turret is
+# effectively always up, and a recast's cap-1 evict doubles as a free reposition.
 const ABILITY_TURRET_CD := 45.0           # seconds
-const ABILITY_TURRET_LIFETIME := 12.0     # seconds before the turret expires
+const ABILITY_TURRET_LIFETIME := 60.0     # seconds before the turret expires
 const ABILITY_TURRET_INTERVAL := 0.5      # seconds between retarget/fire ticks
 const ABILITY_TURRET_DAMAGE := 26.0       # flat damage per shot
 const ABILITY_TURRET_RANGE := 620.0       # px retarget/fire acquire range
 const ABILITY_TURRET_FLASH_RADIUS := 80.0 # px expiry-flash ring (Shockwave.flash, cosmetic only)
 
-# DEAD EYE (Jimbo James): bullet time via a Juice.base_scale owner (Task 5).
-const ABILITY_DEADEYE_CD := 50.0          # seconds
-const ABILITY_DEADEYE_DURATION := 3.0     # REAL seconds the window lasts (ignore_time_scale timer)
-const ABILITY_DEADEYE_SCALE := 0.3        # Engine.time_scale during the window
-const ABILITY_DEADEYE_MOVE_COMP := 2.5    # player move-speed multiplier while time is slowed
-const ABILITY_DEADEYE_FRENZY := 0.6       # gun.add_frenzy fire-rate bonus (maxf-merged)
+# AIMBOT (Jimbo James, v0.1.71 — replaced DEAD EYE's bullet time, Larry's call): for the window
+# the gun aims itself at the nearest "enemies" member in gun range and fires even while moving —
+# Player's gun-drive site bypasses the stop-to-shoot/_has_moved gates while a target exists. All
+# window state lives on the Player instance (set_aimbot/_aimbot_time, the set_ghost idiom), ticked
+# in _physics_process, so a pause holds the window with zero extra machinery. The old DEAD EYE
+# Engine.time_scale two-owner apparatus (4 safety nets) died with the ability — Juice is the sole
+# time_scale owner again. Internal ability id stays "dead_eye" (icon + SFX assets are keyed by it).
+const ABILITY_AIMBOT_CD := 240.0          # seconds from cast — 60s active + Larry's 3-minute wait
+const ABILITY_AIMBOT_DURATION := 60.0     # seconds the aimbot window lasts (game-time, on Player)
 
-# ONE OF THEM (Zombie Bob): the horde loses target lock on him (Task 6).
-const ABILITY_GHOST_CD := 45.0            # seconds
-const ABILITY_GHOST_DURATION := 4.0       # seconds; bosses are unaffected by construction
+# SECOND SHIFT (Zombie Bob, v0.1.71 — replaced ONE OF THEM, Larry's call): passive free revive,
+# once per run. Burns FIRST in the death chain (before UNION REP -> vest -> Second Wind — the
+# character freebie goes before the purchased/drafted nets), never in HARDCORE (same gate as
+# UNION REP, one-life identity). The ghost seam (Player.set_ghost / Enemy._target_ghosted) is
+# kept dormant for a future re-user.
+const ABILITY_SECOND_SHIFT_HEAL_FRAC := 0.5  # revive HP fraction (UNION REP/Second Wind's own 0.5)
+const ABILITY_SECOND_SHIFT_INVULN := 2.0     # seconds of post-revive immunity (BENEFIT_REVIVE_INVULN twin)
 
 # JACKPOT (Alstar Tuck): four-roll slot machine, equal odds (Task 7).
 const ABILITY_JACKPOT_CD := 60.0                  # seconds

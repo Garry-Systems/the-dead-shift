@@ -146,16 +146,8 @@ func _finish_run(is_win: bool) -> void:
 	if RunStats.paid_out:
 		return
 	RunStats.paid_out = true
-	# DEAD EYE (Company Equipment, v0.1.70): a WIN landing mid-bullet-time-window would show this
-	# whole pay-stub at 0.3x — trigger_win()'s terminal pause never unpauses in place, so the
-	# ability's pause-safe (process_always=false) end timer stays frozen forever, the player never
-	# dies (no died-signal net), and Main survives under this overlay (no _exit_tree net). This
-	# shared win+lose chokepoint is the one spot that catches it; _end_dead_eye's idempotency
-	# guard makes the lose path (where the died net already ran) a harmless no-op. Group lookup +
-	# cast mirrors Hud._ability_controller's own idiom.
-	var ac := get_tree().get_first_node_in_group("ability_controller") as AbilityController
-	if ac != null and is_instance_valid(ac):
-		ac._end_dead_eye()
+	# (v0.1.71: the DEAD EYE mid-win time-scale net that lived here died with the ability —
+	# AIMBOT's window state is a plain Player-side countdown with nothing global to restore.)
 	SoundManager.play("dawn_sting" if is_win else "death_sting")
 	var wave := DifficultyManager.wave
 	var bosses := RunStats.bosses_killed

@@ -8,7 +8,9 @@ class_name Abilities
 ## breaks `--headless` boot-scene probing of every function in it, not just the offending one.
 
 ## Returns the ability row for `id`, or `{}` for an id with no ability (unknown/future ids).
-## Row shape: `{"id": String, "name": String, "cd": float, "sfx": String}` — `id` matches the
+## Row shape: `{"id": String, "name": String, "cd": float, "sfx": String}` (+ optional
+## `"passive": true` — a non-tappable always-armed ability: try_cast() refuses it and
+## cooldown_fraction() renders armed/spent; SECOND SHIFT is the only one) — `id` matches the
 ## `AbilityController._cast_<id>()` handler name, `name` is the HUD/callout display string, `cd`
 ## is the flat cooldown in seconds (GameConfig.ABILITY_*_CD), `sfx` is the SoundManager id
 ## try_cast()'s generic dispatch plays on a successful cast (T9). CLEAR OUT's `sfx` is "" —
@@ -24,9 +26,15 @@ static func for_character(id: String) -> Dictionary:
 		"jackson":
 			return {"id": "turret", "name": "SENTRY TURRET", "cd": GameConfig.ABILITY_TURRET_CD, "sfx": "ability_turret"}
 		"jimbo":
-			return {"id": "dead_eye", "name": "DEAD EYE", "cd": GameConfig.ABILITY_DEADEYE_CD, "sfx": "ability_deadeye"}
+			# v0.1.71: DEAD EYE's bullet time became AIMBOT (60s self-aiming gun). The internal id
+			# stays "dead_eye" — the icon (art/abilities/dead_eye.png) and cast SFX are keyed by it.
+			return {"id": "dead_eye", "name": "AIMBOT", "cd": GameConfig.ABILITY_AIMBOT_CD, "sfx": "ability_deadeye"}
 		"bob":
-			return {"id": "ghost", "name": "ONE OF THEM", "cd": GameConfig.ABILITY_GHOST_CD, "sfx": "ability_ghost"}
+			# v0.1.71: ONE OF THEM became SECOND SHIFT — a PASSIVE once-per-run free revive.
+			# "passive": true means try_cast() always refuses (nothing to tap); the charge is
+			# consumed by AbilityController.try_second_shift() from Player.take_damage's death
+			# chain, and cooldown_fraction() renders armed (0.0) / spent (1.0) instead of a cd.
+			return {"id": "second_shift", "name": "SECOND SHIFT", "cd": 0.0, "passive": true, "sfx": ""}
 		"alstar":
 			return {"id": "jackpot", "name": "JACKPOT", "cd": GameConfig.ABILITY_JACKPOT_CD, "sfx": "ability_jackpot"}
 		"janitor":

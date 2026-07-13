@@ -20,11 +20,11 @@ static func all() -> Array:
 		},
 		{
 			"id": "jimbo", "name": "Jimbo James", "price": 600,
-			"desc": "+50% move speed. Bonus damage & fire rate with snipers.",
+			"desc": "+50% move speed. Bonus damage & fire rate with snipers. AIMBOT: for a full minute the gun aims itself and fires on the move.",
 		},
 		{
 			"id": "bob", "name": "Zombie Bob", "price": 400,
-			"desc": "+25% XP pickup radius (magnet).",
+			"desc": "+25% XP pickup radius (magnet). SECOND SHIFT: comes back from the dead once per run — free. He's done it before.",
 		},
 		{
 			"id": "alstar", "name": "Alstar Tuck", "price": 2400,
@@ -40,7 +40,7 @@ static func all() -> Array:
 		},
 		{
 			"id": "jackson", "name": "Jackson Killa", "price": 3600,
-			"desc": "Drops a SENTRY TURRET that holds the line. Bonus damage & fire rate with Heavy weapons.",
+			"desc": "Drops an indestructible SENTRY TURRET that holds the line for a full minute. Bonus damage & fire rate with Heavy weapons.",
 		},
 	]
 

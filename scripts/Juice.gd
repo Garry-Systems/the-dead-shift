@@ -15,18 +15,16 @@ extends Node
 ## _exit_tree() is a last-resort safety net: if this node is ever freed mid-stop (scene change),
 ## time_scale is force-restored so the game can never be left frozen.
 ##
-## base_scale (Company Equipment, v0.1.70): the "un-frozen" baseline this class restores to is no
-## longer always 1.0 — Jimbo's DEAD EYE ability (AbilityController) owns a 3-second bullet-time
-## window (Engine.time_scale = ABILITY_DEADEYE_SCALE) and needs hit-stop to restore INTO that
-## window instead of yanking the game back to full speed. base_scale is that shared baseline: Juice
-## writes it only via _ready/_exit_tree resets, AbilityController writes it for the window's
-## duration, and _on_timer_done restores to whatever it currently is — the two systems share
-## ownership of Engine.time_scale without either needing a reference to the other (no direct
-## AbilityController<->Juice coupling, just the static field).
+## base_scale (Company Equipment, v0.1.70; sole-owner again since v0.1.71): originally the shared
+## baseline between hit-stop and Jimbo's DEAD EYE bullet-time window (the two-owner design).
+## DEAD EYE became AIMBOT in v0.1.71 (no time_scale involvement at all), so Juice is once more
+## the only Engine.time_scale writer in the game — base_scale stays as the restore-target seam
+## (_on_timer_done restores to it, _ready/_exit_tree reset it) so any future slow-time feature
+## can plug back in without re-deriving this contract.
 
 static var instance: Juice = null
-static var base_scale := 1.0   # the target Engine.time_scale for "not mid-hitstop" — 1.0 normally,
-                                # ABILITY_DEADEYE_SCALE for the duration of a DEAD EYE window
+static var base_scale := 1.0   # the target Engine.time_scale for "not mid-hitstop" — 1.0 unless
+                                # a future slow-time owner writes the seam (none since v0.1.71)
 
 var _stop_token := 0   # bumped on every (re)arm; a stale timer's callback checks this before restoring
 
@@ -37,10 +35,9 @@ func _ready() -> void:
 	#
 	# base_scale reset: GDScript statics are class-level, not node-level, so they survive scene
 	# reloads (the RelicEffects lesson — RO Task 2 shipped a run-ending-mid-equip bug from exactly
-	# this gap). Without this reset, a run that ends mid-DEAD-EYE-window (quit to menu bypassing
-	# AbilityController._exit_tree somehow, or a save/load edge) would poison every later run's
-	# crit hit-stops with a sub-1.0 restore target forever. A fresh Juice instance always starts
-	# from the un-slowed baseline.
+	# this gap). No writer besides Juice exists since v0.1.71, but the reset stays: it is the
+	# guarantee that a fresh run always starts from the un-slowed baseline no matter what any
+	# future seam user did to the static.
 	base_scale = 1.0
 	instance = self
 
@@ -48,8 +45,8 @@ func _exit_tree() -> void:
 	if instance == self:
 		instance = null
 	# Scene teardown is a true reset, not a handoff: force BOTH the live scale and the restore
-	# target back to baseline so nothing downstream (a stale DEAD EYE timer, another Juice instance
-	# next run) can inherit a frozen or slowed world.
+	# target back to baseline so nothing downstream (a stale hit-stop timer, another Juice
+	# instance next run) can inherit a frozen or slowed world.
 	Engine.time_scale = 1.0
 	base_scale = 1.0
 
@@ -73,10 +70,10 @@ func _start_hitstop() -> void:
 
 ## Only the timer armed by the MOST RECENT on_crit_kill() call still matches _stop_token when it
 ## fires — every earlier, superseded timer's callback is a no-op instead of restoring early.
-## Restores to base_scale, NOT a hardcoded 1.0: a crit-kill hit-stop that lands mid-DEAD-EYE-window
-## freezes harder (JUICE_HITSTOP_SCALE) then relaxes back INTO the bullet-time window (base_scale
-## == ABILITY_DEADEYE_SCALE) instead of cancelling it early — that hand-off IS the point of owning
-## Engine.time_scale through base_scale instead of each system writing 1.0 directly.
+## Restores to base_scale, NOT a hardcoded 1.0: the seam that let a slow-time owner (DEAD EYE,
+## v0.1.70) have hit-stop relax back INTO its window instead of cancelling it. No such owner
+## exists since v0.1.71 (base_scale is always 1.0), but restoring through the seam keeps that
+## contract alive for free.
 func _on_timer_done(token: int) -> void:
 	if token != _stop_token:
 		return

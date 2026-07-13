@@ -88,6 +88,12 @@ var _slow_stacks: Array = []
 ## _grant_invuln/apply_fire_lock — a recast before expiry extends, never shortens/resets.
 var _ghost_time := 0.0
 
+## AIMBOT (Jimbo James, v0.1.71): seconds left of the self-aiming window — while > 0 the
+## gun-drive block in _physics_process aims at the nearest enemy in gun range and fires on the
+## move (stop-to-shoot bypassed). Lives on the Player (the _ghost_time idiom) so it ticks in
+## game time, pauses hold it, and death/teardown cleans it for free.
+var _aimbot_time := 0.0
+
 func _ready() -> void:
 	add_to_group("player")
 	set_collision_mask_value(GameConfig.COVER_LAYER_BIT, true)   # collide with solid cover (|= safe: keeps the default bit 1)
@@ -116,6 +122,8 @@ func _physics_process(delta: float) -> void:
 		_revive_invuln_time -= delta
 	if _ghost_time > 0.0:
 		_ghost_time -= delta
+	if _aimbot_time > 0.0:
+		_aimbot_time -= delta
 	_tick_slow_stacks(delta)
 	# Ring indicator redraw: unconditional every physics frame rather than gated on
 	# _ghost_time>0, so the frame the window expires still redraws (clearing the ring) with no
@@ -149,9 +157,21 @@ func _physics_process(delta: float) -> void:
 	# Drive the gun: fire in our faced direction, but hold fire while moving
 	# (stop-to-shoot) and until the player has given a first move input (so we
 	# don't auto-empty the mag facing right at spawn).
+	# AIMBOT (Jimbo, v0.1.71): while the window is live AND something is in gun range, the gun
+	# aims itself at the nearest enemy and the stop-to-shoot/_has_moved gates are bypassed —
+	# run-and-gun is the whole fantasy. _fire_lock_time still holds (its overlay-close guard is
+	# about touch handling, not stance). No target in range -> exact stock behavior (nothing to
+	# hit anyway, and facing-aim keeps cone/beam weapons pointed somewhere sane).
 	if gun != null:
-		gun.aim_direction = _last_move_dir
-		gun.hold_fire = (GameConfig.SHOOT_ONLY_WHILE_STILL and velocity != Vector2.ZERO) or not _has_moved or _fire_lock_time > 0.0
+		var aimbot_target: Node2D = null
+		if _aimbot_time > 0.0:
+			aimbot_target = Gun._nearest_enemy(global_position, gun.gun_range, get_tree().get_nodes_in_group("enemies"))
+		if aimbot_target != null:
+			gun.aim_direction = global_position.direction_to(aimbot_target.global_position)
+			gun.hold_fire = _fire_lock_time > 0.0
+		else:
+			gun.aim_direction = _last_move_dir
+			gun.hold_fire = (GameConfig.SHOOT_ONLY_WHILE_STILL and velocity != Vector2.ZERO) or not _has_moved or _fire_lock_time > 0.0
 
 	move_and_slide()
 
@@ -311,6 +331,13 @@ func take_damage(amount: float, attacker = null, is_contact: bool = false) -> vo
 		gun.try_hurt_nova(self)
 
 	if _health.is_dead():
+		# SECOND SHIFT (Zombie Bob, v0.1.71): the character's own free revive burns FIRST —
+		# before the purchased (UNION REP) and drafted (vest / Second Wind) nets, so those
+		# stay banked for the rest of the night. Same HARDCORE gate as UNION REP just below
+		# (one-life identity); degrades to false harmlessly when no AbilityController is in
+		# the tree or the charge is spent (the kill_coin_bonus static-seam contract).
+		if not RunConfig.hardcore and AbilityController.try_second_shift(self, get_tree()):
+			return
 		# UNION REP (Pack A): the benefits revive fires BEFORE Second Wind (spec order) and
 		# never in HARDCORE (one-life identity — same flag the heal-gate uses). Sets
 		# _health.current directly rather than routing through heal() — revive isn't a heal;
@@ -466,6 +493,19 @@ func relic_vest_revive() -> void:
 	_grant_invuln(GameConfig.BENEFIT_REVIVE_INVULN)
 	get_tree().current_scene.add_child(ScreenFlash.new())
 
+## SECOND SHIFT (AbilityController.try_second_shift, v0.1.71): Zombie Bob's free once-per-run
+## revive — the charge lives on the controller; this is only the body. Direct _health write, not
+## heal() — the UNION REP/vest recipe (a revive isn't a heal, and heal()'s gates must never eat
+## it). maxf(1.0, ...) matches UNION REP's own can't-land-at-zero guarantee. Callout + sting live
+## here because this is the one site that knows the revive actually happened; "ability_ghost" is
+## the reused back-from-the-dead sting (the asset outlived the ONE OF THEM ability it was cut for).
+func ability_second_shift_revive() -> void:
+	_health.current = maxf(1.0, max_hp() * GameConfig.ABILITY_SECOND_SHIFT_HEAL_FRAC)
+	_grant_invuln(GameConfig.ABILITY_SECOND_SHIFT_INVULN)
+	get_tree().current_scene.add_child(ScreenFlash.new())
+	CombatText.callout(global_position, "SECOND SHIFT!", PixelTheme.ACCENT)
+	SoundManager.play("ability_ghost")
+
 func _on_level_up() -> void:
 	leveled_up.emit()
 
@@ -569,7 +609,18 @@ func _current_slow_factor() -> float:
 		f = minf(f, float(entry["factor"]))
 	return f
 
-## --- ONE OF THEM (Zombie Bob, AbilityController._cast_ghost) ---
+## --- AIMBOT (Jimbo James, AbilityController._cast_dead_eye, v0.1.71) ---
+
+## Arms (or extends) the aimbot window — while live, the gun-drive block in _physics_process
+## self-aims at the nearest enemy in gun range and fires on the move. maxf-merge, the exact
+## set_ghost shape below.
+func set_aimbot(duration: float) -> void:
+	_aimbot_time = maxf(_aimbot_time, duration)
+
+## --- ONE OF THEM (Zombie Bob) — DORMANT SEAM since v0.1.71: SECOND SHIFT replaced the ghost
+## ability, so nothing calls set_ghost anymore. The seam (this + is_ghost + Enemy._target_ghosted
+## + RangedEnemy/Exploder gates) is kept intact for a future re-user (a relic/visitor is the
+## obvious candidate); it costs one dormant float and a per-frame compare. ---
 
 ## Arms (or extends) the ghost window. maxf-merge, same shape as apply_fire_lock/_grant_invuln —
 ## a recast before expiry extends, never shortens.
@@ -590,6 +641,12 @@ func is_ghost() -> bool:
 ## get stomped mid-window (or fail to restore) the first time a lifesteal blip fires during the
 ## 4s. This ring is a separate additive layer — nothing to restore, nothing to fight.
 func _draw() -> void:
+	# AIMBOT tell: same ground-marker arc as the ghost ring below, in the sanctioned gold —
+	# a live "the gun is working" indicator for the whole 60s window. Additive layer, so it
+	# needs no restore and can't fight lifesteal_blip's sprite-modulate channel either.
+	if _aimbot_time > 0.0:
+		var aim_col := Color(1.0, 0.843, 0.0, 0.55)   # ffd700 gold @ the ghost ring's own alpha
+		draw_arc(Vector2(0, 20), 18.0, 0.0, TAU, 24, aim_col, 3.0, true)
 	if not is_ghost():
 		return
 	var ring_col := Color(0.878, 0.898, 1.0, 0.55)   # C4 lavender @ low-ish alpha (brief's exact value)
