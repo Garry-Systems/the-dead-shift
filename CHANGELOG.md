@@ -4,6 +4,13 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.71 — Performance Review (2026-07-13)
+
+Three employees had their equipment re-evaluated. HR signed off on all of it.
+- JIMBO JAMES: **DEAD EYE** is now **AIMBOT** — for a full minute the gun aims itself at the nearest zombie and keeps firing while you run. No stopping to shoot. The catch: it's a once-every-four-minutes kind of favor. (Bullet time got retired; nobody at corporate could explain how it worked anyway.)
+- ZOMBIE BOB: **ONE OF THEM** is now **SECOND SHIFT** — Bob comes back from the dead once per run. Free. Automatic. It's on brand — he's done it before. The button shows whether he still has it in him. (HARDCORE remains a one-life contract, even for Bob.)
+- JACKSON KILLA: the **SENTRY TURRET** now holds the line for a full minute, up from twelve seconds. It was always indestructible — now it's up long enough for the horde to learn that the hard way.
+
 ## v0.1.70 — Company Equipment (2026-07-11)
 
 Corporate finally issued equipment. One item per employee. No sharing.
