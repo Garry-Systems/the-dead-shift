@@ -5,17 +5,13 @@ extends Node
 ## (the Juice/Visitors idiom) — NOT an autoload, so menu scenes pay nothing. Reached via the
 ## "ability_controller" group (T7's kill_coin_bonus() static query needs a group lookup, not a
 ## direct reference — mirrors NightEvents.blood_moon_coins' own idiom).
-##
-## Every `_cast_*` body below is CALLOUT-ONLY this task — the cooldown machine + HUD button are
-## fully playable, but the actual gameplay effect lands in the task named in each doc comment.
 
 var _row: Dictionary = {}     # this run's ability row (Abilities.for_character result); {} = none
 var _cd_remaining := 0.0      # seconds left before try_cast() can succeed again
 
 ## Debug/probe visibility only (the `_last_shift_toast` idiom): records which `_cast_*` body most
 ## recently ran, so a probe can confirm the match in try_cast() dispatched to the RIGHT handler
-## without needing real gameplay side effects to observe (every body is a staged callout-only
-## stub this task).
+## without needing real gameplay side effects to observe.
 var _last_cast_id := ""
 
 ## SECOND SHIFT (Zombie Bob, v0.1.71): the once-per-run passive revive charge. Armed in _ready()

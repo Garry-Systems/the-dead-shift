@@ -1,12 +1,12 @@
 class_name FirstRunHints
 extends Control
-## First-run onboarding: three sequential HUD hints (move → shoot → dash) shown only until
-## SaveManager.tutorial_done() is true. Self-contained — Hud instantiates one and calls
+## First-run onboarding: four sequential HUD hints (move → shoot → dash → ability) shown only
+## until SaveManager.tutorial_done() is true. Self-contained — Hud instantiates one and calls
 ## setup(player) once; everything else runs off _process. Non-blocking (mouse_filter IGNORE
 ## on every node here) so it never intercepts taps/drags meant for the joystick or gun.
 ## Works for both endless and boss rush — both modes run this same Hud/scene.
 
-enum Stage { MOVE, SHOOT, DASH, DONE }
+enum Stage { MOVE, SHOOT, DASH, ABILITY, DONE }
 
 var _player: Player
 var _stage: Stage = Stage.DONE   # DONE until setup() confirms a fresh (tutorial-not-done) run
@@ -15,6 +15,8 @@ var _label: Label
 var _move_time := 0.0          # cumulative seconds of nonzero player velocity (hint 1)
 var _fire_time := 0.0          # cumulative seconds the gun is aiming + unheld + not reloading (hint 2)
 var _kills_at_stage_start := 0 # RunStats.kills snapshot when hint 2 starts, so any kill during it clears it
+var _ability_time := 0.0       # seconds hint 4 has been showing (auto-clears at HINT_ABILITY_SECONDS)
+var _ability_ctl: Node = null  # AbilityController group lookup, resolved when hint 4 starts
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -79,6 +81,14 @@ func _process(delta: float) -> void:
 				_advance_to_dash()
 		Stage.DASH:
 			if _player.is_dashing():
+				_advance_to_ability()
+		Stage.ABILITY:
+			# Cleared by a cast (the cooldown arming is the observable) or by the timeout —
+			# the hint must never block a player who'd rather bank the ability for a boss.
+			_ability_time += delta
+			var cast := _ability_ctl != null and is_instance_valid(_ability_ctl) \
+					and not bool(_ability_ctl.call("is_ready"))
+			if cast or _ability_time >= GameConfig.HINT_ABILITY_SECONDS:
 				_finish()
 		_:
 			pass
@@ -90,6 +100,19 @@ func _advance_to_shoot() -> void:
 func _advance_to_dash() -> void:
 	_stage = Stage.DASH
 	_show_hint("DOUBLE-TAP TO DASH")
+
+## Hint 4 (v0.1.72): the ability button otherwise just appears with no explanation. Skipped
+## outright when the character has no castable active — no row, or a passive row like Bob's
+## SECOND SHIFT whose try_cast() always refuses (the button renders armed/spent, never casts).
+func _advance_to_ability() -> void:
+	_ability_ctl = get_tree().get_first_node_in_group("ability_controller")
+	var row: Dictionary = _ability_ctl.call("ability_row") if _ability_ctl != null else {}
+	if row.is_empty() or bool(row.get("passive", false)):
+		_finish()
+		return
+	_stage = Stage.ABILITY
+	_ability_time = 0.0
+	_show_hint("TAP THE BADGE TO FIRE YOUR ABILITY")
 
 func _finish() -> void:
 	_stage = Stage.DONE

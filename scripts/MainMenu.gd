@@ -63,14 +63,11 @@ var _reward_queue: Array = []    # pending {title, reward} dicts shown one at a 
 var _current_reward: Dictionary = {}   # the reward dict currently shown in _reward_popup (kind/crate_id/inst)
 var _reward_flow_active := false       # true while a reward-claimed crate is spinning the reel (Pack 1)
 
-var _sfx_btn: Button      # hub SFX ON/OFF toggle (text refreshed on press)
-var _music_btn: Button    # hub MUSIC ON/OFF toggle
 var _effects_btn: Button  # hub EFFECTS ON/OFF toggle — screen shake + crit-kill hit-stop (Pack D)
 
 func _ready() -> void:
 	SoundManager.music("menu_loop")
 	Inventory.grant_starter()  # first-launch seed so the inventory is never empty
-	SaveManager.grant_dev_bonus(30000)  # DEV (for now): one-time 30k coins to test the economy
 	_add_background()
 	_build_hub()
 	_build_mode_panel()
@@ -143,6 +140,24 @@ func _make_button(text: String, cb: Callable, min_size: Vector2 = Vector2(806, 1
 	b.pressed.connect(func(): SoundManager.play("ui_tap"); cb.call())
 	return b
 
+## Android back gesture (launch hygiene v0.1.72; quit_on_go_back is off in project.godot,
+## so back no longer hard-quits the app from any screen). Sub-panel -> hub; hub -> quit
+## (the standard Android expectation — and the app's only explicit exit). Ignored while a
+## reward reveal or crate reel is mid-flow: those grants must resolve through their own
+## buttons, never get hidden under a panel swap.
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
+		return
+	if (_reward_popup != null and _reward_popup.visible) \
+			or (_crate_opener != null and _crate_opener.visible):
+		return
+	if _hub != null and _hub.visible:
+		get_tree().quit()
+		return
+	SoundManager.play("ui_tap")
+	_inv_from_play = false   # mirrors _on_inv_back: leaving the forced-equip flow cancels it
+	_show_only(_hub)
+
 func _show_only(panel: Control) -> void:
 	_hub.visible = panel == _hub
 	_mode_panel.visible = panel == _mode_panel
@@ -196,20 +211,17 @@ func _build_hub() -> void:
 	vbox.add_child(_make_button("INVENTORY", func(): _show_inventory(false)))
 	vbox.add_child(_make_button("RECORDS", func(): _show_records()))
 	vbox.add_child(_spacer(4))
-	var toggle_row := HBoxContainer.new()
-	toggle_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	toggle_row.add_theme_constant_override("separation", 10)
-	# 320px per button: 3x320 + 2x10 separation = 980px row + 64px card content margins = 1044px
-	# card, inside the 1080px portrait viewport (3x360 would overflow at 1164px). The longest
-	# label ("EFFECTS: OFF") is ~180px at Silkscreen 18 vs the button's 280px text space (320
-	# minus 2x20 stylebox margins), so no button auto-grows past its minimum.
-	_sfx_btn = _make_button(_sfx_label(), _on_toggle_sfx, Vector2(320, 68), 18)
-	_music_btn = _make_button(_music_label(), _on_toggle_music, Vector2(320, 68), 18)
+	# Volume sliders (v0.1.72; PauseMenu's overlay has its own matching pair — keep in
+	# lockstep). Row width: 110 label + 14 separation + 520 slider = 644px, well inside the
+	# 806px the PLAY button already proves fits the card. The hub is rebuilt on every scene
+	# entry, so the initial values are always current — no re-sync hook needed here.
+	vbox.add_child(_volume_row("SFX", _make_volume_slider(SaveManager.sfx_vol(),
+		func(v: float): SoundManager.set_sfx_volume(v))))
+	vbox.add_child(_volume_row("MUSIC", _make_volume_slider(SaveManager.music_vol(),
+		func(v: float): SoundManager.set_music_volume(v))))
 	_effects_btn = _make_button(_effects_label(), _on_toggle_effects, Vector2(320, 68), 18)
-	toggle_row.add_child(_sfx_btn)
-	toggle_row.add_child(_music_btn)
-	toggle_row.add_child(_effects_btn)
-	vbox.add_child(toggle_row)
+	_effects_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	vbox.add_child(_effects_btn)
 
 ## PLAY: only proceed to the mode picker if a weapon is equipped; otherwise force the
 ## player into the inventory to pick one (Cancel there returns here to the menu).
@@ -233,20 +245,55 @@ func _spacer(h: int) -> Control:
 	s.custom_minimum_size = Vector2(0, h)
 	return s
 
-# --- SFX / Music toggles (hub row; PauseMenu has its own matching pair) ---
-func _sfx_label() -> String:
-	return "SFX: ON" if SoundManager.sfx_on() else "SFX: OFF"
+# --- SFX / Music volume sliders (hub rows; PauseMenu's overlay has its own matching pair) ---
 
-func _music_label() -> String:
-	return "MUSIC: ON" if SoundManager.music_on() else "MUSIC: OFF"
+## Label + slider on one row (v0.1.72).
+func _volume_row(text: String, slider: HSlider) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.custom_minimum_size = Vector2(110, 0)
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(lbl, 18, PixelTheme.TEXT_DIM)
+	row.add_child(lbl)
+	row.add_child(slider)
+	return row
 
-func _on_toggle_sfx() -> void:
-	SoundManager.set_sfx_on(not SoundManager.sfx_on())
-	_sfx_btn.text = _sfx_label()
-
-func _on_toggle_music() -> void:
-	SoundManager.set_music_on(not SoundManager.music_on())
-	_music_btn.text = _music_label()
+## Pixel-styled 0..1 volume slider — keep in lockstep with PauseMenu._make_volume_slider
+## (only the width differs: the hub card is wider than the pause card). `on_change` fires
+## live during the drag; the release plays a "ui_tap" so the new SFX level is heard.
+func _make_volume_slider(initial: float, on_change: Callable) -> HSlider:
+	var s := HSlider.new()
+	s.min_value = 0.0
+	s.max_value = 1.0
+	s.step = 0.05
+	s.value = initial
+	s.custom_minimum_size = Vector2(520, 48)
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var track := StyleBoxFlat.new()
+	track.bg_color = PixelTheme.BTN_BG
+	track.border_color = PixelTheme.ACCENT_DIM
+	track.set_border_width_all(2)
+	track.set_corner_radius_all(0)
+	track.anti_aliasing = false
+	s.add_theme_stylebox_override("slider", track)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = PixelTheme.ACCENT_DIM
+	fill.set_corner_radius_all(0)
+	fill.anti_aliasing = false
+	s.add_theme_stylebox_override("grabber_area", fill)
+	s.add_theme_stylebox_override("grabber_area_highlight", fill)
+	var img := Image.create(16, 40, false, Image.FORMAT_RGBA8)
+	img.fill(PixelTheme.TEXT)
+	var grabber := ImageTexture.create_from_image(img)
+	s.add_theme_icon_override("grabber", grabber)
+	s.add_theme_icon_override("grabber_highlight", grabber)
+	s.add_theme_icon_override("grabber_disabled", grabber)
+	s.value_changed.connect(on_change)
+	s.drag_ended.connect(func(_changed: bool): SoundManager.play("ui_tap"))
+	return s
 
 # --- EFFECTS toggle (Pack D): gates screen shake AND crit-kill hit-stop together ---
 func _effects_label() -> String:
@@ -1437,20 +1484,6 @@ func _populate_store() -> void:
 	staff_row.add_child(staff_desc)
 	list.add_child(staff_row)
 
-	# DEV (temporary): instantly stock one weapon of every rarity for inspect/feel testing.
-	# REMOVE before release (with the 10k-coin grant_dev_bonus in _ready).
-	var dev := Button.new()
-	dev.text = "DEV: GRANT ALL RARITIES"
-	PixelTheme.style_button(dev, Vector2(660, 88), 20)
-	dev.pressed.connect(_guarded(_on_dev_grant_all))
-	list.add_child(dev)
-
-	var dev_crates := Button.new()
-	dev_crates.text = "DEV: 1 OF EACH CRATE"
-	PixelTheme.style_button(dev_crates, Vector2(660, 88), 20)
-	dev_crates.pressed.connect(_guarded(_on_dev_grant_crates))
-	list.add_child(dev_crates)
-
 	_store_result = Label.new()
 	_store_result.text = _last_unbox
 	_store_result.custom_minimum_size = Vector2(660, 0)
@@ -1525,18 +1558,6 @@ func _reveal_coworker(inst: Dictionary) -> void:
 	var rarity := int(inst.get("rarity", 1))
 	if rarity >= CONFETTI_MIN_RARITY:
 		_celebrate(Rarity.display_color(rarity))
-
-func _on_dev_grant_all() -> void:
-	var n := Inventory.grant_all_rarities()
-	_last_unbox = "DEV: granted %d weapons (one of each rarity)." % n
-	_last_unbox_color = PixelTheme.SELECT
-	_populate_store()
-
-func _on_dev_grant_crates() -> void:
-	var n := Inventory.grant_one_of_each_crate()
-	_last_unbox = "DEV: granted 1 of each crate (%d types)." % n
-	_last_unbox_color = PixelTheme.SELECT
-	_populate_store()
 
 func _on_inv_back() -> void:
 	if _inv_suppress_tap:

@@ -140,8 +140,21 @@ func _ready() -> void:
 
 	_apply_pixel_style()
 
+	# Safe-area inset (launch hygiene v0.1.72): push every top-anchored readout below a
+	# punch-hole camera / status-bar band (SafeArea.top_inset — 0 on desktop/headless).
+	# Bottom-anchored elements (ammo, reload, boss bar, ability button) don't move.
+	var inset := SafeArea.top_inset()
+	if inset > 0.0:
+		for c: Control in [_bar, _label, _hp_bar, _hp_label, _wave_label, _clock_label]:
+			c.offset_top += inset
+			c.offset_bottom += inset
+
 	_hints = FirstRunHints.new()
 	add_child(_hints)
+	# Shifted with the rest of the top HUD so the hint strip never slides under the
+	# (also-shifted) clock readout on a notched phone.
+	_hints.offset_top += inset
+	_hints.offset_bottom += inset
 	_hints.setup(_player)
 
 	_build_ability_button()

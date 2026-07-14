@@ -189,6 +189,9 @@ const COIN_PER_WAVE := 5       # coins per wave reached
 const COIN_PER_BOSS := 25      # coins per boss defeated
 const COIN_PER_KILL := 1       # coins per trash enemy killed
 const QUIT_PAYOUT_FRAC := 0.75  # quit/restart from pause pays this fraction of the death payout
+const ABANDON_COUNTS_MIN_TIME := 120.0  # seconds a run must last before a pause-quit/restart counts as a
+                                        # played game (launch hygiene v0.1.72: instant restart loops farmed
+                                        # the every-10-games milestone + games-played commendations)
 
 # --- Boss framework v1 ---
 const BOSS_FIRST_CAST_DELAY := 1.0     # seconds before a boss's first pattern after spawn/phase-enter
@@ -332,6 +335,7 @@ const FORECOURT_PLAYER_SPAWN := Vector2(0.0, 220.0)       # apron spawn point, c
 # --- First-run onboarding hints (Pack 1) ---
 const HINT_MOVE_SECONDS := 1.0   # cumulative seconds of player movement before hint 1 ("move") clears
 const HINT_FIRE_SECONDS := 3.0   # cumulative seconds the gun is actively trying to fire before hint 2 ("shoot") clears (or first kill, whichever first)
+const HINT_ABILITY_SECONDS := 6.0  # hint 4 ("ability", v0.1.72) auto-clears after this long if the player never casts
 
 # --- Level-up cards, Pack 2 (armor/dodge/crit/thorns/second wind/economy) ---
 const UPGRADE_ARMOR_PCT := 0.15        # "Iron Skin" card: -% contact/bite damage taken (multiplicative, stacks)

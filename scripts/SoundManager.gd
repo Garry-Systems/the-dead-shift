@@ -58,9 +58,20 @@ func _ready() -> void:
 	_music_player = AudioStreamPlayer.new()
 	_music_player.bus = MUSIC_BUS
 	add_child(_music_player)
-	# Apply the saved mute preference immediately so boot never has a stray audible frame.
-	AudioServer.set_bus_mute(_sfx_bus_idx, not SaveManager.sfx_on())
-	AudioServer.set_bus_mute(_music_bus_idx, not SaveManager.music_on())
+	# Apply the saved volume immediately so boot never has a stray audible frame.
+	_migrate_legacy_mutes()
+	_apply_bus_volume(_sfx_bus_idx, SaveManager.sfx_vol())
+	_apply_bus_volume(_music_bus_idx, SaveManager.music_vol())
+
+## Volume sliders (v0.1.72): saves from before the sliders only had ON/OFF booleans. A save
+## that had SFX/MUSIC toggled OFF keeps its silence as volume 0.0 exactly once here — from
+## then on set_*_volume below keeps the boolean in sync (on == vol > 0), so this never
+## re-fires (an OFF bool can only coexist with a >0 vol on a pre-slider save).
+func _migrate_legacy_mutes() -> void:
+	if not SaveManager.sfx_on() and SaveManager.sfx_vol() > 0.0:
+		SaveManager.set_sfx_vol(0.0)
+	if not SaveManager.music_on() and SaveManager.music_vol() > 0.0:
+		SaveManager.set_music_vol(0.0)
 
 ## Creates the SFX/Music buses if they don't already exist (re-running _ready via a
 ## hotload wouldn't duplicate them). Caches both indices for every later AudioServer call.
@@ -96,7 +107,7 @@ func _build_pool() -> void:
 ## Plays a one-shot by id from the round-robin pool with a small random pitch jitter
 ## (default +/-8%). No-op if the id has no loaded stream (e.g. a typo) or it's still
 ## inside its MIN_INTERVAL_MS throttle window. Silence while muted is handled by the
-## SFX bus itself (see set_sfx_on) — this never needs to check the mute state.
+## SFX bus itself (see set_sfx_volume) — this never needs to check the mute state.
 func play(id: String, pitch_jitter: float = 0.08) -> void:
 	if not _streams.has(id):
 		return
@@ -131,21 +142,25 @@ func music(id: String) -> void:
 	_music_player.stream = stream
 	_music_player.play()
 
-## Toggles the SFX bus mute + persists the preference. Callers (PauseMenu/MainMenu
-## toggle buttons) still call SaveManager.save_game() indirectly via this — the
-## preference is saved immediately so it survives a crash/kill, not just a clean exit.
-func set_sfx_on(on: bool) -> void:
-	AudioServer.set_bus_mute(_sfx_bus_idx, not on)
-	SaveManager.set_sfx_on(on)
+## Sets the SFX bus volume (0..1) + persists it. Called live from the PauseMenu/MainMenu
+## volume sliders — the preference is saved immediately so it survives a crash/kill, not
+## just a clean exit. Keeps the legacy sfx_on boolean in sync (see _migrate_legacy_mutes).
+func set_sfx_volume(v: float) -> void:
+	v = clampf(v, 0.0, 1.0)
+	_apply_bus_volume(_sfx_bus_idx, v)
+	SaveManager.set_sfx_vol(v)
+	SaveManager.set_sfx_on(v > 0.001)
 	SaveManager.save_game()
 
-func set_music_on(on: bool) -> void:
-	AudioServer.set_bus_mute(_music_bus_idx, not on)
-	SaveManager.set_music_on(on)
+func set_music_volume(v: float) -> void:
+	v = clampf(v, 0.0, 1.0)
+	_apply_bus_volume(_music_bus_idx, v)
+	SaveManager.set_music_vol(v)
+	SaveManager.set_music_on(v > 0.001)
 	SaveManager.save_game()
 
-func sfx_on() -> bool:
-	return not AudioServer.is_bus_mute(_sfx_bus_idx)
-
-func music_on() -> bool:
-	return not AudioServer.is_bus_mute(_music_bus_idx)
+## Linear 0..1 -> bus dB, with a hard mute at (effectively) zero so "slider all the way
+## down" is true silence, not linear_to_db's -60dB whisper.
+func _apply_bus_volume(idx: int, v: float) -> void:
+	AudioServer.set_bus_mute(idx, v <= 0.001)
+	AudioServer.set_bus_volume_db(idx, linear_to_db(maxf(v, 0.001)))

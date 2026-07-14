@@ -4,6 +4,18 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.72 — Grand Opening Prep (2026-07-14)
+
+Store-shelf hygiene before the doors open to the public. No new toys — just no more freebies and a phone that behaves like a phone.
+- **The registers are closed to staff.** The 30,000-coin "test the economy" welcome bonus and both DEV store buttons (free weapons, free crates) are gone. Every coin is earned now.
+- **No more clock-punching.** Instantly restarting from pause no longer counts as a played game — a run has to last 2 minutes before it ticks the every-10-games reward and the shifts-worked commendations. Real deaths and wins always count.
+- **A phone call won't kill you.** Backgrounding the app mid-run (call, home gesture, notification shade) now auto-pauses the game.
+- **The back gesture works like Android.** Mid-run it pauses (or resumes); in menus it goes up one screen; on the hub it exits. It used to hard-quit the whole app from anywhere and eat your run's payout.
+- **Volume sliders.** SFX and MUSIC are proper 0–100% sliders now (menu + pause), not just ON/OFF. Old mute settings carry over.
+- **Notch-proof HUD.** The XP bar, HP bar, wave counter, and clock shift down below punch-hole cameras and status bars instead of hiding under them.
+- **One more hint.** First-run onboarding now introduces the ability button too — it used to just appear.
+- Booting shows the pump-and-moon instead of the engine logo.
+
 ## v0.1.71 — Performance Review (2026-07-13)
 
 Three employees had their equipment re-evaluated. HR signed off on all of it.

@@ -22,15 +22,15 @@ const DEFAULTS := {
 	"crates": {},             # owned unopened crates: crate_id -> count
 	"scrap": 0,               # EMPLOYEE BENEFITS currency — byproduct of deconstructs (Pack A)
 	"benefits": {},           # benefit track id -> purchased level (Pack A)
-	"dev_bonus_granted": false,     # DEV (legacy): the old 10k one-time bonus flag (superseded)
-	"dev_bonus_v2_granted": false,  # DEV (temporary): the 30k start bonus already given?
 	"last_daily_claim": "",   # "YYYY-MM-DD" of the last claimed daily-login reward ("" = never)
 	"daily_streak": 0,        # consecutive daily claims (Rewards.next_streak); resets on a missed day
 	"games_played": 0,        # completed runs (game-over count) — drives the every-10-games reward
 	"game_rewards_given": 0,  # how many 10-game milestone rewards have already been handed out
-	"tutorial_done": false,   # first-run HUD hint sequence (move/shoot/dash) already completed?
-	"sfx_on": true,           # SoundManager: SFX bus enabled?
-	"music_on": true,         # SoundManager: Music bus enabled?
+	"tutorial_done": false,   # first-run HUD hint sequence (move/shoot/dash/ability) already completed?
+	"sfx_on": true,           # SoundManager: SFX bus enabled? (kept in sync with sfx_vol > 0 since v0.1.72)
+	"music_on": true,         # SoundManager: Music bus enabled? (kept in sync with music_vol > 0 since v0.1.72)
+	"sfx_vol": 1.0,           # SFX bus volume 0..1 (v0.1.72 volume sliders; SoundManager applies at boot)
+	"music_vol": 1.0,         # Music bus volume 0..1 (v0.1.72 volume sliders)
 	"shifts_survived": 0,     # Pack A: runs that WON via the Dawn Extraction chopper LZ (not just reaching dawn)
 	"total_kills": 0,           # Pack D: lifetime kills, flushed at payout (see LifetimeRecords.merge_run)
 	"total_bosses": 0,          # Pack D: lifetime boss kills
@@ -169,15 +169,6 @@ func set_benefit_level(id: String, lvl: int) -> void:
 	var b: Dictionary = _data.get("benefits", {})
 	b[id] = lvl
 	_data["benefits"] = b
-
-## DEV (temporary): grant a one-time coin bonus so the store/economy is testable. Grants
-## once per save (the flag persists + is saved), so the player can still spend normally.
-func grant_dev_bonus(amount: int) -> void:
-	if bool(_data.get("dev_bonus_v2_granted", false)):
-		return
-	_data["dev_bonus_v2_granted"] = true
-	add_coins(amount)
-	save_game()
 
 # --- Free rewards: daily login + every-10-games milestone (mutators are memory-only; save after) ---
 
@@ -327,9 +318,9 @@ func armageddons_pulled() -> int:
 	return int(_data.get("armageddons_pulled", 0))
 
 ## Adds a rarity-9 (Armageddon) pull. Called from the single Inventory.add() chokepoint, so every
-## path that can hand the player a weapon instance (crate opens, daily/milestone gun rewards, DEV
-## grants, and any future path — e.g. Pack B's weapon fusion — that ends up calling Inventory.add)
-## is covered automatically. Caller saves.
+## path that can hand the player a weapon instance (crate opens, daily/milestone gun rewards, and
+## any future path — e.g. Pack B's weapon fusion — that ends up calling Inventory.add) is covered
+## automatically. Caller saves.
 func add_armageddon_pulled() -> void:
 	_data["armageddons_pulled"] = armageddons_pulled() + 1
 
@@ -509,7 +500,7 @@ func set_equipped_coworker(uid: String) -> void:
 
 # --- First-run onboarding hints ---
 
-## True once the player has cleared all three first-run HUD hints (move/shoot/dash).
+## True once the player has cleared all four first-run HUD hints (move/shoot/dash/ability).
 func tutorial_done() -> bool:
 	return bool(_data.get("tutorial_done", false))
 
@@ -533,6 +524,21 @@ func music_on() -> bool:
 
 func set_music_on(on: bool) -> void:
 	_data["music_on"] = on
+
+## Bus volumes 0..1 (v0.1.72 volume sliders). SoundManager owns applying these to the
+## AudioServer (boot + slider changes) and keeps the legacy sfx_on/music_on booleans in
+## sync (on == vol > 0) — see SoundManager.set_sfx_volume/_migrate_legacy_mutes.
+func sfx_vol() -> float:
+	return clampf(float(_data.get("sfx_vol", 1.0)), 0.0, 1.0)
+
+func set_sfx_vol(v: float) -> void:
+	_data["sfx_vol"] = clampf(v, 0.0, 1.0)
+
+func music_vol() -> float:
+	return clampf(float(_data.get("music_vol", 1.0)), 0.0, 1.0)
+
+func set_music_vol(v: float) -> void:
+	_data["music_vol"] = clampf(v, 0.0, 1.0)
 
 # --- Commendations wall (Pack H: v0.1.59) ---
 # Pure check/grant math lives in Commendations.gd (data) + CommendationProgress.gd (merge math,

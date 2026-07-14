@@ -7,9 +7,9 @@ extends CanvasLayer
 var _overlay: Control
 var _pause_btn: Button
 var _relics_box: VBoxContainer
-var _sfx_btn: Button      # SFX ON/OFF toggle (text refreshed on press + every time the overlay opens)
-var _music_btn: Button    # MUSIC ON/OFF toggle
-var _effects_btn: Button  # EFFECTS ON/OFF toggle — screen shake + crit-kill hit-stop (Pack D)
+var _sfx_slider: HSlider    # SFX volume 0..1 (v0.1.72; value re-synced every time the overlay opens)
+var _music_slider: HSlider  # MUSIC volume 0..1
+var _effects_btn: Button    # EFFECTS ON/OFF toggle — screen shake + crit-kill hit-stop (Pack D)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -29,8 +29,11 @@ func _build_button() -> void:
 	_pause_btn.anchor_right = 1.0
 	_pause_btn.offset_left = -92
 	_pause_btn.offset_right = -16
-	_pause_btn.offset_top = 150       # well below the top HUD (XP bar / wave readout)
-	_pause_btn.offset_bottom = 226
+	# Well below the top HUD (XP bar / wave readout); shifted by the same safe-area inset
+	# the Hud applies (v0.1.72) so a notched phone can't stack the clock readout onto it.
+	var inset := SafeArea.top_inset()
+	_pause_btn.offset_top = 150 + inset
+	_pause_btn.offset_bottom = 226 + inset
 	_pause_btn.pressed.connect(_on_pause_pressed)
 	add_child(_pause_btn)
 
@@ -77,10 +80,11 @@ func _build_overlay() -> void:
 	vbox.add_child(_menu_button("RESTART RUN", _on_restart))
 	vbox.add_child(_menu_button("BACK TO MENU", _on_back))
 	vbox.add_child(_spacer(6))
-	_sfx_btn = _menu_button(_sfx_label(), _on_toggle_sfx)
-	vbox.add_child(_sfx_btn)
-	_music_btn = _menu_button(_music_label(), _on_toggle_music)
-	vbox.add_child(_music_btn)
+	# Volume sliders (v0.1.72; MainMenu's hub has its own matching pair — keep in lockstep).
+	_sfx_slider = _make_volume_slider(SaveManager.sfx_vol(), func(v: float): SoundManager.set_sfx_volume(v))
+	vbox.add_child(_volume_row("SFX", _sfx_slider))
+	_music_slider = _make_volume_slider(SaveManager.music_vol(), func(v: float): SoundManager.set_music_volume(v))
+	vbox.add_child(_volume_row("MUSIC", _music_slider))
 	_effects_btn = _menu_button(_effects_label(), _on_toggle_effects)
 	vbox.add_child(_effects_btn)
 
@@ -96,20 +100,58 @@ func _menu_button(text: String, cb: Callable) -> Button:
 	b.pressed.connect(cb)
 	return b
 
-# --- SFX / Music toggles (MainMenu's hub has its own matching pair) ---
-func _sfx_label() -> String:
-	return "SFX: ON" if SoundManager.sfx_on() else "SFX: OFF"
+# --- SFX / Music volume sliders (v0.1.72; MainMenu's hub has its own matching pair) ---
 
-func _music_label() -> String:
-	return "MUSIC: ON" if SoundManager.music_on() else "MUSIC: OFF"
+## Label + slider on one row. The slider is passed in (not built here) so the caller can
+## keep a reference for the overlay-open value re-sync (see _on_pause_pressed).
+func _volume_row(text: String, slider: HSlider) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.custom_minimum_size = Vector2(110, 0)
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	PixelTheme.style_label(lbl, 18, PixelTheme.TEXT_DIM)
+	row.add_child(lbl)
+	row.add_child(slider)
+	return row
 
-func _on_toggle_sfx() -> void:
-	SoundManager.set_sfx_on(not SoundManager.sfx_on())
-	_sfx_btn.text = _sfx_label()
-
-func _on_toggle_music() -> void:
-	SoundManager.set_music_on(not SoundManager.music_on())
-	_music_btn.text = _music_label()
+## Pixel-styled 0..1 volume slider. `on_change` fires live during the drag (SoundManager
+## persists each step — a small JSON save, harmless at slider cadence); the release plays
+## a "ui_tap" so the player hears the new SFX level immediately.
+func _make_volume_slider(initial: float, on_change: Callable) -> HSlider:
+	var s := HSlider.new()
+	s.min_value = 0.0
+	s.max_value = 1.0
+	s.step = 0.05
+	s.value = initial
+	s.custom_minimum_size = Vector2(300, 48)
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var track := StyleBoxFlat.new()
+	track.bg_color = PixelTheme.BTN_BG
+	track.border_color = PixelTheme.ACCENT_DIM
+	track.set_border_width_all(2)
+	track.set_corner_radius_all(0)
+	track.anti_aliasing = false
+	s.add_theme_stylebox_override("slider", track)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = PixelTheme.ACCENT_DIM
+	fill.set_corner_radius_all(0)
+	fill.anti_aliasing = false
+	s.add_theme_stylebox_override("grabber_area", fill)
+	s.add_theme_stylebox_override("grabber_area_highlight", fill)
+	# Hard-cornered grabber block generated in code (no grabber art asset; a filled C4 block
+	# matches the hard-cornered stylebox look everywhere else).
+	var img := Image.create(16, 40, false, Image.FORMAT_RGBA8)
+	img.fill(PixelTheme.TEXT)
+	var grabber := ImageTexture.create_from_image(img)
+	s.add_theme_icon_override("grabber", grabber)
+	s.add_theme_icon_override("grabber_highlight", grabber)
+	s.add_theme_icon_override("grabber_disabled", grabber)
+	s.value_changed.connect(on_change)
+	s.drag_ended.connect(func(_changed: bool): SoundManager.play("ui_tap"))
+	return s
 
 # --- EFFECTS toggle (Pack D): gates screen shake AND crit-kill hit-stop together ---
 func _effects_label() -> String:
@@ -187,12 +229,31 @@ func _on_pause_pressed() -> void:
 	if get_tree().paused:
 		return                       # another menu owns the pause; don't stack
 	_populate_relics()
-	_sfx_btn.text = _sfx_label()
-	_music_btn.text = _music_label()
+	# Volume could have changed in the menu since this overlay was built — re-sync silently
+	# (set_value_no_signal: a plain .value assignment would re-fire set_*_volume for nothing).
+	_sfx_slider.set_value_no_signal(SaveManager.sfx_vol())
+	_music_slider.set_value_no_signal(SaveManager.music_vol())
 	_effects_btn.text = _effects_label()
 	get_tree().paused = true
 	_overlay.visible = true
 	_pause_btn.visible = false
+
+## Android lifecycle + back gesture (launch hygiene v0.1.72).
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT:
+			# A call / home gesture / notification shade mid-run auto-opens the pause overlay,
+			# so the player never resumes into a half-lost fight. _on_pause_pressed's own
+			# guard makes this a no-op when a level-up / relic choice / game-over owns the pause.
+			_on_pause_pressed()
+		NOTIFICATION_WM_GO_BACK_REQUEST:
+			# quit_on_go_back is off (project.godot) — back never hard-quits mid-run (that
+			# skipped the payout entirely). Overlay open -> resume; otherwise -> pause. When
+			# another menu owns the pause (overlay hidden + tree paused) both calls no-op.
+			if _overlay.visible:
+				_on_resume()
+			else:
+				_on_pause_pressed()
 
 func _on_resume() -> void:
 	_overlay.visible = false
@@ -200,7 +261,8 @@ func _on_resume() -> void:
 	get_tree().paused = false
 
 ## Abandoning a run (restart or quit) still pays — at QUIT_PAYOUT_FRAC of the death
-## payout — and still counts as a played game, so mobile interruptions aren't punished.
+## payout — and counts as a played game once the run lasted ABANDON_COUNTS_MIN_TIME
+## (v0.1.72), so mobile interruptions aren't punished but instant restarts don't farm.
 ## Mirrors GameOver._on_player_died; RunStats.paid_out guards double payment.
 func _abandon_run_payout() -> void:
 	if RunStats.paid_out:
@@ -236,7 +298,12 @@ func _abandon_run_payout() -> void:
 		SaveManager.record_overtime_best_clockout(DifficultyManager.run_time)
 	if RunConfig.hardcore:
 		SaveManager.record_hardcore_best_clockout(DifficultyManager.run_time)
-	SaveManager.add_game_played()
+	# Launch hygiene (v0.1.72): an abandon only counts toward games_played (the every-10-games
+	# milestone + the games-played commendations) after a real shift — an instant pause-restart
+	# loop was farming a free crate/gun per ~10 minutes. Death/win (GameOver) always counts;
+	# a legitimate mid-run interruption past the threshold still counts here too.
+	if DifficultyManager.run_time >= GameConfig.ABANDON_COUNTS_MIN_TIME:
+		SaveManager.add_game_played()
 	# Lifetime records (Pack D): flushed exactly once per run via the RunStats.paid_out guard
 	# above (mirrors GameOver._finish_run's twin call). `earned` is the ALREADY-haircut
 	# (QUIT_PAYOUT_FRAC) amount — the actual amount this quit just granted. OVERTIME suppresses
