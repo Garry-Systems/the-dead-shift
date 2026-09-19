@@ -20,7 +20,7 @@ var weapon_xp_mult := 1.0   # Relics Overhaul: "Punch Card" relic multiplies the
                              # end-of-run Inventory.add_run_xp call sites — GameOver._finish_run
                              # and PauseMenu._abandon_run_payout's quit twin — keep them in lockstep.
 var signing_bonus := 0   # SIGNING BONUS (Benefits.start_cash()): set once at run start (Main.gd), paid out
-                         # POST-mult and vested over GameConfig.SIGNING_BONUS_VEST_TIME seconds of run_time
+                         # POST-mult and vested over GameConfig.SIGNING_BONUS_VEST_TIME seconds of played_time
                          # — see CoinReward.vested_signing — so an instant pause-quit can't farm it at full
                          # value x HARDCORE x REGISTER SKIM.
 

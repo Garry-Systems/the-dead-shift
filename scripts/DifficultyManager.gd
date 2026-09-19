@@ -7,6 +7,11 @@ extends Node
 var run_time := 0.0
 var wave := 1
 
+# Seconds actually PLAYED this run. Unlike run_time it is never preset (OVERTIME starts run_time at
+# OVERTIME_START_SECONDS) and never held (overtime_clock), so every anti-farm gate — signing-bonus
+# vesting, the abandon payout ramp, the games_played threshold — keys on THIS, not the shift clock.
+var played_time := 0.0
+
 # Relics Overhaul (overtime_clock): seconds run_time is held. Decremented BEFORE run_time advances
 # in _process() below, so a hold freezes run_time — and everything pure-derived from it (wave,
 # ShiftClock, dawn/Extraction) — coherently as one unit, with no separate accumulator to desync.
@@ -28,6 +33,7 @@ func _ready() -> void:
 ## Resets to the start of a run (wave 1, no elapsed time, no leftover event overrides).
 func reset() -> void:
 	run_time = 0.0
+	played_time = 0.0
 	wave = 1
 	time_hold = 0.0
 	_spawn_interval_mult = 1.0
@@ -35,6 +41,7 @@ func reset() -> void:
 	_elite_chance_mult = 1.0
 
 func _process(delta: float) -> void:
+	played_time += delta
 	if time_hold > 0.0:
 		time_hold = maxf(time_hold - delta, 0.0)
 		return

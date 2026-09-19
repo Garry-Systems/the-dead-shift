@@ -189,9 +189,11 @@ const COIN_PER_WAVE := 5       # coins per wave reached
 const COIN_PER_BOSS := 25      # coins per boss defeated
 const COIN_PER_KILL := 1       # coins per trash enemy killed
 const QUIT_PAYOUT_FRAC := 0.75  # quit/restart from pause pays this fraction of the death payout
-const ABANDON_COUNTS_MIN_TIME := 120.0  # seconds a run must last before a pause-quit/restart counts as a
-                                        # played game (launch hygiene v0.1.72: instant restart loops farmed
-                                        # the every-10-games milestone + games-played commendations)
+const ABANDON_COUNTS_MIN_TIME := 120.0  # seconds PLAYED (DifficultyManager.played_time, not the presettable
+                                        # run_time) before a pause-quit/restart counts as a played game, and
+                                        # the window CoinReward.abandon_frac ramps the abandon payout in over
+                                        # (instant restart loops farmed coins/rank XP/weapon XP + the
+                                        # every-10-games milestone — OVERTIME's 240s preset bypassed the gate)
 
 # --- Boss framework v1 ---
 const BOSS_FIRST_CAST_DELAY := 1.0     # seconds before a boss's first pattern after spawn/phase-enter
@@ -615,7 +617,7 @@ const BENEFIT_HP_PER_LVL := 4.0          # INSURANCE: flat max HP per level (spa
 const BENEFIT_SPEED_PER_LVL := 0.02      # COMFY SHOES: move-speed fraction per level
 const BENEFIT_XP_PER_LVL := 0.03         # NIGHT SCHOOL: xp-gain fraction per level
 const BENEFIT_CASH_PER_LVL := 50         # SIGNING BONUS: run-start coins per level
-const SIGNING_BONUS_VEST_TIME := 120.0   # seconds of shift time before the signing bonus fully vests (anti instant-quit farm)
+const SIGNING_BONUS_VEST_TIME := 120.0   # seconds PLAYED (not shift-clock time) before the signing bonus fully vests (anti instant-quit farm)
 const BENEFIT_DASH_CD_PER_LVL := 0.04    # STRETCH BREAKS: dash-cooldown cut per level
 const BENEFIT_COIN_PER_LVL := 0.02       # REGISTER SKIM: coin-gain fraction per level
 const BENEFIT_SCRAP_PER_LVL := 0.10      # PACK RAT: extra scrap from deconstructs per level

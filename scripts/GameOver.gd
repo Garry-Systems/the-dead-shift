@@ -156,19 +156,19 @@ func _finish_run(is_win: bool) -> void:
 	var mult := RunStats.coin_mult
 	var basements := RunStats.basements_cleared
 	var snacks := RunStats.snacks_spent   # THE ICE CREAM TRUCK (Task 4): pay-stub SNACKS row
-	# SIGNING BONUS (final-review fix): DifficultyManager.run_time is the run's elapsed-seconds
-	# clock (same source ShiftClock's "Clocked out" line and the OVERTIME/HARDCORE best-clockout
-	# records below already read) — vested() below feeds the pay-stub's dedicated row.
-	var run_time := DifficultyManager.run_time
-	var vested := CoinReward.vested_signing(RunStats.signing_bonus, run_time)
-	var earned := CoinReward.final_payout(wave, bosses, kills, bonus, mult, RunStats.signing_bonus, run_time)
+	# SIGNING BONUS: vests on DifficultyManager.played_time (real seconds played) — NOT run_time,
+	# the shift clock, which OVERTIME presets to 240s (that preset used to vest the whole bonus at
+	# second zero). vested() below feeds the pay-stub's dedicated row.
+	var played := DifficultyManager.played_time
+	var vested := CoinReward.vested_signing(RunStats.signing_bonus, played)
+	var earned := CoinReward.final_payout(wave, bosses, kills, bonus, mult, RunStats.signing_bonus, played)
 	# Relics Overhaul (company_card): the itemized stub must show the clawback final_payout just
 	# applied, or the visible rows would sum past TOTAL. Same inputs, same CoinReward seams
 	# (pre_cut_total/clawback are exactly what final_payout composes internally), so this number
 	# can never drift from what was actually cut.
 	var clawback := 0
 	if RelicEffects.company_card:
-		clawback = CoinReward.clawback(CoinReward.pre_cut_total(wave, bosses, kills, bonus, mult, RunStats.signing_bonus, run_time))
+		clawback = CoinReward.clawback(CoinReward.pre_cut_total(wave, bosses, kills, bonus, mult, RunStats.signing_bonus, played))
 	if is_win:
 		earned = int(round(float(earned) * GameConfig.EXTRACT_PAY_MULT))
 

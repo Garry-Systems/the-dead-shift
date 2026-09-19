@@ -4,6 +4,12 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.73 — Time Theft (2026-09-19)
+
+HOTFIX. Payroll noticed some employees clocking in at 2:00 AM, walking straight back out, and still collecting.
+- **OVERTIME no longer pays you for hours you didn't work.** OVERTIME starts the shift clock at 2:00 AM — and the anti-farm checks from v0.1.72 were reading that clock. So an instant pause-and-quit paid the full SIGNING BONUS, nine waves of wages, weapon XP, *and* ticked the every-10-games reward. All of it now keys on seconds you actually played.
+- **Walking out in the first two minutes pays pro-rata.** A pause-quit or restart still pays 75% of what you earned — but that payout (coins, rank XP, weapon XP) now ramps in over your first 2 minutes on the floor. Quit at 0:00, get nothing; quit at 1:00, get half; after 2:00 it's exactly what it was. Deaths and extractions are untouched.
+
 ## v0.1.72 — Grand Opening Prep (2026-07-14)
 
 Store-shelf hygiene before the doors open to the public. No new toys — just no more freebies and a phone that behaves like a phone.

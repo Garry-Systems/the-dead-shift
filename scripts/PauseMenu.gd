@@ -261,8 +261,11 @@ func _on_resume() -> void:
 	get_tree().paused = false
 
 ## Abandoning a run (restart or quit) still pays — at QUIT_PAYOUT_FRAC of the death
-## payout — and counts as a played game once the run lasted ABANDON_COUNTS_MIN_TIME
-## (v0.1.72), so mobile interruptions aren't punished but instant restarts don't farm.
+## payout, ramped in by CoinReward.abandon_frac over the first ABANDON_COUNTS_MIN_TIME seconds
+## PLAYED — and counts as a played game once that threshold is reached, so mobile interruptions
+## aren't punished but instant restarts don't farm. Every gate here reads
+## DifficultyManager.played_time, never run_time: OVERTIME presets run_time to 240s, which used
+## to sail past both v0.1.72 gates at second zero.
 ## Mirrors GameOver._on_player_died; RunStats.paid_out guards double payment.
 func _abandon_run_payout() -> void:
 	if RunStats.paid_out:
@@ -281,7 +284,8 @@ func _abandon_run_payout() -> void:
 	# GameOver's death/win path computes — an instant quit (run_time ~= 0) vests ~0, and whatever
 	# HAS vested still gets the same 0.75 QUIT_PAYOUT_FRAC haircut as the rest of final_payout,
 	# same as today's behavior for every other term.
-	var earned := int(CoinReward.final_payout(wave, bosses, kills, bonus, RunStats.coin_mult, RunStats.signing_bonus, DifficultyManager.run_time) * GameConfig.QUIT_PAYOUT_FRAC)
+	var abandon_frac := CoinReward.abandon_frac(DifficultyManager.played_time)
+	var earned := int(CoinReward.final_payout(wave, bosses, kills, bonus, RunStats.coin_mult, RunStats.signing_bonus, DifficultyManager.played_time) * GameConfig.QUIT_PAYOUT_FRAC * abandon_frac)
 	SaveManager.add_coins(earned)
 	# Rank XP (Pack G): the ACTUAL (already QUIT_PAYOUT_FRAC-haircut) amount just granted — same
 	# accessor GameOver's death/win flush uses. A quit never shows the pay-stub, so any resulting
@@ -302,7 +306,7 @@ func _abandon_run_payout() -> void:
 	# milestone + the games-played commendations) after a real shift — an instant pause-restart
 	# loop was farming a free crate/gun per ~10 minutes. Death/win (GameOver) always counts;
 	# a legitimate mid-run interruption past the threshold still counts here too.
-	if DifficultyManager.run_time >= GameConfig.ABANDON_COUNTS_MIN_TIME:
+	if DifficultyManager.played_time >= GameConfig.ABANDON_COUNTS_MIN_TIME:
 		SaveManager.add_game_played()
 	# Lifetime records (Pack D): flushed exactly once per run via the RunStats.paid_out guard
 	# above (mirrors GameOver._finish_run's twin call). `earned` is the ALREADY-haircut
@@ -339,7 +343,9 @@ func _abandon_run_payout() -> void:
 	# Deep Clean (item 17): mirrors GameOver._finish_run's twin call — both now call the ONE
 	# shared CoinReward.weapon_xp_payout (HARDCORE × Punch-Card compose-and-round-once lives
 	# there now, not hand-duplicated here) with the SAME kind of (kills, wave, bosses) locals.
-	var xp_amount := CoinReward.weapon_xp_payout(kills, wave, bosses)
+	# Same abandon ramp as the coins above — weapon_xp_payout's wave*10 term is otherwise free XP on
+	# an instant quit (x9 waves on an OVERTIME head start, x2 in HARDCORE).
+	var xp_amount := int(CoinReward.weapon_xp_payout(kills, wave, bosses) * abandon_frac)
 	Inventory.add_run_xp(xp_amount)
 
 func _on_restart() -> void:
