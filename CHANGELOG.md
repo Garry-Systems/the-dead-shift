@@ -4,6 +4,24 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.74 — Performance-Based Pay (2026-09-20)
+
+Corporate reviewed the compensation structure. Raises are now random, promotions are slower, and management has been told to stop dying in four seconds.
+- **Every level-up card is a roll now.** Each card offered rolls a rarity — COMMON, RARE, EPIC, LEGENDARY — and then a number inside that tier's band. You see the rolled number before you pick. A LEGENDARY offer announces itself. There are no stack caps on anything. Payroll does not want to hear about it.
+- **Fewer promotions, bigger ones.** A full shift is about 30 level-ups now, down from nearly 60 — no more card screen every six seconds at dawn. To make 30 picks do the work of 60, HOLLOW POINTS and HAIR TRIGGER hit much harder (a RARE Hollow Points is around +50–70% damage; a LEGENDARY is absurd).
+- **Bosses are actual fights.** A boss at your gear level now lasts roughly 40–70 seconds instead of evaporating. Bosses grow faster than the floor staff through the 4:45 AM boss, then settle. The roster is tighter too — THE MANAGER is still the tank, THE NIGHT STOCKER still the glass cannon, but a wave-5 Manager no longer out-tanks a wave-10 Stocker.
+- **Bosses pay what they're worth.** Boss XP now scales with the night, so killing one is worth about as much as the horde you didn't farm while fighting it.
+- **Keeping the boss as a pet doesn't thin the horde any more.** The quieter floor during a boss fight lasts 75 seconds per boss, total. THE MYSTERY SHOPPER ducking back into the crowd pauses her clock; it doesn't reset it.
+- **"+X% fire rate" means +X% fire rate.** On cards and weapon talents a listed +70% is now 1.7x shots per second — it used to secretly be 3.3x. Yes, that means fire-rate talents on guns you already own got weaker: RAMPAGE roughly halves, ADRENALINE drops about a quarter, GRAVEYARD SHIFT and BLOODRUSH a little. The number on the card was always the promise; now it's the truth. Weapon affixes are untouched.
+- **KILL SHOT** adds crit chance per pick; the first pick also gives you the 2x crit. Later picks no longer stack the multiplier.
+- **EXTRA BARREL** barrels fire at a rolled share of your damage (40–100%).
+- **The flamethrower stopped rolling dice twenty times a second.** On constant-stream weapons a talent's chance is per second, per target. On-kill effects are unchanged. Every other gun still rolls per bullet, as nature intended.
+- **SHATTER thaws what it shatters.** A frozen zombie used to explode on every single hit afterwards, forever. Now you have to freeze it again.
+- **Bosses can't be EXECUTED.** PINK SLIP, MERCY, EXECUTIONER and REAPER still instantly kill everything that isn't management. Their descriptions say so now.
+- **120 Hz phones no longer out-shoot 60 Hz phones.** Fast guns (LMG, Nail Gun) were also losing about 16% of their shots at 60 fps; they fire at their listed rate now.
+- INCENDIARY ROUNDS works on the flamethrower from the first pick and is no longer offered on the Tesla, where it never did anything.
+- BOSS RUSH keeps its old boss health and is a little easier for now. It gets its own review later.
+
 ## v0.1.73 — Time Theft (2026-09-19)
 
 HOTFIX. Payroll noticed some employees clocking in at 2:00 AM, walking straight back out, and still collecting.
