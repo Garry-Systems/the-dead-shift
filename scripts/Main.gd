@@ -89,6 +89,9 @@ func _ready() -> void:
 		if RunConfig.overtime:
 			player.add_xp(GameConfig.OVERTIME_HEADSTART_XP)
 		Characters.apply_base(player, RunConfig.character_id)
+		# PROBATION "training pay" (Survivability, v0.1.75): the gentler opening drops fewer and lower-value gems, so without this a new hire reaches 4:00 — where the schedules converge — about one level behind. Same multiplicative xp_mult channel NIGHT SCHOOL (applied just above, inside apply_base) and the Fast Learner card use, so the two stack; it lands AFTER apply_base and after OVERTIME's raw pre-apply_base head start, which it must never inflate (OVERTIME is never on probation anyway).
+		if RunConfig.probation:
+			player.upgrade_xp_gain(GameConfig.PROBATION_XP_BONUS)
 		RunStats.coins_per_kill = Characters.coin_per_kill_bonus(RunConfig.character_id)   # Pack E: the Janitor's passive
 		player.set_dash_ability(Characters.dash_ability(RunConfig.character_id))
 		_equip_loadout(player)
