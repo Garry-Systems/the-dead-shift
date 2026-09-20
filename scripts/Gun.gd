@@ -12,6 +12,7 @@ var fire_interval := GameConfig.GUN_FIRE_INTERVAL
 var bullet_speed := GameConfig.BULLET_SPEED
 var gun_range := GameConfig.GUN_RANGE
 var projectile_count := 1
+var bonus_barrels: Array[float] = []   # Extra Barrel card: damage share of each card-added barrel (Power Curve)
 var spread := 0.0                  # total fan arc in radians across the projectiles
 var fire_mode := "projectile"      # "projectile" (default) | "cone" | "lightning"
 var base_pierce := 0               # pierce baked into every shot (Nail Gun)
@@ -366,7 +367,8 @@ func _fire(dir: Vector2) -> bool:
 func _fire_projectile(dir: Vector2) -> bool:
 	var base_angle := dir.angle()
 	_show_muzzle(base_angle)
-	var count: int = projectile_count + (_surge_shots if _surge_time > 0.0 else 0)
+	var base_count: int = projectile_count + (_surge_shots if _surge_time > 0.0 else 0)
+	var count := base_count + bonus_barrels.size()
 	if count <= 1:
 		var jitter: float = randf_range(-spread, spread) if spread > 0.0 else 0.0
 		_spawn_bullet(Vector2.from_angle(base_angle + jitter))
@@ -376,7 +378,10 @@ func _fire_projectile(dir: Vector2) -> bool:
 	for i in count:
 		var t := float(i) / float(count - 1)
 		var offset := lerpf(-arc * 0.5, arc * 0.5, t)
-		_spawn_bullet(Vector2.from_angle(base_angle + offset))
+		# Extra Barrel card (Power Curve): the base pellets fire at full damage; each card-added
+		# barrel fires at its own rolled damage share instead.
+		var share: float = 1.0 if i < base_count else bonus_barrels[i - base_count]
+		_spawn_bullet(Vector2.from_angle(base_angle + offset), share)
 	return true
 
 ## Pops the muzzle flash at the gun's muzzle, oriented along the shot. Tinted while a
@@ -426,11 +431,11 @@ func _fade_muzzle(delta: float) -> void:
 	if _muzzle_time <= 0.0:
 		_muzzle.visible = false
 
-func _spawn_bullet(dir: Vector2) -> void:
+func _spawn_bullet(dir: Vector2, dmg_mult: float = 1.0) -> void:
 	var bullet = bullet_scene.instantiate()
 	bullet.direction = dir
 	bullet.speed = bullet_speed
-	bullet.damage = damage
+	bullet.damage = damage * dmg_mult
 	bullet.max_travel = gun_range
 	bullet.pierce_count = pierce_count + base_pierce + bonus_pierce + (_surge_pierce if _surge_time > 0.0 else 0) + int(_overpen.get("pierce", 0))
 	bullet.overpen_growth = float(_overpen.get("growth", 0.0))
@@ -472,18 +477,37 @@ func upgrade_damage(pct: float) -> void:
 func upgrade_fire_rate(pct: float) -> void:
 	fire_interval *= (1.0 - pct)   # smaller interval = faster firing
 
+## Level-up card fire rate (Power Curve D6): HONEST — "+20%" means 20% more shots/sec.
+## upgrade_fire_rate() above keeps the legacy interval-shrink math for weapon affixes and
+## character perks (apply_loot / Characters.apply_weapon), which Larry kept as-is.
+func upgrade_fire_rate_card(pct: float) -> void:
+	fire_interval /= (1.0 + pct)
+
 func upgrade_bullet_speed(pct: float) -> void:
 	bullet_speed *= (1.0 + pct)
 
 func upgrade_range(pct: float) -> void:
 	gun_range *= (1.0 + pct)
 
+## Affix multishot (apply_loot's "multishot" stat) — full-damage extra pellets baked into
+## projectile_count. Cards use upgrade_add_barrel instead (damage-shared extra barrels).
 func upgrade_add_projectile(n: int) -> void:
 	if fire_mode == "lightning":
 		jump_count += n               # "+1 projectile" card = "+1 jump" for the Tesla
 		return
 	projectile_count += n
 	if spread <= 0.0:               # give single-shot guns a small fan once they multi-fire
+		spread = 0.20
+
+## Extra Barrel card: +n barrels that each fire at `share` of the gun's damage. Affix multishot
+## still uses upgrade_add_projectile (full-damage pellets).
+func upgrade_add_barrel(n: int, share: float) -> void:
+	if fire_mode == "lightning":
+		jump_count += n
+		return
+	for i in n:
+		bonus_barrels.append(share)
+	if spread <= 0.0:
 		spread = 0.20
 
 func upgrade_reduce_spread(pct: float) -> void:
@@ -506,15 +530,16 @@ func upgrade_reload_speed(pct: float) -> void:
 func upgrade_mag_size(pct: float) -> void:
 	mag_size = int(ceil(mag_size * (1.0 + pct)))   # ceil so small mags still gain >= 1
 
-## "Kill Shot" level-up card: folds a gun-level crit bonus directly into talent_payload so
-## TalentEngine.roll_damage consumes it through the SAME roll as talent crit (Killshot) —
-## crit_chance and crit_mult both add, stacking exactly like multiple crit talents already do
-## in TalentEngine.resolve_payload. Safe to mutate talent_payload directly here: apply_loot()
-## (which rebuilds talent_payload from scratch) only runs once, at run start, before any
-## level-up card can possibly fire.
-func upgrade_crit(chance_pct: float, mult_bonus: float) -> void:
+## "Kill Shot" level-up card (Power Curve, chance-only): folds a gun-level crit-CHANCE bonus
+## directly into talent_payload so TalentEngine.roll_damage consumes it through the SAME roll as
+## talent crit (Killshot) — crit_chance adds, stacking exactly like multiple crit talents already
+## do in TalentEngine.resolve_payload. No longer touches crit_mult: the old flat mult_bonus made
+## every pick an outright damage-doubler on top of the chance, which the rolled-value pass
+## replaced with an honest chance-only card (weapon "crit" talents still grow crit_mult on their
+## own). Safe to mutate talent_payload directly here: apply_loot() (which rebuilds talent_payload
+## from scratch) only runs once, at run start, before any level-up card can possibly fire.
+func upgrade_crit(chance_pct: float) -> void:
 	talent_payload["crit_chance"] = float(talent_payload.get("crit_chance", 0.0)) + chance_pct
-	talent_payload["crit_mult"] = float(talent_payload.get("crit_mult", 1.0)) + mult_bonus
 
 func _fire_lightning(dir: Vector2) -> bool:
 	# POWER SURGE (night event, Pack A): +2 chain jumps, additive at fire time only — jump_count
@@ -637,7 +662,7 @@ func _fire_cone(dir: Vector2) -> bool:
 	var candidates := _enemies_in_cone(global_position, dir, gun_range, cone_angle * 0.5, raw_enemies)
 	var hits := LineOfSight.filter_visible(global_position, candidates, get_world_2d().direct_space_state)
 	var player := get_parent() as Player
-	var bdps := maxf(GameConfig.FLAME_BURN_DPS, burn_dps)      # base burn, strengthened by incendiary upgrades
+	var bdps := GameConfig.FLAME_BURN_DPS + burn_dps      # base burn + incendiary upgrades (was maxf(...), which ate the first 3 Incendiary picks since their dps didn't clear the base until stacked past it)
 	var btime := maxf(GameConfig.FLAME_BURN_TIME, burn_duration)
 	for e in hits:
 		if not is_instance_valid(e):

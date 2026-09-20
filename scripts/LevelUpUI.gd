@@ -165,7 +165,7 @@ func _on_reroll_pressed() -> void:
 
 func _on_card_pressed(index: int) -> void:
 	var card: Dictionary = _current_cards[index]
-	UpgradeApply.apply(_player, card["id"])
+	UpgradeApply.apply(_player, card)
 	if not _queue.is_empty():
 		_show_next()
 	else:
@@ -175,4 +175,8 @@ func _on_card_pressed(index: int) -> void:
 func _pick_three(level: int) -> Array:
 	var pool := Upgrades.cards_for_level(level, _player, RunConfig.hardcore)
 	pool.shuffle()
-	return pool.slice(0, 3)
+	# Task 3 owns the roll-presentation UI; this temporary roll keeps the game playable this
+	# commit (desc already shows the rolled text — see CardRolls.roll).
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	return pool.slice(0, 3).map(func(c): return CardRolls.roll(c, rng))

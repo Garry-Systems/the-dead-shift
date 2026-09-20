@@ -26,7 +26,7 @@ static func player_cards(player: Player = null, hardcore: bool = false) -> Array
 		{"id": "dash_cooldown", "title": "Quick Reset", "desc": "-%d%% Dash Cooldown" % int(round(GameConfig.UPGRADE_DASH_CD_PCT * 100.0))},
 		{"id": "xp_gain", "title": "Fast Learner", "desc": "+%d%% XP Gain" % int(round(GameConfig.UPGRADE_XP_PCT * 100.0))},
 		{"id": "coin_gain", "title": "Silver Tongue", "desc": "+%d%% Coin Payout" % int(round(GameConfig.UPGRADE_COIN_PCT * 100.0))},
-		{"id": "crit", "title": "Kill Shot", "desc": "+%d%% Crit Chance (2x Damage)" % int(round(GameConfig.UPGRADE_CRIT_CHANCE_PCT))},
+		{"id": "crit", "title": "Kill Shot", "desc": "+Crit Chance (2x Damage)"},
 		{"id": "thorns", "title": "Spike Armor", "desc": "Biters Take %dx Their Own Damage" % int(round(GameConfig.UPGRADE_THORNS_MULT))},
 		{"id": "second_wind", "title": "Second Wind", "desc": "Cheat Death Once: Revive at %d%% HP" % int(round(GameConfig.SECOND_WIND_HP_FRAC * 100.0))},
 	]

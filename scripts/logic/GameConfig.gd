@@ -361,8 +361,6 @@ const DODGE_CAP := 0.40                # hard ceiling on total dodge chance acro
 const UPGRADE_DASH_CD_PCT := 0.15      # dash-cooldown card: -% dash cooldown (multiplicative)
 const UPGRADE_XP_PCT := 0.20           # "Fast Learner" card: +% XP gained per gem (multiplicative, stacks)
 const UPGRADE_COIN_PCT := 0.20         # coin-gain card: +% end-of-run coin payout (death AND quit paths)
-const UPGRADE_CRIT_CHANCE_PCT := 5.0   # "Kill Shot" card: + this many crit-chance points (0-100 scale, same units as TalentEngine's payload["crit_chance"])
-const UPGRADE_CRIT_MULT_BONUS := 1.0   # "Kill Shot" card: + this much crit-multiplier bonus (1.0 = "double" damage on proc)
 const UPGRADE_THORNS_MULT := 2.0       # thorns card: reflected damage = this x the biter's own raw bite damage
 const SECOND_WIND_HP_FRAC := 0.50      # Second Wind: revive fraction of max HP on what would otherwise be a lethal hit
 

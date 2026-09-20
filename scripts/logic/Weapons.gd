@@ -71,7 +71,7 @@ static func all() -> Array:
 			"damage": 30.0, "fire_interval": 0.35, "bullet_speed": 0.0,
 			"range": 600.0, "projectiles": 1, "spread": 0.0,
 			"mag_size": 20, "reload_time": 1.8,
-			"upgrades": ["damage", "fire_rate", "range", "projectile", "incendiary", "reload", "mag"],
+			"upgrades": ["damage", "fire_rate", "range", "projectile", "reload", "mag"],
 		},
 		{
 			"id": "flamethrower", "name": "Flamethrower", "desc": "Fuel-hose cone — always burns", "category": "Special",
