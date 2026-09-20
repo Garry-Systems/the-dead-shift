@@ -723,6 +723,9 @@ func _fire_cone(dir: Vector2) -> bool:
 			TalentEngine.process_hit(e, hit_pos, damage, killed, talent_payload, {
 				"player": player, "gun": self, "dir": dir, "tree": get_tree(),
 				"crit": bool(roll.get("crit", false)),
+				# constant-stream gun (D4): a talent's listed chance is PER SECOND per target, so
+				# per-tick chance = chance x tick interval
+				"proc_scale": fire_interval,
 			})
 	# The flame also scorches destructibles (barrels, drums, crates, cover) caught in the cone
 	# — raw damage like a bullet hit (no talents; a torched barrel still bursts via its own

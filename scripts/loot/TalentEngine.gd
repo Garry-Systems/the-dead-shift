@@ -224,15 +224,21 @@ static func process_hit(body, hit_pos: Vector2, base_damage: float, killed: bool
 		return
 	var alive: bool = (not killed) and is_instance_valid(body)
 	var tree = ctx.get("tree")
+	# Constant-stream guns (Flamethrower, fire_mode == "cone") have no real fire rate — they'd
+	# otherwise roll every proc on every ~0.05s tick per target (~20 rolls/sec). Gun._fire_cone
+	# passes proc_scale = fire_interval so a talent's listed chance means "per second, per
+	# target" for cone guns (Power Curve D4). ON-KILL procs (explode/ammo/bolt/pool) are exempt:
+	# they're gated by `killed`, a per-enemy event, not a per-tick roll, so they're never scaled.
+	var scale: float = float(ctx.get("proc_scale", 1.0))
 	for proc in payload.get("procs", []):
 		match String(proc["kind"]):
 			"lifesteal":
-				if _roll(proc["chance"]) and ctx.get("player") != null and is_instance_valid(ctx["player"]):
+				if _roll(float(proc["chance"]) * scale) and ctx.get("player") != null and is_instance_valid(ctx["player"]):
 					var player = ctx["player"]
 					player.heal(float(proc["heal"]))
 					_spawn_lifesteal_vfx(hit_pos, player, tree)
 			"chain":
-				if _roll(proc["chance"]):
+				if _roll(float(proc["chance"]) * scale):
 					_chain(hit_pos, body, base_damage * float(proc["dmg"]) / 100.0, int(proc["jumps"]), ctx)
 			"frenzy":
 				if killed and ctx.get("gun") != null and is_instance_valid(ctx["gun"]):
@@ -242,25 +248,26 @@ static func process_hit(body, hit_pos: Vector2, base_damage: float, killed: bool
 					_explode(hit_pos, float(proc["dmg"]), float(proc["radius"]), ctx)
 					spawn_ring(hit_pos, float(proc["radius"]), Hazards.ORANGE, tree)
 			"ignite":
-				if alive and _roll(proc["chance"]) and body.has_method("ignite"):
+				if alive and _roll(float(proc["chance"]) * scale) and body.has_method("ignite"):
 					body.ignite(float(proc["dps"]), float(proc["dur"]))
 			"slow":
-				if alive and _roll(proc["chance"]) and body.has_method("apply_slow"):
+				if alive and _roll(float(proc["chance"]) * scale) and body.has_method("apply_slow"):
 					body.apply_slow(float(proc["slow"]) / 100.0, float(proc["dur"]))
 			"dot":
-				if alive and _roll(proc["chance"]) and body.has_method("apply_dot"):
+				if alive and _roll(float(proc["chance"]) * scale) and body.has_method("apply_dot"):
 					body.apply_dot(float(proc["dps"]), float(proc["dur"]))
 			"knockback":
-				if alive and _roll(proc["chance"]) and body.has_method("apply_knockback"):
+				if alive and _roll(float(proc["chance"]) * scale) and body.has_method("apply_knockback"):
 					var dir: Vector2 = ctx.get("dir", Vector2.ZERO)
 					body.apply_knockback(dir * float(proc["force"]))
 			"execute":
-				if alive and body.has_method("health_fraction") and body.health_fraction() <= float(proc["threshold"]) / 100.0:
+				# Bosses are execute-immune (Power Curve): Reaper deleted the last 25% of a boss fight.
+				if alive and not body.is_in_group("boss") and body.has_method("health_fraction") and body.health_fraction() <= float(proc["threshold"]) / 100.0:
 					body.take_damage(1_000_000.0)
 					spawn_ring(hit_pos, GameConfig.TALENT_EXECUTE_RING_RADIUS, Hazards.BLOOD_RED, tree)
 					CombatText.callout(hit_pos, String(proc.get("callout", "EXECUTED")), Hazards.BLOOD_RED)
 			"vulnerable":
-				if alive and _roll(proc["chance"]) and body.has_method("apply_vulnerable"):
+				if alive and _roll(float(proc["chance"]) * scale) and body.has_method("apply_vulnerable"):
 					body.apply_vulnerable(float(proc["amount"]) / 100.0, float(proc["dur"]))
 					spawn_ring(hit_pos, float(proc.get("ring", GameConfig.TALENT_VULN_RING_RADIUS)), Hazards.GOLD, tree)
 			"freeze":
@@ -271,13 +278,15 @@ static func process_hit(body, hit_pos: Vector2, base_damage: float, killed: bool
 						spawn_ring(hit_pos, shatter_radius, Enemy.FROZEN_TINT, tree)
 						spawn_ring(hit_pos, shatter_radius * GameConfig.TALENT_SHATTER_CORE_FRAC, Color(1, 1, 1, 1), tree)
 						CombatText.callout(hit_pos, "SHATTER", Enemy.FROZEN_TINT)
-					elif _roll(proc["chance"]):
+						if body.has_method("consume_freeze"):
+							body.consume_freeze()
+					elif _roll(float(proc["chance"]) * scale):
 						body.apply_freeze(float(proc["dur"]))
 			"surge":
 				if killed and ctx.get("gun") != null and is_instance_valid(ctx["gun"]):
 					ctx["gun"].add_surge(int(proc["pierce"]), int(proc["shots"]), float(proc["dur"]))
 			"pin":
-				if alive and _roll(proc["chance"]) and body.has_method("apply_pin"):
+				if alive and _roll(float(proc["chance"]) * scale) and body.has_method("apply_pin"):
 					body.apply_pin(float(proc["dur"]))
 			"ammo":
 				if killed and _roll(proc["chance"]) and ctx.get("gun") != null and is_instance_valid(ctx["gun"]):
@@ -289,19 +298,19 @@ static func process_hit(body, hit_pos: Vector2, base_damage: float, killed: bool
 				if killed and _roll(proc["chance"]) and tree != null:
 					_spawn_bile_pool(hit_pos, proc, tree)
 			"spread":
-				if killed and _roll(proc["chance"]) and body.has_method("status_snapshot"):
+				if killed and _roll(float(proc["chance"]) * scale) and body.has_method("status_snapshot"):
 					_spread_status(hit_pos, body, body.status_snapshot(), float(proc["radius"]), tree)
 			"mine":
-				if killed and _roll(proc["chance"]):
+				if killed and _roll(float(proc["chance"]) * scale):
 					Mine.spawn(hit_pos, float(proc["dmg"]), float(proc["radius"]), tree)
 			"fear":
-				if alive and _roll(proc["chance"]) and body.has_method("apply_fear"):
+				if alive and _roll(float(proc["chance"]) * scale) and body.has_method("apply_fear"):
 					body.apply_fear(float(proc["dur"]))
 			"gravity":
-				if alive and _roll(proc["chance"]):
+				if alive and _roll(float(proc["chance"]) * scale):
 					_spawn_gravity_well(hit_pos, float(proc["dur"]), float(proc["radius"]), tree)
 			"dot_detonate":
-				if alive and _roll(proc["chance"]) and body.has_method("dot_remaining") and body.has_method("clear_dots"):
+				if alive and _roll(float(proc["chance"]) * scale) and body.has_method("dot_remaining") and body.has_method("clear_dots"):
 					var remaining: float = body.dot_remaining()
 					if remaining > 0.0:
 						var burst: float = remaining * float(proc["frac"])
@@ -312,7 +321,7 @@ static func process_hit(body, hit_pos: Vector2, base_damage: float, killed: bool
 						spawn_ring(hit_pos, rupture_radius * GameConfig.TALENT_RUPTURE_INNER_FRAC, Hazards.ORANGE, tree)
 						CombatText.callout(hit_pos, "RUPTURE", Hazards.GREEN)
 			"echo":
-				if alive and bool(ctx.get("crit", false)) and _roll(proc["chance"]):
+				if alive and bool(ctx.get("crit", false)) and _roll(float(proc["chance"]) * scale):
 					_echo_hit(body, hit_pos, base_damage * float(proc["dmg"]) / 100.0, tree)
 
 ## Curb Stomp (`cc_bonus`): passive pre-crit damage multiplier vs a hampered (slowed/frozen/

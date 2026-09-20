@@ -304,6 +304,13 @@ func _thaw() -> void:
 	_frozen = false
 	_refresh_tint()
 
+## Shatter consumes the freeze (Power Curve): the target thaws and must be re-frozen by a fresh
+## chance roll — a frozen target used to shatter on EVERY later hit, forever.
+func consume_freeze() -> void:
+	_freeze_time = 0.0
+	if _frozen:
+		_thaw()
+
 ## Nail Gun: root the enemy in place for `duration`s (movement only — it can still act).
 ## Lavender "nailed" tell, distinct from the indigo freeze; does NOT set is_frozen().
 func apply_pin(duration: float) -> void:
@@ -653,6 +660,12 @@ func _drop_gem() -> void:
 	# Elite/late kills pay proportionally: gem value scales with this enemy's baked
 	# max HP over the wave-1 base (capped), so killing the big thing beats runner-farming.
 	# (base value shared with BossBase._reward via XpCurve.gem_value_for_hp)
+	# The shared helper floors the base value to 1 BEFORE the elite/night-event multipliers
+	# apply below (the pre-v0.1.74 code floored only at the final clamp). This only differs
+	# when max_health / ENEMY_MAX_HEALTH rounds to 0 while a multiplier is active, which cannot
+	# happen with current tuning (multipliers first appear at wave >= 5; the weakest type's
+	# ratio crosses 0.5 at wave 3) — revisit if ENEMY_HP_GROWTH, NIGHT_EVENT_MIN_WAVE,
+	# ELITE_MIN_WAVE, or the Enemies.gd hp_mult rows change.
 	var value := XpCurve.gem_value_for_hp(max_health)
 	if is_elite:
 		value = roundi(value * GameConfig.ELITE_GEM_VALUE_MULT * RelicEffects.nametag_gem_mult)
