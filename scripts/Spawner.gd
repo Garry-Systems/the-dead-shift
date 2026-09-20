@@ -83,7 +83,9 @@ func _process_boss_rush(delta: float) -> void:
 	var alive := get_tree().get_nodes_in_group("boss").size()
 	while alive < target:
 		boss_rush_count += 1
-		_spawn_boss(DifficultyCurve.boss_stats(boss_rush_count))
+		# Boss Rush rides its OWN curve (DifficultyCurve.boss_rush_stats off BOSS_RUSH_BASE_HP), not the
+		# endless one the power-curve probe tunes — see the comment on boss_rush_stats.
+		_spawn_boss(DifficultyCurve.boss_rush_stats(boss_rush_count))
 		alive += 1
 	# Trash enemies too, on the normal time-scaled cadence.
 	if Enemies.all().is_empty():

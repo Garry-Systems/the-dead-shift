@@ -49,7 +49,18 @@ the probe): **FRESH** Rusted pistol, no meta · **MID** Lethal AK-47, 1 talent l
 | Level at 15:00 / 20:00 (MID) | ~42 / ~54 | report only |
 | Power ÷ threat, MID, 3:00–9:35 | 1.5–3.0 | must hold at every sampled minute |
 | Power ÷ threat, FRESH, 3:00–9:35 | ≥ 0.5 (today 0.27–0.42) | report; spec 2 owns the rest of the new-player wall |
-| Boss TTK at reference gear — w5 FRESH-tier, w10 Lethal, w15 Savage, w20 Carnage | 45–60 s | every boss in roster within 35–75 s |
+| Boss TTK at reference gear — w5 FRESH-tier, w10 Lethal, w15 Savage, w20 Carnage | roster mean 40–70 s | every boss in roster within 30–80 s |
+
+**Boss row amended by controller ruling (2026-09-20).** It was written as 45–60 s / 35–75 s. The
+power-curve probe showed that is unreachable with one `BOSS_BASE_HP` + one `BOSS_HP_GROWTH`, because
+the reference player's DPS does not grow geometrically — ×1.435/wave from w5→w10 (that step is a
+*build* change, FRESH → MID), then ×1.254 and ×1.204 — while a single constant can only bend the
+curve one way. The tuned pair (5550 / 1.29) is the scan optimum and measures roster means
+**68.5 / 40.2 / 46.3 / 65.3 s** at w5 / w10 / w15 / w20, all four inside the amended 40–70 s band;
+43 of the 44 per-boss cells are inside 30–80 s. Residual: **THE MANAGER at wave 5 is 83 s**, 3 s over
+the ceiling, and it is provably unfixable without a third lever — at G = 1.29 the w5 and w10 rows are
+locked at a 1.702 ratio, so `mean(w10) ≥ 40` forces `mean(w5) ≥ 68.1`, while Manager's 1.30× top
+multiplier needs `mean(w5) ≤ 65.9` for him to fit under 80 (a 3.3 % gap).
 
 Accepted consequence of steep rarity: a Merciless gun still kills a w10 boss in ~10 s; a fresh save
 takes >60 s at w5.
@@ -166,15 +177,31 @@ takes >60 s at w5.
     first. New `BOSS_HP_GROWTH` is used by `DifficultyCurve.boss_stats` for HP only; touch damage and
     `special_mult` still ride `ENEMY_DMG_GROWTH`. It is still ONE rate at every wave — the
     `BOSS_LATE_HP_GROWTH` double-compounding branch stays deleted.
-  - **tuned: `BOSS_HP_GROWTH = 1.29`, `BOSS_BASE_HP = 5600`** (×3.733; the ten roster consts scaled
+  - **tuned: `BOSS_HP_GROWTH = 1.29`, `BOSS_BASE_HP = 5550`** (×3.70; the ten roster consts scaled
     by the same factor and rounded to 50 — every per-boss mult within 0.006 of its old value, order
-    and the 0.8-1.3 band intact). Probe roster means **w5 69 s · w10 41 s · w15 47 s · w20 66 s**,
-    per-boss 30-84 s. **Residual: not all four rows fit.** One geometric rate cannot track the
+    and the 0.8-1.3 band intact). Probe roster means **w5 68.5 s · w10 40.2 s · w15 46.3 s ·
+    w20 65.3 s**, per-boss 30-83 s. **Residual: one cell.** One geometric rate cannot track the
     reference DPS, which grows ×1.435/wave from w5→w10 (that step is a *build* change, FRESH → MID),
-    ×1.254 w10→w15 and ×1.204 w15→w20. The tuned pair is the minimum-worst-miss point of that
-    trade-off: worst miss ×1.15 (w10 Night Stocker 30 s vs the 35 s floor). Closing it needs a
-    second boss lever (a per-wave-bracket base, or making the reference-gear ladder part of the
-    curve) — deliberately not added.
+    ×1.254 w10→w15 and ×1.204 w15→w20. **§4's boss row was amended** (see the note under the §4
+    table) to roster mean 40–70 s / every boss 30–80 s; the tuned pair is the scan optimum against
+    those bands, with one residual cell (w5 Manager 83 s vs 80 s). Closing that needs a third lever
+    — deliberately not added.
+  - **`BOSS_HP_GROWTH` stops at the last scheduled boss.** New `BOSS_HP_GROWTH_LAST_WAVE = 20` (the
+    wave the chopper lands on). `boss_stats(wave)` applies `BOSS_HP_GROWTH` for at most that many
+    waves and `ENEMY_HP_GROWTH` for the remainder, so waves ≤ 20 are unchanged and late endless goes
+    back to growing like trash. Reason: 1.29/wave is justified only while the **gear ladder** is
+    still climbing; past extraction the player is off the designed run and grows from cards alone
+    (~1.10/wave), so an uncapped 1.29 compounded a wave-30 boss to ~9 M HP — a wall, not a fight.
+    With the cap it is 2.18 M, and the probe's report-only rows put the w25 / w30 fights at
+    76 s / 85 s of MID ×2.2 gear.
+  - **Boss Rush keeps its own curve.** Boss Rush is outside this spec, spawns 3 concurrent bosses at
+    second zero and indexes the curve by bosses *killed* rather than by wave, and was tuned around
+    the pre-v0.1.74 numbers. New `BOSS_RUSH_BASE_HP = 1500` (the historical value) and
+    `DifficultyCurve.boss_rush_stats(n)` = `BOSS_RUSH_BASE_HP × ENEMY_HP_GROWTH^(n−1)` with the same
+    damage/speed/special_mult shape as `boss_stats` (shared helper, not duplicated); `Spawner`'s
+    boss-rush call site uses it. Each boss's `_hp_mult()` is a pure ratio
+    (`<BOSS>_HP / BOSS_BASE_HP`), so the roster works unchanged on top of the Boss Rush base.
+    Retuning endless can no longer silently retune Boss Rush.
 - Per-boss HP multipliers narrowed from 0.73–2.0 to **0.8–1.3**, order preserved (Manager tankiest …
   Night Stocker squishiest).
 - Boss attack damage, speed, patterns: unchanged (spec 2).

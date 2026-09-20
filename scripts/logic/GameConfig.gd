@@ -90,15 +90,18 @@ const ENEMY_LATE_SPEED_GROWTH := 1.15  # per-wave speed multiplier past ENEMY_LA
 
 # --- Boss (Phase 4 step 2) ---
 const BOSS_WAVE_INTERVAL := 5         # a boss spawns every Nth wave (5, 10, 15, ...)
-const BOSS_BASE_HP := 5600.0          # boss max health on wave 1 (scales with BOSS_HP_GROWTH). Task 8 retune: x3.733 from 1500, with the ten roster consts scaled by the same factor (every per-boss mult held within 0.006 of its old value, order unchanged), chosen together with BOSS_HP_GROWTH to minimise the worst miss against spec §4's 45-60s boss fight at the reference gear of each boss wave.
+const BOSS_BASE_HP := 5550.0          # boss max health on wave 1 (scales with BOSS_HP_GROWTH). Task 8 retune: x3.70 from 1500, with the ten roster consts scaled by the same factor (every per-boss mult held within 0.006 of its old value, order unchanged), chosen together with BOSS_HP_GROWTH to minimise the worst miss against spec §4's boss-fight band at the reference gear of each boss wave (amended by controller ruling F to roster mean 40-70s / every boss 30-80s).
 # Bosses grow FASTER than trash on purpose. Trash HP is the only thing ENEMY_HP_GROWTH has to keep up
 # with; a boss has to keep up with the player, whose DPS compounds from BOTH sources at once -- the
 # level-up cards inside the run AND the gear ladder between runs (Rusted -> Lethal -> Savage ->
 # Carnage). The power-curve probe measured that combined growth at ~1.2-1.44 per wave over w5->w20,
 # against trash's 1.12, which is why spec §5.5's single ENEMY_HP_GROWTH compounding left the w10/w15/
 # w20 bosses at 16 / 9 / 7 second fights no matter what BOSS_BASE_HP was set to. This constant is
-# tuned by the probe to hold Larry's D5 "on-curve boss fight = 45-60s" at every boss wave.
+# tuned by the probe to get as close as one geometric rate can to Larry's D5 "on-curve boss fight =
+# 45-60s"; the reference DPS changes slope (x1.435 -> x1.254 -> x1.204 per wave), so the amended
+# spec §4 band is roster mean 40-70s / every boss 30-80s -- see the probe doc for the residual.
 const BOSS_HP_GROWTH := 1.29          # per-wave multiplier on boss max health (boss-only; trash keeps ENEMY_HP_GROWTH)
+const BOSS_HP_GROWTH_LAST_WAVE := 20  # the last scheduled boss before extraction (the chopper lands on wave 20). BOSS_HP_GROWTH only applies up to here, because that is how far the between-run GEAR LADDER reaches; past it the player is off the designed run and grows from cards alone (~1.10/wave), so bosses fall back to ENEMY_HP_GROWTH. Without this cap 1.29/wave compounds a wave-30 boss to ~9M HP -- an unkillable wall, not a fight.
 const BOSS_TOUCH_DAMAGE := 25.0       # boss contact damage/sec on wave 1 (scales w/ ENEMY_DMG_GROWTH)
 const BOSS_MOVE_SPEED := 45.0         # px/sec; deliberately slow, does not scale
 const BOSS_SPAWN_RATE_MULT := 0.5     # normal spawns run at this fraction of rate while a REVEALED boss lives
@@ -255,13 +258,13 @@ const DEBUFF_SLOW_FACTOR := 0.5        # default move-speed cut (0.5 = half spee
 const DEBUFF_SLOW_DURATION := 2.5      # default slow length (seconds)
 
 # Brood Mother
-const BROOD_HP := 6350.0               # 1.13x base — wave-1 HP (scales with wave like the brute). Task 8: x3.733 with BOSS_BASE_HP (rounded to 50)
+const BROOD_HP := 6300.0               # 1.13x base — wave-1 HP (scales with wave like the brute). Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const BROOD_SUMMON_COUNT := 3          # adds spawned per summon cast
 const BROOD_ZONE_DPS := 18.0           # acid-nest damage/sec
 const BROOD_RING_COUNT := 8            # projectiles in the radial spit
 
 # Heat Tyrant
-const HEAT_HP := 5950.0                # 1.07x base — wave-1 HP. Task 8: x3.733 with BOSS_BASE_HP (rounded to 50)
+const HEAT_HP := 5900.0                # 1.07x base — wave-1 HP. Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const HEAT_BAND_DAMAGE := 30.0         # solar-flare beam damage
 const HEAT_JAM_DURATION := 2.0         # "Forced Vent" gun-jam length
 
@@ -289,6 +292,7 @@ const BOSS_RUSH_REWARD_MULT := 0.35    # boss-rush XP-gem reward fraction (toned
 const BOSS_RUSH_HEAL_FRAC := 0.2       # boss-rush heal per kill (endless uses BOSS_KILL_HEAL_FRAC)
 const BOSS_KILL_HEAL_FRAC := 0.33      # endless boss-kill heal fraction (was a FULL heal)
 const BOSS_RUSH_RELIC_CHANCE := 0.3    # boss-rush chance to drop a relic per boss kill
+const BOSS_RUSH_BASE_HP := 1500.0      # Boss Rush's OWN wave-1 boss HP -- deliberately NOT BOSS_BASE_HP, which the endless power-curve probe owns. Boss Rush is outside the Power Curve spec, indexes DifficultyCurve.boss_rush_stats by bosses KILLED rather than by wave, and was tuned around the pre-v0.1.74 numbers; keeping its own base means retuning endless never silently retunes it.
 
 # --- Environmental hazards: collision layers (the project's first) ---
 const COVER_LAYER_BIT := 4              # solid cover (cars/rubble) physics layer (1-indexed)
@@ -407,25 +411,25 @@ const CHARGE_HIT_RADIUS := 56.0        # px distance from the dashing boss count
 
 # --- Night-shift staff bosses (Pack 7) ---
 # The Manager: tanky/slow. Calls in staff adds, jams the gun, ground-slams.
-const MANAGER_HP := 7250.0             # 1.30x base — the tank of the roster (roster max). Task 8: x3.733 with BOSS_BASE_HP (rounded to 50)
+const MANAGER_HP := 7200.0             # 1.30x base — the tank of the roster (roster max). Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const MANAGER_SPEED_MULT := 0.6        # persistent chase-speed multiplier (slow)
 const MANAGER_SUMMON_COUNT := 3        # staff adds per summon cast
 const MANAGER_JAM_DURATION := 2.2      # "Written Up" gun-jam length
 
 # The Night Stocker: fast, squishy, charges the player and litters cover behind it.
-const STOCKER_HP := 4500.0             # 0.80x base — glass cannon, dies fast if you land hits (roster min). Task 8: x3.733 with BOSS_BASE_HP (rounded to 50)
+const STOCKER_HP := 4450.0             # 0.80x base — glass cannon, dies fast if you land hits (roster min). Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const STOCKER_SPEED_MULT := 1.7        # persistent chase-speed multiplier (fast)
 const STOCKER_CRATE_SIZE := 22.0       # px rect half-extent of a dropped crate obstacle
 const STOCKER_CRATE_DROP_DIST := 70.0  # px behind the boss a dropped crate lands
 const STOCKER_CRATE_MAX := 6           # live stocker crates at once — can pressure but never seal a ring around the player (oldest evicted at cap)
 
 # The Fryer: medium pace, denies ground with fire pools + heat-lamp bands.
-const FRYER_HP := 6150.0               # 1.10x base — medium. Task 8: x3.733 with BOSS_BASE_HP (rounded to 50)
+const FRYER_HP := 6100.0               # 1.10x base — medium. Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const FRYER_ZONE_DPS := 20.0           # fry-oil pool damage/sec
 const FRYER_BAND_DAMAGE := 26.0        # heat-lamp band damage
 
 # The Courier: mobile arena-crosser. Charges, radial parcel bursts, a slow-you-down aura.
-const COURIER_HP := 5050.0             # 0.90x base — relies on mobility, not tankiness. Task 8: x3.733 with BOSS_BASE_HP (rounded to 50)
+const COURIER_HP := 5000.0             # 0.90x base — relies on mobility, not tankiness. Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const COURIER_SPEED_MULT := 1.3        # persistent chase-speed multiplier (brisk)
 const COURIER_CHARGE_SPEED := 650.0    # px/sec — crosses more of the arena than the Stocker's charge
 const COURIER_CHARGE_DURATION := 0.9   # seconds
@@ -434,7 +438,7 @@ const COURIER_SLOW_DURATION := 3.0     # slow-aura debuff length
 const COURIER_SLOW_FACTOR := 0.4       # slow-aura move-speed cut
 
 # --- THE KAREN (boss #8, v0.1.60) ---
-const KAREN_HP := 5600.0               # 1.00x base — above Courier (5050), well under Manager (7250) — kit is the pressure, not the tank. Task 8: x3.733 with BOSS_BASE_HP (rounded to 50)
+const KAREN_HP := 5550.0               # 1.00x base — above Courier (5000), well under Manager (7200) — kit is the pressure, not the tank. Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const KAREN_SPEED_MULT := 0.85         # persistent chase-speed multiplier — quick for a boss
 const KAREN_REVIEW_SLOW_FACTOR := 0.55 # "LEAVING A REVIEW" move-speed factor on the player
 const KAREN_REVIEW_SLOW_DURATION := 2.5  # seconds the review slow lasts
@@ -456,7 +460,7 @@ const TANKER_POOL_RADIUS := 70.0         # px pool radius
 const TANKER_POOL_DURATION := 4.0        # seconds a pool burns after igniting
 const TANKER_IGNITE_DELAY := 0.9         # puddle→ignite windup: cross the wet fuel early or lose the lane
 const TANKER_JACKKNIFE_RETELEGRAPH := 0.4  # pause between the two JACKKNIFE dashes (re-aims at the player)
-const TANKER_HP := 6700.0              # 1.20x base — third-tankiest, behind Manager (7250) and Mascot (6900) — a truck. Task 8: x3.733 with BOSS_BASE_HP (rounded to 50)
+const TANKER_HP := 6650.0              # 1.20x base — third-tankiest, behind Manager (7200) and Mascot (6850) — a truck. Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const TANKER_SPEED_MULT := 0.5         # crawls between bursts; the dashes ARE the mobility
 const TANKER_CHARGE_SPEED := 600.0     # px/sec dash (under Courier's 650 but lasts longer)
 const TANKER_CHARGE_DURATION := 1.0    # seconds per dash — a long haul so the trail matters
@@ -818,7 +822,7 @@ const GARAGE_ARM_HP := 40.0   ## breakable gate arm — walk-through props must 
 # --- THE MYSTERY SHOPPER (boss #10, Night Shift Stories v0.1.68): concealed-boss seam ---
 # Starts disguised as ordinary horde filler (shared enemy.png, no boss bar/toast) and reveals
 # on either trigger below, then re-cloaks at every phase edge (0.66 / 0.33 health fraction).
-const SHOPPER_HP := 5800.0                  # 1.03x base — between Karen (5600) and Fryer (6150). Task 8: x3.733 with BOSS_BASE_HP (rounded to 50)
+const SHOPPER_HP := 5750.0                  # 1.03x base — between Karen (5550) and Fryer (6100). Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const SHOPPER_REVEAL_DAMAGE := 60.0         # cumulative damage taken since the last cloak that forces a reveal
 const SHOPPER_REVEAL_RANGE := 120.0         # px — player closing to this range also forces a reveal (strike range)
 const SHOPPER_BROWSE_TIMEOUT := 45.0        # seconds of any one cloak before she loses patience and reveals HERSELF — concealment must be bounded: a browsing shopper occupies the one-boss slot with no bar/toast, and a kiting player may never trip the damage/range triggers (v0.1.69 "where did everyone go" fix, with Spawner._revealed_boss_alive)
@@ -838,7 +842,7 @@ const SHOPPER_REVEALED_SCALE := 2.4         # revealed Sprite2D scale (Courier's
 # (radius 46 / scale 2.4) — NOT compounded onto the current value, so the ladder always reads
 # off the same fixed base. Speed climbs via each phase's own speed_mult (BossBase's existing
 # mechanism — no extra code needed). HP is front-loaded: L1's slow bulk carries most of the bar.
-const MASCOT_HP := 6900.0                 # 1.23x base — 2nd-tankiest costume boss — between Tanker (6700) and Manager (7250). Task 8: x3.733 with BOSS_BASE_HP (rounded to 50)
+const MASCOT_HP := 6850.0                 # 1.23x base — 2nd-tankiest costume boss — between Tanker (6650) and Manager (7200). Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const MASCOT_SCALE_L1 := 1.15             # FULL SUIT — bulked up above the Courier-clone base
 const MASCOT_SCALE_L2 := 0.9              # HALF SUIT — shrinking toward base
 const MASCOT_SCALE_L3 := 0.7              # THE PERFORMER — tiny, runner-fast

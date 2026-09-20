@@ -43,9 +43,28 @@ static func elite_chance(wave: int) -> float:
 ## power-curve probe measured that combined growth at ~1.2-1.44/wave. The old double-compounding
 ## branch (BOSS_LATE_HP_GROWTH past ENEMY_LATE_WAVE) stays deleted — this is ONE rate applied at
 ## every wave, tuned by the probe to hold Larry's D5 "on-curve boss fight = 45-60s".
+## The steeper BOSS_HP_GROWTH only applies while the GEAR LADDER is still climbing, i.e. up to the
+## last scheduled boss of a shift (BOSS_HP_GROWTH_LAST_WAVE). Past it the player is out of the
+## designed run and their power grows from cards alone (~1.10/wave), so bosses go back to growing
+## like trash — otherwise 1.29/wave compounds a wave-30 boss into an unkillable 9M-HP wall.
 static func boss_stats(wave: int) -> Dictionary:
 	var w := maxi(wave - 1, 0)
-	var hp: float = GameConfig.BOSS_BASE_HP * pow(GameConfig.BOSS_HP_GROWTH, w)
+	var cap: int = GameConfig.BOSS_HP_GROWTH_LAST_WAVE - 1
+	var hp: float = GameConfig.BOSS_BASE_HP * pow(GameConfig.BOSS_HP_GROWTH, mini(w, cap)) \
+		* pow(GameConfig.ENEMY_HP_GROWTH, maxi(w - cap, 0))
+	return _boss_shape(hp, w)
+
+## BOSS RUSH keeps its own curve: it is outside the Power Curve spec, it spawns BOSS_RUSH_BASE_COUNT
+## bosses at second zero and indexes this by bosses KILLED (not by wave), and it was tuned around the
+## pre-v0.1.74 numbers. Plain trash compounding off its own base, so retuning endless never silently
+## retunes Boss Rush. Each boss's own _hp_mult() is a pure ratio (<BOSS>_HP / BOSS_BASE_HP), so it
+## keeps working unchanged on top of this base.
+static func boss_rush_stats(n: int) -> Dictionary:
+	var w := maxi(n - 1, 0)
+	return _boss_shape(GameConfig.BOSS_RUSH_BASE_HP * pow(GameConfig.ENEMY_HP_GROWTH, w), w)
+
+## Shared tail of boss_stats/boss_rush_stats: everything except max_health is identical between them.
+static func _boss_shape(hp: float, w: int) -> Dictionary:
 	var growth := pow(GameConfig.ENEMY_DMG_GROWTH, w)
 	var dmg: float = GameConfig.BOSS_TOUCH_DAMAGE * growth
 	return {"max_health": hp, "move_speed": GameConfig.BOSS_MOVE_SPEED, "touch_damage": dmg, "special_mult": growth}
