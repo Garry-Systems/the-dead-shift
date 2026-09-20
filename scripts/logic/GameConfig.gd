@@ -89,12 +89,15 @@ const ENEMY_DMG_GROWTH := 1.05        # per-wave multiplier on enemy touch damag
 const ENEMY_SPEED_GROWTH := 1.02      # per-wave multiplier on enemy move speed
 const ENEMY_SPEED_CAP := 240.0        # px/sec; raised above the player's 220 so late enemies catch you
 
-# After wave 10 enemies accelerate (Larry 2026-06-14): the gentle early growth freezes at
-# ENEMY_LATE_WAVE and a steeper per-wave multiplier takes over, so HP keeps climbing and move
-# speed eventually out-paces the player (PLAYER_MOVE_SPEED 220) — you must dash to escape.
-const ENEMY_LATE_WAVE := 10            # wave after which the steeper ramp applies
+# After wave 10 HP accelerates (Larry 2026-06-14): the gentle early growth freezes at
+# ENEMY_LATE_WAVE and a steeper per-wave multiplier takes over, so HP keeps climbing past what
+# ENEMY_HP_GROWTH alone would give. Speed has its OWN knee/rate below (ENEMY_SPEED_RAMP_WAVE /
+# ENEMY_RAMP_SPEED_GROWTH) — it is no longer tied to this wave number.
+const ENEMY_LATE_WAVE := 10            # wave after which the steeper HP ramp applies
 const ENEMY_LATE_HP_GROWTH := 1.12     # per-wave HP multiplier past ENEMY_LATE_WAVE
-const ENEMY_LATE_SPEED_GROWTH := 1.15  # per-wave speed multiplier past ENEMY_LATE_WAVE
+
+const ENEMY_SPEED_RAMP_WAVE := 7        # speed grows at ENEMY_SPEED_GROWTH through this wave (3:00), then at ENEMY_RAMP_SPEED_GROWTH — speed has its OWN knee, independent of the HP knee (ENEMY_LATE_WAVE)
+const ENEMY_RAMP_SPEED_GROWTH := 1.107  # per-wave speed multiplier past ENEMY_SPEED_RAMP_WAVE: a steady climb that reaches ENEMY_SPEED_CAP at wave 18 (8:30), same as the old 1.02-then-1.15 cliff did
 
 # --- Boss (Phase 4 step 2) ---
 const BOSS_WAVE_INTERVAL := 5         # a boss spawns every Nth wave (5, 10, 15, ...)

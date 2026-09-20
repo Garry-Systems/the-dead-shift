@@ -6,17 +6,22 @@ class_name DifficultyCurve
 ## Scaled stats for an enemy spawned on the given wave.
 static func enemy_stats(wave: int) -> Dictionary:
 	var w := maxi(wave - 1, 0)   # wave 1 -> exponent 0 -> base stats
-	# Early HP/speed growth freezes at ENEMY_LATE_WAVE; past it a steeper late multiplier takes
-	# over, so waves 1..ENEMY_LATE_WAVE are unchanged and the harder ramp only applies after.
+	# HP growth freezes at ENEMY_LATE_WAVE; past it a steeper late multiplier takes over, so
+	# waves 1..ENEMY_LATE_WAVE are unchanged and the harder ramp only applies after. Speed has
+	# its OWN knee (ENEMY_SPEED_RAMP_WAVE) and a single steady rate past it (ENEMY_RAMP_SPEED_
+	# GROWTH) — a smooth climb to the same ENEMY_SPEED_CAP, independent of the HP knee above.
 	var early := mini(w, GameConfig.ENEMY_LATE_WAVE - 1)
 	var hp: float = GameConfig.ENEMY_MAX_HEALTH * pow(GameConfig.ENEMY_HP_GROWTH, early)
-	var spd: float = GameConfig.ENEMY_MOVE_SPEED * pow(GameConfig.ENEMY_SPEED_GROWTH, early)
 	var growth := pow(GameConfig.ENEMY_DMG_GROWTH, w)
 	var dmg: float = GameConfig.ENEMY_TOUCH_DAMAGE * growth
 	if wave > GameConfig.ENEMY_LATE_WAVE:
 		var lw := wave - GameConfig.ENEMY_LATE_WAVE
 		hp *= pow(GameConfig.ENEMY_LATE_HP_GROWTH, lw)
-		spd *= pow(GameConfig.ENEMY_LATE_SPEED_GROWTH, lw)
+
+	var spd_early := mini(w, GameConfig.ENEMY_SPEED_RAMP_WAVE - 1)
+	var spd: float = GameConfig.ENEMY_MOVE_SPEED * pow(GameConfig.ENEMY_SPEED_GROWTH, spd_early)
+	if wave > GameConfig.ENEMY_SPEED_RAMP_WAVE:
+		spd *= pow(GameConfig.ENEMY_RAMP_SPEED_GROWTH, wave - GameConfig.ENEMY_SPEED_RAMP_WAVE)
 	spd = minf(spd, GameConfig.ENEMY_SPEED_CAP)
 	return {"max_health": hp, "move_speed": spd, "touch_damage": dmg, "special_mult": growth}
 
