@@ -16,7 +16,10 @@ var _player: Node2D
 var _timer := 0.0
 var _last_boss_wave := 0
 var _last_boss_id := ""
-var _suppress_time := 0.0   # seconds the CURRENT revealed boss has been suppressing trash spawns
+var _suppress_time := 0.0   # per-boss budget of REVEALED seconds spent suppressing trash spawns:
+# accumulates only while the current boss is revealed; HOLDS (no accumulate, no reset) while it's
+# alive but concealed (a re-cloak/re-reveal cycle must not grant a fresh 75s); resets to 0.0 only
+# once no boss is alive at all (see _process_endless)
 
 func _ready() -> void:
 	add_to_group("spawner")
@@ -40,7 +43,12 @@ func _process_endless(delta: float) -> void:
 	_timer += delta
 	var interval := DifficultyManager.spawn_interval()
 	var revealed := _revealed_boss_alive()
-	_suppress_time = (_suppress_time + delta) if revealed else 0.0
+	if revealed:
+		_suppress_time += delta
+	elif not _boss_alive():
+		_suppress_time = 0.0   # no boss at all -- next boss gets a fresh budget
+	# else: a boss is alive but concealed (e.g. Mystery Shopper between reveals) -- HOLD, don't
+	# reset: a re-cloak/re-reveal cycle must not grant her a fresh 75s (fix round 1).
 	if suppression_active(_suppress_time, revealed):
 		interval /= GameConfig.BOSS_SPAWN_RATE_MULT   # mult 0.5 -> interval doubles -> fewer
 	if _timer < interval:
@@ -48,9 +56,11 @@ func _process_endless(delta: float) -> void:
 	_timer = 0.0
 	_spawn_enemy()
 
-## Trash runs at BOSS_SPAWN_RATE_MULT only for the first BOSS_SUPPRESS_MAX_SECONDS a revealed boss
-## lives (Power Curve): the slowdown clears room for a duel; it must not reward keeping a boss
-## alive as a pet. The boss still blocks the next boss spawn either way (see _check_boss).
+## Trash runs at BOSS_SPAWN_RATE_MULT only while the CURRENT boss has spent fewer than
+## BOSS_SUPPRESS_MAX_SECONDS revealed (Power Curve, per-boss budget — see _suppress_time): the
+## slowdown clears room for a duel; it must not reward keeping a boss alive (or, for a
+## concealed/re-cloaking boss, keeping it un-killed) as a pet. The boss still blocks the next
+## boss spawn either way (see _check_boss).
 static func suppression_active(suppress_time: float, revealed_boss_alive: bool) -> bool:
 	return revealed_boss_alive and suppress_time < GameConfig.BOSS_SUPPRESS_MAX_SECONDS
 
