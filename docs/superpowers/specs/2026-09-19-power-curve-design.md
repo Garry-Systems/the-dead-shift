@@ -60,19 +60,25 @@ takes >60 s at w5.
 - `XpCurve.xp_for_level(level) = round(XP_BASE × XP_GROWTH^level)`; starters `XP_BASE = 8`,
   `XP_GROWTH = 1.17`. `XP_PER_LEVEL` is deleted. XP **income** (gem value = HP/50, cap 15, elite ×3)
   is unchanged.
-  - **tuned: `XP_BASE = 11`, `XP_GROWTH = 1.16`** (probe levels 3 / 11 / 17 / 26 / 30 at 1:00 / 3:00 /
+  - **tuned: `XP_BASE = 11`, `XP_GROWTH = 1.16`** (probe levels 3 / 11 / 17 / 27 / 30 at 1:00 / 3:00 /
     5:00 / 8:00 / 9:35). `OVERTIME_HEADSTART_XP` re-derived 124 → **160** to still buy exactly 8 levels.
-  - **As implemented:** boss and trash gem values share one helper, `XpCurve.gem_value_for_hp(max_health)`
-    — a boss gem IS worth what a wave-current trash kill's gem is worth, under the same `XP_GEM_VALUE_MAX`
-    clamp.
+  - **As implemented:** trash gems use `XpCurve.gem_value_for_hp(max_health)`; boss gems use
+    `XpCurve.boss_gem_value(wave)`, which is built on top of it (see the next bullet).
 - **Boss XP scales with wave**: boss gem drop is worth what ~50 s of wave-current trash would pay
   (starter: `BOSS_XP_REWARD` gems each worth the wave-current shambler gem value, under the same
   `XP_GEM_VALUE_MAX` cap, instead of 30 flat value-1 gems).
   Exact constant tuned in the probe so a boss fight is XP-neutral vs. skipping it.
-  - **tuned: `BOSS_XP_REWARD = 35`** — XP-neutral at the wave-5 boss (0.78× of 50 s of income) only.
-    w10/w15/w20 land at 0.37 / 0.21 / 0.20 and cannot be lifted: each gem is valued off the plain
-    shambler while income is the type-mix + elite-weighted mean (1.7-2.8× higher), and the 3-4× gem
-    count that would close the gap adds ~12 levels by 9:35, breaking the §4 level targets.
+  - **tuned: `BOSS_XP_REWARD = 35` (gem COUNT only) + new `XpCurve.boss_gem_value(wave)` scaled by
+    new `BOSS_GEM_VALUE_MULT = 0.8`.** A flat count of *trash-valued* gems could never be neutral:
+    trash income grows with the enemy's HP **and** with the spawn rate, so one gem valued off HP
+    alone fell to ~0.2× of a fight's worth of income by w20. `boss_gem_value` therefore multiplies
+    the wave-current trash gem value by the wave's spawn rate relative to wave 1, and is deliberately
+    **not** clamped by `XP_GEM_VALUE_MAX` (that cap exists to stop elite/late *trash* gems running
+    away, not boss payouts). The count stays low on purpose — more gems is screen clutter and entity
+    cost, not reward.
+  - **"Neutral" is 0.5-1.0, not 1.0.** A boss fight does not stop trash income, it **halves** it
+    (`BOSS_SPAWN_RATE_MULT`), so one boss should pay about half of what 50 s of *normal* income would
+    have paid. Probe: **w5 0.78 · w10 0.61 · w15 0.55 · w20 0.64** — all four inside 0.5-1.0.
 - **Boss spawn-suppression limit**: the ×0.5 trash spawn rate while a revealed boss lives
   (`Spawner.gd:41-42`, `BOSS_SPAWN_RATE_MULT`) applies for at most `BOSS_SUPPRESS_MAX_SECONDS = 75` per
   boss, then trash returns to the normal interval. The boss still blocks the next boss spawn (unchanged).
@@ -95,14 +101,17 @@ takes >60 s at w5.
   Applies to every percent/flat-number card: Hollow Points, Hair Trigger, Overpressure, Long Barrel,
   Tighter Choke, Fast Hands, Extended Mag, Swift Feet, Tough Hide, Regeneration, Magnet, Iron Skin,
   Quick Step, Quick Reset, Fast Learner, Silver Tongue, Spike Armor (reflect mult), Incendiary (burn dps).
-  - **tuned: a uniform ×1.82 on every band — Common 0.9–1.45 · Rare 1.45–2.2 · Epic 2.4–3.3 ·
-    Legendary 4.05–5.5 (mean ≈ 1.63 v).** This BREAKS the "Rare = today's value" anchor above and is
-    the one place Task 8 overrode a design line: at the starter bands the §4 MID power/threat band
-    (1.5–3.0, 3:00–9:35) failed at 5 of 8 sampled minutes (down to 0.56 at 9:35 — overrun), and a
-    uniform band scale is the only in-scope lever that reaches it. Side effect: EVERY percent/flat
-    card — Swift Feet, Tough Hide, Iron Skin, Regeneration, Fast Learner, Silver Tongue included —
-    is now ~1.8× its old value. Needs Larry's phone pass; the cleaner alternative is to raise the
-    DPS cards' base values (`UPGRADE_DAMAGE_PCT` etc.) instead and restore this anchor.
+  - **The bands themselves are UNCHANGED** — the anchor holds for every card. Task 8's first pass
+    tried a uniform ×1.82 on the bands and it was reverted: reduction-type cards apply `*= (1 - p)`,
+    so `UPGRADE_RELOAD_PCT` 0.20 × a 5.5 Legendary = 1.10 would drive `reload_mult` **negative**, and
+    `UPGRADE_CHOKE_PCT` 0.30 × 2.4-5.5 would drive `spread` negative. It also silently buffed every
+    defensive/economy card, which belongs to specs 2 and 3. The power-curve probe now carries a
+    guard: for every reduction card (armor, dash cooldown, choke, reload)
+    `base × CARD_TIER_BANDS[3][1] < 1.0` must hold.
+  - **tuned instead: the two PURE-DPS card bases doubled — `UPGRADE_DAMAGE_PCT` 0.20 → `0.40`,
+    `UPGRADE_FIRE_RATE_PCT` 0.15 → `0.30`** (ratio held at 4:3). ~30 level-ups now have to do the
+    work ~57 used to do; at the old bases the §4 MID power/threat band failed at 5 of 8 sampled
+    minutes (down to 0.56 at 9:35 — overrun). Nothing else about any card moved.
 - **No caps** on any card. The only ceiling that remains is the existing `DODGE_CAP` 40% total dodge.
 - **Integer cards** (Armor Piercing, Ricochet): Common/Rare +1 · Epic +1 and +10% damage · Legendary +2.
 - **Extra Barrel**: tiers as integer cards for the count (+1/+1/+1/+2), and each barrel *added by the
@@ -149,14 +158,23 @@ takes >60 s at w5.
 - `DifficultyCurve.boss_stats`: single compounding — `BOSS_BASE_HP × ENEMY_HP_GROWTH^(w−1)`; the
   `BOSS_LATE_HP_GROWTH` branch and constant are deleted.
 - `BOSS_BASE_HP` is re-set by the probe to hit §4 boss TTK.
-  - **tuned: `BOSS_BASE_HP = 7500` (×5; all ten roster consts scaled by the same 5, every per-boss
-    mult byte-identical).** This hits 45-60 s for the **wave-5** row only (roster mean 54 s, 41-66 s).
-    §4's "every boss in roster within 35-75 s" CANNOT be met at more than one boss wave with a single
-    constant: over w5→w20 the reference player's DPS grows ×1.287/wave (gear ladder × compounding
-    cards) while boss HP grows ×1.12/wave, so the four rows want BOSS_BASE_HP = 7.2k / 25k / 44k /
-    57k. Flat TTK needs a boss-only HP growth of ≈1.29/wave — which is what the deleted double
-    compounding (1.12² = 1.2544) was accidentally providing. Out of scope here; reopen §5.5 if Larry
-    wants late bosses to stay 45-60 s.
+  - **Amended by controller ruling (fix round 1): bosses get their own growth constant.** Larry's
+    D5 ("on-curve boss fight = 45-60 s") outranks the single-compounding *mechanism*, which the probe
+    proved insufficient — at ×1.12/wave the w10/w15/w20 fights were 16 / 9 / 7 s at ANY
+    `BOSS_BASE_HP`, because the reference player's DPS grows ~×1.29/wave off **two** compounding
+    sources (in-run cards *and* the between-run gear ladder) while trash HP only has to answer the
+    first. New `BOSS_HP_GROWTH` is used by `DifficultyCurve.boss_stats` for HP only; touch damage and
+    `special_mult` still ride `ENEMY_DMG_GROWTH`. It is still ONE rate at every wave — the
+    `BOSS_LATE_HP_GROWTH` double-compounding branch stays deleted.
+  - **tuned: `BOSS_HP_GROWTH = 1.29`, `BOSS_BASE_HP = 5600`** (×3.733; the ten roster consts scaled
+    by the same factor and rounded to 50 — every per-boss mult within 0.006 of its old value, order
+    and the 0.8-1.3 band intact). Probe roster means **w5 69 s · w10 41 s · w15 47 s · w20 66 s**,
+    per-boss 30-84 s. **Residual: not all four rows fit.** One geometric rate cannot track the
+    reference DPS, which grows ×1.435/wave from w5→w10 (that step is a *build* change, FRESH → MID),
+    ×1.254 w10→w15 and ×1.204 w15→w20. The tuned pair is the minimum-worst-miss point of that
+    trade-off: worst miss ×1.15 (w10 Night Stocker 30 s vs the 35 s floor). Closing it needs a
+    second boss lever (a per-wave-bracket base, or making the reference-gear ladder part of the
+    curve) — deliberately not added.
 - Per-boss HP multipliers narrowed from 0.73–2.0 to **0.8–1.3**, order preserved (Manager tankiest …
   Night Stocker squishiest).
 - Boss attack damage, speed, patterns: unchanged (spec 2).

@@ -248,16 +248,17 @@ func _reward() -> void:
 	RelicEffects.on_boss_kill()   # Relics Overhaul: overtime_clock's hold, dead_mans_vest's per-cycle reset
 	# In Boss Rush bosses die constantly, so its rewards are toned down vs Endless.
 	var boss_rush: bool = RunConfig.mode == "boss_rush"
-	# XP burst — scattered around the boss, enough to pop a level-up (fewer in Boss Rush). Power
-	# Curve: each gem is worth what a wave-current trash zombie's gem is worth (same formula + cap
-	# as Enemy._drop_gem's base value, via XpCurve.gem_value_for_hp) instead of a flat historical
-	# value=1 -- 30 flat value-1 gems was ~3 shambler kills by wave 20.
+	# XP burst — scattered around the boss (fewer gems in Boss Rush). Power Curve: the COUNT stays a
+	# flat GameConfig.BOSS_XP_REWARD (more gems is screen clutter and entity cost, not reward) and
+	# the per-gem VALUE does the scaling, via XpCurve.boss_gem_value -- wave-current trash gem value
+	# x the wave's spawn rate relative to wave 1, because trash XP income grows with both. A boss
+	# fight only HALVES trash spawns (BOSS_SPAWN_RATE_MULT), so this is tuned to pay ~0.5-1.0x of
+	# 50s of normal income: killing the boss is never an XP loss, and never worth farming either.
 	if xp_gem_scene != null:
 		var gems := GameConfig.BOSS_XP_REWARD
 		if boss_rush:
 			gems = int(gems * GameConfig.BOSS_RUSH_REWARD_MULT)
-		var trash_hp: float = float(DifficultyManager.enemy_stats()["max_health"])
-		var gem_value := XpCurve.gem_value_for_hp(trash_hp)
+		var gem_value := XpCurve.boss_gem_value(DifficultyManager.wave)
 		for i in gems:
 			var gem = xp_gem_scene.instantiate()
 			gem.value = gem_value
