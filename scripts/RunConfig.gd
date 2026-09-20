@@ -27,6 +27,17 @@ var open_store_on_menu := false
 var hardcore := false
 var overtime := false
 
+# Probation period (Survivability, v0.1.75): computed ONCE per run in Main._ready from the save's
+# completed-shift count, so nothing re-reads the save mid-run. Reset in clear_mode_flags().
+var probation := false
+
+## True when this run should use the gentler new-hire opening. Endless only; never the Daily Shift
+## (scores must stay comparable) and never the rank-gated modes (belt-and-braces — a save this new
+## cannot reach them).
+func compute_probation(games_played: int) -> bool:
+	return mode == "endless" and not daily and not hardcore and not overtime \
+		and games_played < GameConfig.PROBATION_SHIFTS
+
 # --- Daily Shift (Pack C, v0.1.53) ---
 ## True only for a Daily Shift run (always mode == "endless" underneath). `daily_rng` is seeded
 ## from the date string's hash and consumed ONLY by NightEvents' event/kind rolls, Spawner's
@@ -64,6 +75,7 @@ func clear_mode_flags() -> void:
 	clear_daily()
 	hardcore = false
 	overtime = false
+	probation = false        # Probation (Survivability): recomputed fresh by Main._ready every run
 	location = "forecourt"   # Transfer Stores: reset with the other run-exclusivity fields; the
 	                         # location picker (Task 5) re-applies its pick AFTER this call, same
 	                         # as hardcore/overtime/daily do today

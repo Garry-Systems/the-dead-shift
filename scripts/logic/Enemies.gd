@@ -27,19 +27,34 @@ const _LIST: Array[Dictionary] = [
 static func all() -> Array:
 	return _LIST
 
-## A weighted-random row among types whose min_wave <= wave. Never empty for wave >= 1
-## (the shambler is always eligible); falls back to the shambler row otherwise.
+## The wave a row becomes eligible. On probation (GameConfig.PROBATION_MIN_WAVE) a few types arrive
+## later; every other row — and every non-probation run — uses the row's own min_wave unchanged.
+static func min_wave_for(row: Dictionary, probation: bool) -> int:
+	if probation:
+		var id := String(row["id"])
+		if GameConfig.PROBATION_MIN_WAVE.has(id):
+			return int(GameConfig.PROBATION_MIN_WAVE[id])
+	return int(row["min_wave"])
+
+## A weighted-random row among types whose min_wave_for(e, probation) <= wave. Never empty for
+## wave >= 1 (the shambler is always eligible, and probation never touches it); falls back to the
+## shambler row otherwise.
 ##
 ## `mults` (Transfer Stores, v0.1.65): optional Locations.spawn_mults-shaped Dictionary,
 ## enemy id -> weight multiplier. Default {} is the exact pre-existing code path (no per-row
 ## multiply, byte-identical weights/roll/total to today). A non-empty dict re-weights
 ## `roundi(weight * mult)` per eligible row (missing id = mult 1.0); a row that rounds to <= 0
 ## is excluded from the pool entirely (0.0 = "never spawns here" per the registry's contract).
-static func pick(wave: int, mults: Dictionary = {}) -> Dictionary:
+##
+## `probation` (Survivability, v0.1.75): default false is the exact pre-existing code path — a
+## few ids (GameConfig.PROBATION_MIN_WAVE) arrive at a later wave; every other id, and every
+## non-probation call, is byte-identical to before this flag existed (same eligibility, same
+## weights, same RNG call order).
+static func pick(wave: int, mults: Dictionary = {}, probation: bool = false) -> Dictionary:
 	var pool: Array[Dictionary] = []
 	var total := 0
 	for e in _LIST:
-		if int(e["min_wave"]) <= wave:
+		if min_wave_for(e, probation) <= wave:
 			var w := _weight(e, mults)
 			if w <= 0:
 				continue

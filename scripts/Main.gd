@@ -31,6 +31,10 @@ func _ready() -> void:
 	if RunConfig.mode == "horde":
 		DifficultyManager.set_spawn_interval_mult(GameConfig.HORDE_SPAWN_MULT)
 	RunStats.reset()
+	# PROBATION (Survivability, v0.1.75): computed here (not in clear_mode_flags/the menu picker)
+	# because a mid-run RESTART reloads this scene, and games_played() only advances at run end —
+	# so re-deriving it fresh every time this scene loads is the one place that is always correct.
+	RunConfig.probation = RunConfig.compute_probation(SaveManager.games_played())
 	# HARDCORE (Pack G): x3 the whole run's coin payout. Multiplies the SAME coin_mult the
 	# "Silver Tongue" level-up card raises later, so the two compose as one multiplicative number.
 	if RunConfig.hardcore:

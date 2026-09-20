@@ -73,7 +73,13 @@ func _check_boss() -> void:
 	if w == _last_boss_wave or _boss_alive():
 		return
 	_last_boss_wave = w
-	_spawn_boss(DifficultyManager.boss_stats())
+	var stats := DifficultyManager.boss_stats()
+	stats["max_health"] = float(stats["max_health"]) * first_boss_hp_mult(w, RunConfig.probation)
+	_spawn_boss(stats)
+
+## Probation (Survivability): only the FIRST scheduled boss (wave BOSS_WAVE_INTERVAL) is softened.
+static func first_boss_hp_mult(wave: int, probation: bool) -> float:
+	return GameConfig.PROBATION_FIRST_BOSS_HP_MULT if probation and wave == GameConfig.BOSS_WAVE_INTERVAL else 1.0
 
 # --- Boss Rush: always-N bosses + the trash slate ---
 func _process_boss_rush(delta: float) -> void:
@@ -139,7 +145,9 @@ func _pick_spawn_pos() -> Vector2:
 func _spawn_enemy() -> void:
 	# Pick a trash enemy type from the registry (wave-gated + weighted) and bake its scaled stats.
 	# TRANSFER STORES (Task 2): location_spawn_mults biases the roll ({} = untouched default).
-	var entry := Enemies.pick(DifficultyManager.wave, location_spawn_mults)
+	# PROBATION (Survivability): RunConfig.probation delays a few ids' arrival ({} mults + false
+	# probation is the exact pre-existing code path).
+	var entry := Enemies.pick(DifficultyManager.wave, location_spawn_mults, RunConfig.probation)
 	var enemy = (entry["scene"] as PackedScene).instantiate()
 	enemy.configure(Enemies.stats_for(entry, DifficultyManager.wave))
 	_maybe_apply_elite(enemy)
@@ -156,7 +164,7 @@ func _spawn_enemy() -> void:
 func _maybe_apply_elite(enemy) -> void:
 	if mode != "endless" and mode != "horde":   # HORDE NIGHT (Pack G): elites still roll there
 		return
-	var chance := DifficultyCurve.elite_chance(DifficultyManager.wave) * DifficultyManager.elite_chance_mult()
+	var chance := DifficultyCurve.elite_chance(DifficultyManager.wave, RunConfig.probation) * DifficultyManager.elite_chance_mult()
 	# Pack C (Daily Shift): both rolls go through RunConfig.rand_float()/rand_int(), which only
 	# diverge from the plain global randf()/randi() while a Daily Shift run is active.
 	if RunConfig.rand_float() >= chance:

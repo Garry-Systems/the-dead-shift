@@ -35,8 +35,13 @@ static func spawn_interval(wave: int) -> float:
 ## ELITE_CHANCE_CAP). Pure -- no RNG -- so a probe can verify the curve headlessly; the actual
 ## roll (randf() against this) lives in Spawner, which also applies the Dawn Extraction surge's
 ## elite_chance_mult() on top.
-static func elite_chance(wave: int) -> float:
-	if wave < GameConfig.ELITE_MIN_WAVE:
+##
+## `probation` (Survivability, v0.1.75): default false is the exact pre-existing code path. True
+## pushes the gate back to GameConfig.PROBATION_ELITE_MIN_WAVE — only the min-wave gate changes;
+## the chance formula past that gate is identical either way.
+static func elite_chance(wave: int, probation: bool = false) -> float:
+	var min_wave := GameConfig.PROBATION_ELITE_MIN_WAVE if probation else GameConfig.ELITE_MIN_WAVE
+	if wave < min_wave:
 		return 0.0
 	return minf(GameConfig.ELITE_CHANCE_BASE + GameConfig.ELITE_CHANCE_PER_WAVE * float(wave), GameConfig.ELITE_CHANCE_CAP)
 

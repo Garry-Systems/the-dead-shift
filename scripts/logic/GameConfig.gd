@@ -581,6 +581,12 @@ const ELITE_ALPHA_SPEED_PCT := 0.20      # Alpha aura: +% move speed to enemies 
 const ELITE_ALPHA_DMG_PCT := 0.20        # Alpha aura: +% damage to enemies in range
 const ELITE_ALPHA_BUFF_REFRESH := 0.4    # apply_elite_buff() duration per tick (> HAZARD_TICK_INTERVAL, no gaps — same idiom as TALENT_AURA_SLOW_REFRESH_DUR; when the Alpha dies, ticking stops and the buff decays on its own)
 
+# --- Probation period (Survivability, v0.1.75): a save's first shifts get a gentler opening ---
+const PROBATION_SHIFTS := 10                       # completed shifts (SaveManager.games_played) before probation ends
+const PROBATION_MIN_WAVE := {"brute": 5, "exploder": 7, "hive": 9}   # delayed arrival waves (normal: 4 / 5 / 7); ids not listed keep their Enemies.gd min_wave
+const PROBATION_ELITE_MIN_WAVE := 8                # elites start at 3:30 on probation (normal ELITE_MIN_WAVE 6 = 2:30)
+const PROBATION_FIRST_BOSS_HP_MULT := 0.6          # the wave-5 boss only; every later boss is normal
+
 # --- Night-shift events (Pack A: Run variety, v0.1.50) ---
 # Endless only, one active max; rolled at each new wave past NIGHT_EVENT_MIN_WAVE.
 const NIGHT_EVENT_MIN_WAVE := 4

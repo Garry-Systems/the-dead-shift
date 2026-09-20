@@ -227,7 +227,8 @@ func _process_gauntlet(delta: float) -> void:
 ## the enemy hasn't taken a hit or entered the tree yet).
 func _spawn_gauntlet_enemy() -> void:
 	# TRANSFER STORES (Task 2): location_spawn_mults biases the gauntlet roll ({} = untouched default).
-	var entry := Enemies.pick(DifficultyManager.wave, location_spawn_mults)
+	# PROBATION (Survivability): same RunConfig.probation flag Spawner._spawn_enemy passes through.
+	var entry := Enemies.pick(DifficultyManager.wave, location_spawn_mults, RunConfig.probation)
 	var enemy = (entry["scene"] as PackedScene).instantiate()
 	enemy.configure(Enemies.stats_for(entry, DifficultyManager.wave))
 	if _elites_spawned < _elites_target and _gauntlet_t >= float(_elites_spawned + 1) * GameConfig.BASEMENT_ELITE_INTERVAL:
