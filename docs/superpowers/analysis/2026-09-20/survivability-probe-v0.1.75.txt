@@ -1,0 +1,392 @@
+The Dead Shift v0.1.75 — SURVIVABILITY PROBE OUTPUT (Survivability spec 2, Task 5)
+================================================================================
+Date: 2026-09-20.  Code measured at commit b264b97 (Tasks 1-4 of v0.1.75, master, not pushed).
+Runner: Godot 4.6.3 headless, boot-scene probes under `.superpowers/` (untracked by convention —
+`.superpowers/` is never committed, so this file IS the record of what those probes printed).
+
+Every number below is read from the LIVE game (GameConfig / DifficultyCurve / Enemies / XpCurve /
+Weapons / Upgrades / CardRolls / Spawner / a real booted Player.tscn). Nothing here is a literal
+copied out of a design doc, with the single exception of the power-curve probe's own MODEL
+ASSUMPTIONS block, which that probe prints in full at the top of every run.
+
+ENGINE NOISE STRIPPED: each headless probe boot prints the same 7 lines
+  `ERROR: res://scenes/<EnemyScene>.tscn:12 - Parse Error: [ext_resource] referenced non-existent
+   resource at: res://scenes/XpGem.tscn.`
+These are the known XpGem preload "Busy" family (the same 19 lines the editor gate tolerates);
+XpGem.tscn exists and the game boots clean. They are removed below, as are the `Godot Engine
+v4.6.3…` banner and the engine's exit-time leaked-RID / ObjectDB warnings. Nothing a probe itself
+printed has been edited, reordered or abridged.
+
+SECTIONS
+  1. probe_survivability — spec §3.2 hit i-frames, §3.3 the 70% single-hit cap, the tick-damage
+     passthrough, and the §4 surrounded time-to-die table driven through the real
+     Player.take_damage() on a six-biter cadence.  50 PASS, fails=0.
+  2. probe_speed_ramp    — spec §3.5/§4 shambler speeds, ENEMY_LATE_SPEED_GROWTH gone, and the HP /
+     touch-damage curves proven byte-identical to v0.1.74.  34 PASS, fails=0.
+  3. probe_probation     — spec §3.4: the on_probation truth table, Enemies.min_wave_for,
+     DifficultyCurve.elite_chance, Spawner.first_boss_hp_mult, the byte-identical non-probation
+     path (full seeded id sequences, not just pool membership), and the banner/pay-stub wiring.
+     103 PASS, fails=0.
+  4. probe_power_curve   — the NEW report-only "FRESH ON PROBATION" section added for this task,
+     then the probe's whole CHECKS tail.  44 PASS / 1 FAIL, fails=1.
+     * the 44 PASS lines are every v0.1.74 spec-1 §4 check, byte-identical to the committed
+       docs/superpowers/analysis/2026-09-19/power-curve-probe-v0.1.74.txt run B. Neither the
+       speed ramp nor probation moved any of them (the threat model does not read enemy speed,
+       and the non-probation schedule is unchanged).
+     * the 1 FAIL is the NEW v0.1.75 §4 report row. It is a MEASUREMENT RESULT, not a regression:
+       see the DIAGNOSIS block printed immediately above the checks. Nothing was retuned to make
+       it pass — retuning balance is out of scope for this task.
+
+HEADLINE MEASURED NUMBERS (all detailed below)
+  surrounded time-to-die, 100 HP, no defences, HARDCORE on ...... 3.600 / 2.400 / 1.600 / 0.800 s
+      at waves 1 / 11 / 17 / 31 (spec targets 3.2 / 2.1 / 1.4 / 0.7 s, ±15% — all inside)
+  max landed discrete hits in any sliding 1.0 s window ........... 3 at every sampled wave (≤ 3)
+  largest single discrete hit .................................... 0.70 × max HP, HARDCORE too
+  tick damage during an i-frame window ........................... 100% applied, opens no window
+  shambler speed at waves 1 / 7 / 11 / 14 / 17 / 18+ ............. 70 / 78.831 / 118.383 / 160.595
+      / 217.859 / 240
+  FRESH power÷threat, probation vs normal ........................ 1:30 1.56/1.14 · 2:00 0.93/1.22
+      · 2:30 0.96/0.84 · 3:00 1.31/0.93 · 3:30 1.12/0.95 · 4:00 0.75/0.96  → NOT ≥ at every minute
+  wave-5 boss roster-mean TTK, FRESH ×1.3 gear ................... 67.8 s normal / 51.8 s probation
+      (40.7 s is what ×0.60 alone would give; the probation column's own one-level-lower DPS
+      gives 11.1 s of the softening back)
+
+FINDING 1 — the probe's type-mix factor was a HARDCODED BRACKET TABLE, and it is exact.
+  v0.1.74's `MIX_FACTOR` / `MIX_MAX_WAVE` consts are a wave-bracketed E[hp_mult] table copied out
+  of map_difficulty.md §1.2; they cannot see the probation schedule. This task added a live-derived
+  mix — the weight-weighted mean `hp_mult` over exactly the rows `Enemies.pick()` would consider
+  on that wave, using `Enemies.min_wave_for(row, probation)` for eligibility and the same integer
+  `weight` values it rolls against (hive broods excluded: `pick()` never returns one) — and applied
+  it to BOTH columns of the new section. Measured gap against the old bracket table at the sampled
+  waves: worst 0.043% (w4: live 1.1355 vs table 1.135). The bracket table is a rounded snapshot of
+  exactly this computation, so no drift, nothing to reconcile, and the v0.1.74 rows are unaffected.
+
+FINDING 2 — the v0.1.75 §4 probation row is NOT met at 2:00 and 4:00. Two separate causes.
+  (a) 2:00 / wave 5 — a limit of the THREAT PROXY, not of the shipped schedule. Threat here is
+      "HP to clear per second", so a row contributes its `hp_mult`. The exploder is hp_mult 0.80,
+      one of only two sub-1.0 rows, so it DILUTES the mean. Delaying it to wave 7 while the brute
+      (hp_mult 4.0) still arrives at wave 5 leaves probation's wave-5 pool with a HIGHER mean HP
+      than normal's: 1.1355 vs 1.0971, +3.5%. The proxy scores an exploder as *less* threat; in
+      the hand it is a discrete blast (spec §3.1) this model does not price at all. Wave 5 is also
+      the first boss wave and that boss — the wave's dominant threat — is softened ×0.60 and is
+      not in the trash threat number at all.
+  (b) 4:00 / wave 9 — a REAL cost of the shipped schedule. By 4:00 the two schedules have already
+      converged (probation threat ÷ normal threat = 1.000, identical pools) yet the probation
+      column is level 13 against 14. A lighter early game pays less XP: mean gem value per spawn
+      1.00 vs 1.48 at 1:30 and 2.29 vs 3.56 at 3:00. Probation buys safety with roughly one level
+      by 4:00, and a FRESH level is ~×1.28 DPS at that stage, so one level is the whole gap. The
+      same lag is what turns the first boss's ×0.60 into a 51.8 s fight instead of 40.7 s.
+  Neither is being retuned in v0.1.75. (b) in particular is a design question for Larry, and the
+  right instrument for it is a phone, not this simulation.
+
+================================================================================
+1. probe_survivability  (.superpowers/probe_survivability.tscn)  fails=0
+================================================================================
+
+PASS  discrete 10 dmg on a 100 HP player -> HP 90 (got 90.00)
+PASS  hit_iframes_active() true right after a landed discrete hit
+PASS  an immediate second discrete hit inside the window is blocked (HP still 90, got 90.00)
+PASS  hit_iframes_active() false after driving PLAYER_HIT_IFRAMES+0.02s
+PASS  the i-frame blink alpha resets to 1.0 once the window ends (got 1.000)
+PASS  a discrete hit after the window expires lands (HP 80, got 80.00)
+PASS  (setup) blink test: discrete hit opened the i-frame window
+PASS  blink dims to IFRAME_BLINK_ALPHA at least once while the window is active
+PASS  blink returns to opaque (1.0) at least once while the window is still active
+PASS  blink dim<->opaque transition count within +/-2 of PLAYER_HIT_IFRAMES*PLAYER_IFRAME_BLINK_HZ*2 (got 9 want ~8.4)
+PASS  the blink never touches _sprite.modulate (was (1.0, 1.0, 1.0, 1.0), now (1.0, 1.0, 1.0, 1.0))
+PASS  self_modulate.a is exactly 1.0 on the first step after the window ends
+PASS  (setup) discrete hit opened the i-frame window
+PASS  a tick call during an active i-frame window still lands (HP drops by 5, got delta 5.000)
+PASS  the tick call did not clear the still-live i-frame window
+PASS  a tick call on a fresh player does not start an i-frame window
+PASS  a landed bite reflects Thorns onto its attacker (stub A recorded 1 hit, got 1)
+PASS  Thorns reflect amount == bite x thorns_mult 2.0 (got 20.00 want 20.0)
+PASS  a bite blocked by the i-frame window fires no Thorns reflect (stub B recorded 0, got 0)
+PASS  a 100% dodge leaves HP unchanged (got 100.00)
+PASS  a dodged hit does not open an i-frame window
+PASS  70% cap: fresh 100 HP player, discrete 500 dmg -> HP 30 (got 30.00)
+PASS  armor 0.5 + contact: 120 dmg -> 60 after armor, cap not binding -> HP 40 (got 40.00)
+PASS  armor 0.5 + contact: 500 dmg -> 250 after armor, capped to 70 -> HP 30 (got 30.00)
+PASS  70% cap still applies under HARDCORE: discrete 500 dmg -> HP 30 (got 30.00)
+PASS  a tick of 500 on a fresh player is NOT capped -- the player dies (got 0.00 HP)
+PASS  (setup) dead-mid-blink: discrete hit opened the i-frame window
+PASS  (setup) dead-mid-blink: sprite is on its dim phase before the kill (got 0.350)
+PASS  (setup) dead-mid-blink: the tick killed the player
+PASS  a player who dies mid-blink is left opaque, not stuck dim (got 1.000)
+PASS  wave 1 (bite 10.000): six staggered biters actually kill the player within 30s
+PASS  wave 1 (bite 10.000): time-to-die within 15% of 3.2s (got 3.600s)
+PASS  wave 1 (bite 10.000): max landed discrete hits in any sliding 1.0s window <= 3 (got 3)
+PASS  wave 11 (bite 16.289): six staggered biters actually kill the player within 30s
+PASS  wave 11 (bite 16.289): time-to-die within 15% of 2.1s (got 2.400s)
+PASS  wave 11 (bite 16.289): max landed discrete hits in any sliding 1.0s window <= 3 (got 3)
+PASS  wave 17 (bite 21.829): six staggered biters actually kill the player within 30s
+PASS  wave 17 (bite 21.829): time-to-die within 15% of 1.4s (got 1.600s)
+PASS  wave 17 (bite 21.829): max landed discrete hits in any sliding 1.0s window <= 3 (got 3)
+PASS  wave 31 (bite 43.219): six staggered biters actually kill the player within 30s
+PASS  wave 31 (bite 43.219): time-to-die within 15% of 0.7s (got 0.800s)
+PASS  wave 31 (bite 43.219): max landed discrete hits in any sliding 1.0s window <= 3 (got 3)
+PASS  HazardZone.gd's player tick call passes a 4th arg `true`
+PASS  ZoneFill.gd's player tick call passes a 4th arg `true`
+PASS  DrivebyLane.gd's player tick call passes a 4th arg `true`
+PASS  BossBase.gd's body-contact tick call passes a 4th arg `true`
+PASS  Enemy.gd's bite call is untouched (still 3 args, no is_tick)
+PASS  GameConfig.PLAYER_HIT_IFRAMES == 0.35
+PASS  GameConfig.PLAYER_MAX_HIT_FRAC == 0.70
+PASS  GameConfig.PLAYER_IFRAME_BLINK_HZ == 12.0
+PROBE DONE fails=0
+
+================================================================================
+2. probe_speed_ramp  (.superpowers/probe_speed_ramp.tscn)  fails=0
+================================================================================
+
+PASS  enemy_stats(1).move_speed == ENEMY_MOVE_SPEED (70) (got 70.000)
+PASS  enemy_stats(7).move_speed == ENEMY_MOVE_SPEED * ENEMY_SPEED_GROWTH^6 (78.83 ±0.5) [got 78.831 want 78.831]
+PASS  enemy_stats(11).move_speed within 118 ±3 (got 118.383)
+PASS  enemy_stats(14).move_speed within 160 ±3 (got 160.595)
+PASS  enemy_stats(17).move_speed within 217 ±3 (got 217.859)
+PASS  enemy_stats(18).move_speed == ENEMY_SPEED_CAP (240) (got 240.000)
+PASS  enemy_stats(25).move_speed == ENEMY_SPEED_CAP (240) (got 240.000)
+PASS  enemy_stats(40).move_speed == ENEMY_SPEED_CAP (240) (got 240.000)
+PASS  move_speed is strictly non-decreasing for wave in 1..40
+PASS  max per-wave move_speed ratio (2..40) never exceeds ENEMY_RAMP_SPEED_GROWTH+0.001 (got 1.10700 want <= 1.10800)
+PASS  wave 1: max_health == ENEMY_MAX_HEALTH * ENEMY_HP_GROWTH^min(w-1,LATE-1) * ENEMY_LATE_HP_GROWTH^max(w-LATE,0) (±0.01) [got 50.0000 want 50.0000]
+PASS  wave 1: touch_damage == ENEMY_TOUCH_DAMAGE * ENEMY_DMG_GROWTH^(w-1) (±0.01) [got 10.0000 want 10.0000]
+PASS  wave 5: max_health == ENEMY_MAX_HEALTH * ENEMY_HP_GROWTH^min(w-1,LATE-1) * ENEMY_LATE_HP_GROWTH^max(w-LATE,0) (±0.01) [got 78.6760 want 78.6760]
+PASS  wave 5: touch_damage == ENEMY_TOUCH_DAMAGE * ENEMY_DMG_GROWTH^(w-1) (±0.01) [got 12.1551 want 12.1551]
+PASS  wave 10: max_health == ENEMY_MAX_HEALTH * ENEMY_HP_GROWTH^min(w-1,LATE-1) * ENEMY_LATE_HP_GROWTH^max(w-LATE,0) (±0.01) [got 138.6539 want 138.6539]
+PASS  wave 10: touch_damage == ENEMY_TOUCH_DAMAGE * ENEMY_DMG_GROWTH^(w-1) (±0.01) [got 15.5133 want 15.5133]
+PASS  wave 11: max_health == ENEMY_MAX_HEALTH * ENEMY_HP_GROWTH^min(w-1,LATE-1) * ENEMY_LATE_HP_GROWTH^max(w-LATE,0) (±0.01) [got 155.2924 want 155.2924]
+PASS  wave 11: touch_damage == ENEMY_TOUCH_DAMAGE * ENEMY_DMG_GROWTH^(w-1) (±0.01) [got 16.2889 want 16.2889]
+PASS  wave 17: max_health == ENEMY_MAX_HEALTH * ENEMY_HP_GROWTH^min(w-1,LATE-1) * ENEMY_LATE_HP_GROWTH^max(w-LATE,0) (±0.01) [got 306.5197 want 306.5197]
+PASS  wave 17: touch_damage == ENEMY_TOUCH_DAMAGE * ENEMY_DMG_GROWTH^(w-1) (±0.01) [got 21.8287 want 21.8287]
+PASS  wave 20: max_health == ENEMY_MAX_HEALTH * ENEMY_HP_GROWTH^min(w-1,LATE-1) * ENEMY_LATE_HP_GROWTH^max(w-LATE,0) (±0.01) [got 430.6381 want 430.6381]
+PASS  wave 20: touch_damage == ENEMY_TOUCH_DAMAGE * ENEMY_DMG_GROWTH^(w-1) (±0.01) [got 25.2695 want 25.2695]
+PASS  wave 31: max_health == ENEMY_MAX_HEALTH * ENEMY_HP_GROWTH^min(w-1,LATE-1) * ENEMY_LATE_HP_GROWTH^max(w-LATE,0) (±0.01) [got 1497.9961 want 1497.9961]
+PASS  wave 31: touch_damage == ENEMY_TOUCH_DAMAGE * ENEMY_DMG_GROWTH^(w-1) (±0.01) [got 43.2194 want 43.2194]
+PASS  GameConfig source has no ENEMY_LATE_SPEED_GROWTH
+PASS  GameConfig source declares ENEMY_SPEED_RAMP_WAVE
+PASS  GameConfig source declares ENEMY_RAMP_SPEED_GROWTH
+PASS  enemy_stats() body found
+PASS  enemy_stats() no longer references ENEMY_LATE_SPEED_GROWTH
+PASS  enemy_stats() speed term uses its own knee, ENEMY_SPEED_RAMP_WAVE
+PASS  enemy_stats() speed term uses the steady rate, ENEMY_RAMP_SPEED_GROWTH
+PASS  enemy_stats() HP still branches on ENEMY_LATE_WAVE
+PASS  enemy_stats() HP still uses ENEMY_LATE_HP_GROWTH
+PASS  enemy_stats() still caps speed at ENEMY_SPEED_CAP
+PROBE DONE fails=0
+
+================================================================================
+3. probe_probation  (.superpowers/probe_probation.tscn)  fails=0
+================================================================================
+
+PASS  compute_probation(0) true on a brand-new endless save
+PASS  compute_probation(9) true (last probation shift)
+PASS  compute_probation(10) false (probation over)
+PASS  compute_probation(50) false
+PASS  compute_probation false whenever daily is true
+PASS  compute_probation false whenever hardcore is true
+PASS  compute_probation false whenever overtime is true
+PASS  compute_probation false when mode == "horde"
+PASS  compute_probation false when mode == "boss_rush"
+PASS  min_wave_for(shambler, false) == row's own min_wave (1)
+PASS  min_wave_for(shambler, true) == 1
+PASS  min_wave_for(runner, false) == row's own min_wave (2)
+PASS  min_wave_for(runner, true) == 2
+PASS  min_wave_for(brute, false) == row's own min_wave (4)
+PASS  min_wave_for(brute, true) == 5
+PASS  min_wave_for(exploder, false) == row's own min_wave (5)
+PASS  min_wave_for(exploder, true) == 7
+PASS  min_wave_for(hive, false) == row's own min_wave (7)
+PASS  min_wave_for(hive, true) == 9
+PASS  min_wave_for(spitter, false) == row's own min_wave (10)
+PASS  min_wave_for(spitter, true) == 10
+PASS  min_wave_for(mutant, false) == row's own min_wave (12)
+PASS  min_wave_for(mutant, true) == 12
+PASS  wave 4 probation: brute never appears (delayed to wave 5)
+PASS  wave 4 normal: brute appears (own min_wave 4)
+PASS  wave 6 probation: exploder never appears (delayed to wave 7)
+PASS  wave 6 probation: hive never appears (delayed to wave 9)
+PASS  wave 6 probation: brute appears (own probation min_wave 5)
+PASS  wave 9 probation: hive appears (probation min_wave 9)
+PASS  pick(w) default-arg call: brute appears at wave 4 (behaves as probation=false)
+PASS  wave 1: pick(w,{},false) id sequence == pick(w) id sequence over 2000 seeded draws
+PASS  wave 4: pick(w,{},false) id sequence == pick(w) id sequence over 2000 seeded draws
+PASS  wave 5: pick(w,{},false) id sequence == pick(w) id sequence over 2000 seeded draws
+PASS  wave 7: pick(w,{},false) id sequence == pick(w) id sequence over 2000 seeded draws
+PASS  wave 12: pick(w,{},false) id sequence == pick(w) id sequence over 2000 seeded draws
+PASS  wave 9 (>= 9): pick(w,{},true) id sequence == pick(w,{},false) id sequence over 2000 seeded draws
+PASS  wave 10 (>= 9): pick(w,{},true) id sequence == pick(w,{},false) id sequence over 2000 seeded draws
+PASS  wave 12 (>= 9): pick(w,{},true) id sequence == pick(w,{},false) id sequence over 2000 seeded draws
+PASS  wave 20 (>= 9): pick(w,{},true) id sequence == pick(w,{},false) id sequence over 2000 seeded draws
+PASS  wave 30 (>= 9): pick(w,{},true) id sequence == pick(w,{},false) id sequence over 2000 seeded draws
+PASS  elite_chance(7, true) == 0.0 (probation elite min wave is 8)
+PASS  elite_chance(7, false) > 0.0 (normal ELITE_MIN_WAVE is 6)
+PASS  elite_chance(8, true) == elite_chance(8, false)
+PASS  elite_chance(20, true) == elite_chance(20, false)
+PASS  first_boss_hp_mult(5, true) == 0.6
+PASS  first_boss_hp_mult(5, false) == 1.0
+PASS  first_boss_hp_mult(10, true) == 1.0 (only the FIRST scheduled boss is softened)
+PASS  _check_boss() body found
+PASS  _check_boss() calls first_boss_hp_mult(...)
+PASS  _check_boss() calls _spawn_boss(stats) after building stats
+PASS  _check_boss() applies first_boss_hp_mult to stats["max_health"] BEFORE _spawn_boss(stats)
+PASS  _check_boss() mutates stats["max_health"]
+PASS  _spawn_enemy() passes RunConfig.probation into Enemies.pick(...)
+PASS  _maybe_apply_elite() passes RunConfig.probation into DifficultyCurve.elite_chance(...)
+PASS  _process_boss_rush() body found
+PASS  _process_boss_rush() never references probation or first_boss_hp_mult (Boss Rush untouched)
+PASS  Basement._spawn_gauntlet_enemy() passes RunConfig.probation into Enemies.pick(...)
+PASS  Main.gd sets RunConfig.probation from RunConfig.compute_probation(SaveManager.games_played())
+PASS  Main.gd sets RunConfig.probation AFTER RunStats.reset()
+PASS  clear_mode_flags() resets probation to false
+PASS  GameConfig.PROBATION_CALLOUT_FMT is the exact house copy (two lines, no dash)
+PASS  GameConfig.PROBATION_COMPLETE_LINE is the exact house copy
+PASS  probation_callout(2) == 'PROBATIONARY PERIOD\nSHIFT 3 OF 10' (n = games_played + 1)
+PASS  probation_callout(0) == 'PROBATIONARY PERIOD\nSHIFT 1 OF 10' (very first shift)
+PASS  probation_callout(9) == 'PROBATIONARY PERIOD\nSHIFT 10 OF 10' (last probation shift)
+PASS  probation_callout's total comes from GameConfig.PROBATION_SHIFTS, not a hardcoded 10
+PASS  probation_callout copy contains no em dash (fix round: HUD banner, plain two-liner)
+PASS  probation_just_completed(SHIFTS-1, SHIFTS) true — the 9->10 crossing that ends probation
+PASS  probation_just_completed(shifts-2, shifts-1) false — an earlier shift's crossing
+PASS  probation_just_completed(shifts, shifts+1) false — already past probation
+PASS  probation_just_completed(0, 1) false — the very first shift
+PASS  probation_just_completed(shifts-1, shifts-1) false — no change (paranoid re-entry guard)
+PASS  probation_just_completed(0, shifts) false — skips straight past, not the normal single-shift pair
+PASS  probation_just_completed(shifts+4, shifts+5) false — deep in a veteran save
+PASS  Main.gd positions the player at GameConfig.FORECOURT_PLAYER_SPAWN
+PASS  Main.gd has an 'if RunConfig.probation:' guard
+PASS  the probation guard sits AFTER the player is positioned
+PASS  the probation guard picks its delay from a single local `var delay :=`
+PASS  the delay ternary reads location_banner_shown (the TONIGHT'S SHIFT banner's own return value)
+PASS  the delay ternary offers PROBATION_BANNER_DELAY_AFTER_LOCATION when the location banner fired
+PASS  the delay ternary falls back to the shorter PROBATION_BANNER_DELAY otherwise
+PASS  the probation guard schedules a pause-safe SceneTreeTimer off that ONE `delay` var (create_timer(delay, false, false))
+PASS  the probation guard's timer fires _show_probation_banner
+PASS  the probation guard does NOT use CombatText.callout (fix round: wrong tool, 0.6s pooled proc words)
+PASS  Main.gd never references CombatText at all for probation (no dangling PixelTheme/offset code either)
+PASS  exactly ONE create_timer/.timeout.connect(_show_probation_banner) site in Main.gd
+PASS  _apply_location(...) is declared to return bool
+PASS  _apply_location sets banner_shown = true only where it actually calls hud.call("_show_banner", ...)
+PASS  _ready() captures _apply_location's return into location_banner_shown
+PASS  _show_probation_banner() body found
+PASS  _show_probation_banner looks up the "hud" group (same idiom as NightEvents/Extraction _banner)
+PASS  _show_probation_banner calls hud.call("show_banner", ...)
+PASS  _show_probation_banner's text comes from RunConfig.probation_callout(...)
+PASS  _show_probation_banner is fed SaveManager.games_played() as its input
+PASS  GameOver.gd calls RunConfig.probation_just_completed(...)
+PASS  GameOver.gd references GameConfig.PROBATION_COMPLETE_LINE
+PASS  the PROBATION_COMPLETE_LINE reference sits inside the probation_just_completed gate
+PASS  the probation-complete line sits ABOVE the ★ PROMOTED block (~365-372)
+PASS  _finish_run() body found
+PASS  _finish_run reads games_played() into played_before BEFORE add_game_played()
+PASS  _finish_run reads games_played() into played_after AFTER add_game_played()
+PASS  _finish_run threads played_before/played_after into _populate_stub(...)
+PASS  PauseMenu.gd (no pay-stub on abandon) never references probation_just_completed or PROBATION_COMPLETE_LINE
+PROBE DONE fails=0
+
+================================================================================
+4. probe_power_curve  (.superpowers/probe_power_curve.tscn)  fails=1
+   The NEW report-only FRESH-ON-PROBATION section, then the whole CHECKS tail. The rest of
+   the run (live constants, model assumptions, derived card-pick model, power table, boss
+   TTK, boss XP, poison, overtime) is unchanged from the v0.1.74 record and is not repeated
+   here — see docs/superpowers/analysis/2026-09-19/power-curve-probe-v0.1.74.txt run B.
+================================================================================
+
+-- FRESH ON PROBATION (Survivability v0.1.75 §4; report + one check) --
+  The v0.1.74 type-mix factor is a HARDCODED BRACKET TABLE (MIX_FACTOR above, copied from
+  map_difficulty.md §1.2), so it cannot see the probation schedule. This section derives the
+  mix LIVE for BOTH columns instead: weighted mean hp_mult over the rows Enemies.pick() would
+  consider on the wave — same eligibility test (Enemies.min_wave_for(row, probation)), same
+  integer weights, hive broods excluded (pick() never returns one). Elites come from the live
+  DifficultyCurve.elite_chance(w, probation). Probation consts read live: PROBATION_MIN_WAVE={ "brute": 5, "exploder": 7, "hive": 9 }
+  PROBATION_ELITE_MIN_WAVE=8 (normal ELITE_MIN_WAVE=6)  PROBATION_FIRST_BOSS_HP_MULT=0.60
+  live-derived NORMAL mix vs the v0.1.74 bracket table at the sampled waves:
+    w4 live 1.1355 / table 1.135 (+0.04%)  w5 live 1.0971 / table 1.097 (+0.01%)  w6 live 1.0971 / table 1.097 (+0.01%)  w7 live 1.3115 / table 1.311 (+0.04%)  w8 live 1.3115 / table 1.311 (+0.04%)  w9 live 1.3115 / table 1.311 (+0.04%)  
+ok    live-vs-bracket type-mix gap: worst 0.043% at w4 (report threshold 10%) -- the table is a ROUNDED SNAPSHOT of exactly this computation
+    1:30 w4   normal pool ["shambler", "runner", "brute"]                                probation pool ["shambler", "runner"]
+    2:00 w5   normal pool ["shambler", "runner", "brute", "exploder"]                    probation pool ["shambler", "runner", "brute"]
+    2:30 w6   normal pool ["shambler", "runner", "brute", "exploder"]                    probation pool ["shambler", "runner", "brute"]
+    3:00 w7   normal pool ["shambler", "runner", "brute", "exploder", "hive"]            probation pool ["shambler", "runner", "brute", "exploder"]
+    3:30 w8   normal pool ["shambler", "runner", "brute", "exploder", "hive"]            probation pool ["shambler", "runner", "brute", "exploder"]
+    4:00 w9   normal pool ["shambler", "runner", "brute", "exploder", "hive"]            probation pool ["shambler", "runner", "brute", "exploder", "hive"]
+  THREAT ONLY (the schedule's effect with the player held equal) -- threat = spawns/s x trash HP
+  x mix x elite EHP factor; spawns/s and trash HP are wave functions, identical in both columns:
+    probation threat / normal threat: 1:30 0.730  2:00 1.035  2:30 0.869  3:00 0.695  3:30 0.837  4:00 1.000   (< 1.00 = probation is lighter)
+  FRESH build, live-derived mix + live PER-TYPE gem income on BOTH columns (a softer mix and later
+  elites also pay LESS XP, so the probation column levels on its own, slower, curve):
+     t     w |  NORMAL:  mix  elite  threat  lvl     dps  ratio |  PROB:  mix  elite  threat  lvl     dps  ratio |  delta
+    1:30     4 |        1.135  0.000     102    4     117   1.14 |  0.829  0.000      75    4     117   1.56 |  +0.42
+    2:00     5 |        1.097  0.000     120    6     148   1.22 |  1.135  0.000     125    5     116   0.93 |  -0.30
+    2:30     6 |        1.097  0.080     175    7     146   0.84 |  1.135  0.000     152    7     146   0.96 |  +0.13
+    3:00     7 |        1.311  0.085     257   11     238   0.93 |  1.097  0.000     179   10     235   1.31 |  +0.39
+    3:30     8 |        1.311  0.090     316   13     299   0.95 |  1.097  0.090     264   12     296   1.12 |  +0.17
+    4:00     9 |        1.311  0.095     388   14     372   0.96 |  1.311  0.095     388   13     293   0.75 |  -0.20
+    mean gem value per spawn, normal/probation: 1:30 1.48/1.00  2:00 2.00/2.13  2:30 2.79/2.23  3:00 3.56/2.29  3:30 3.72/3.29  4:00 3.96/3.96  
+  FIRST BOSS (wave 5, t=2:00), FRESH x1.3 reference gear, HP mult from the live
+  Spawner.first_boss_hp_mult(5, probation) = 0.60 (normal 1.00):
+    without the mult: ref DPS 191.8    roster mean TTK =  67.8s   MANA=79 MASC=78 TANK=76 BROO=72 FRYE=70 HEAT=68 SHOP=66 KARE=64 BRUT=64 COUR=58 STOC=51 
+    with    the mult: ref DPS 150.5    roster mean TTK =  51.8s   MANA=60 MASC=60 TANK=58 BROO=55 FRYE=53 HEAT=52 SHOP=50 KARE=49 BRUT=49 COUR=44 STOC=39 
+    => the wave-5 fight is 16.0s shorter for a fresh hire (76% of the normal length).
+    at EQUAL DPS the mult alone would give 40.7s (x0.60 of 67.8s); the probation column's own
+    lower DPS (150.5 vs 191.8, one level behind) gives back 11.1s of that softening.
+  DIAGNOSIS -- the spec §4 row ('>= the non-probation FRESH row at every sampled minute') is
+  NOT met at every minute. Two independent causes, reported, NOT retuned in this release:
+  (1) THREAT-PROXY LIMIT at 2:00 (wave 5). Threat here is HP-to-clear per second, so a row's
+      contribution is its hp_mult. The exploder is hp_mult 0.80 -- one of only two sub-1.0 rows
+      -- so it DILUTES the mean. Delaying it to wave 7 while the brute (hp_mult 4.0) still
+      arrives at wave 5 leaves a wave-5 pool with a HIGHER mean HP (1.1355 vs 1.0971, +3.5%).
+      The proxy scores an exploder as LESS threat; in the hand it is a discrete blast (spec §3.1)
+      that this model does not price at all. Wave 5 is also the first BOSS wave, and the boss --
+      the dominant threat of that wave -- is softened x0.60 and is NOT in the trash threat number.
+  (2) XP LAG, cumulative, visible at 4:00 (wave 9) where the two schedules have already
+      CONVERGED (probation threat / normal threat = 1.000, identical pools) yet the probation
+      column is level 13 against 14. A lighter early game pays less XP (mean gem value 1.00 vs
+      1.48 at 1:30, 2.29 vs 3.56 at 3:00), so probation buys safety at the cost of ~1 level by
+      4:00. That is a REAL consequence of the shipped schedule, not a modelling artifact.
+      FRESH levels are ~x1.28 DPS each at this stage, so one level is the whole gap.
+---------------------------------- CHECKS (spec §4) ----------------------------------
+PASS  [pistol] the model's pool IS Weapons.upgrades_for (8 ids)
+PASS  [pistol] every card id the model picked is in Weapons.upgrades_for (offending: [])
+PASS  [pistol] offer rate for 'damage' = 0.3745 matches 3/8 = 0.3750
+PASS  [pistol] offer rate for 'fire_rate' = 0.3757 matches 3/8 = 0.3750
+PASS  [pistol] offer rate for 'reload' = 0.3735 matches 3/8 = 0.3750
+PASS  [pistol] MC 'both damage+fire_rate' case 0.1072 matches the hypergeometric 0.1071
+PASS  [ak47] the model's pool IS Weapons.upgrades_for (8 ids)
+PASS  [ak47] every card id the model picked is in Weapons.upgrades_for (offending: [])
+PASS  [ak47] offer rate for 'damage' = 0.3745 matches 3/8 = 0.3750
+PASS  [ak47] offer rate for 'fire_rate' = 0.3757 matches 3/8 = 0.3750
+PASS  [ak47] offer rate for 'reload' = 0.3735 matches 3/8 = 0.3750
+PASS  [ak47] MC 'both damage+fire_rate' case 0.1072 matches the hypergeometric 0.1071
+PASS  [player pool] Kill Shot id 'crit' is in the live Upgrades.player_cards() pool
+PASS  [player pool] Kill Shot offer rate 0.2497 matches 3/12 = 0.2500
+PASS  MID level at 1:00 = 3, target 5 +/-2
+PASS  MID level at 3:00 = 11, target 12 +/-2
+PASS  MID level at 5:00 = 17, target 18 +/-2
+PASS  MID level at 8:00 = 27, target 25 +/-2
+PASS  MID level at 9:35 = 30, target 27-32
+ok    MID level past extraction (spec §4 report-only row): 15:00=38  20:00=42  
+PASS  MID power/threat at 3:00 = 2.48, band 1.5-3.0
+PASS  MID power/threat at 4:00 = 2.59, band 1.5-3.0
+PASS  MID power/threat at 5:00 = 2.18, band 1.5-3.0
+PASS  MID power/threat at 6:00 = 2.13, band 1.5-3.0
+PASS  MID power/threat at 7:00 = 1.71, band 1.5-3.0
+PASS  MID power/threat at 8:00 = 1.76, band 1.5-3.0
+PASS  MID power/threat at 9:00 = 1.58, band 1.5-3.0
+PASS  MID power/threat at 9:35 = 1.70, band 1.5-3.0
+ok    FRESH power/threat min over 3:00-9:35 = 0.60 (target >= 0.5, report only)
+PASS  every boss TTK at reference gear within 30-80s (worst out-of-band cell: none)
+PASS  w5 roster mean TTK = 67.8s, target 40-70s
+PASS  w10 roster mean TTK = 40.2s, target 40-70s
+PASS  w15 roster mean TTK = 48.5s, target 40-70s
+PASS  w20 roster mean TTK = 63.1s, target 40-70s
+PASS  boss XP ratio w5 = 0.78, band 0.5-1.0
+PASS  boss XP ratio w10 = 0.61, band 0.5-1.0
+PASS  boss XP ratio w15 = 0.55, band 0.5-1.0
+PASS  boss XP ratio w20 = 0.64, band 0.5-1.0
+PASS  reduction card 'armor': base 0.15 x Legendary top 3.00 = 0.450 < 1.0 (never goes negative)
+PASS  reduction card 'dash_cooldown': base 0.15 x Legendary top 3.00 = 0.450 < 1.0 (never goes negative)
+PASS  reduction card 'reload': base 0.20 x Legendary top 3.00 = 0.600 < 1.0 (never goes negative)
+PASS  reduction card 'choke': base 0.30 x Legendary top 3.00 = 0.900 < 1.0 (never goes negative)
+PASS  reduction-card guard scanned the whole card catalog (23 ids, 4 of them reductions)
+FAIL  FRESH power/threat on probation >= the normal FRESH row at every sampled minute ["1:30", "2:00", "2:30", "3:00", "3:30", "4:00"] (tightest: 2:00 0.928 vs 1.224)
+PROBE DONE fails=1
