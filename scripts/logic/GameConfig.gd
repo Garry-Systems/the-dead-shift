@@ -33,6 +33,21 @@ const UPGRADE_BURN_DURATION := 3.0     # incendiary burn duration (seconds)
 const FLAME_BURN_DPS := 30.0           # Flamethrower base burn — a real damage channel, not a tick
 const FLAME_BURN_TIME := 3.0           # Flamethrower burn duration, refreshed each tick — melts after the sweep
 
+# --- Level-up card rolls (Power Curve v0.1.74): every offered card rolls a tier, then a value ---
+const CARD_TIER_NAMES := ["COMMON", "RARE", "EPIC", "LEGENDARY"]
+const CARD_TIER_WEIGHTS := [60, 27, 10, 3]            # per offered card, independent; no luck/pity
+const CARD_TIER_BANDS := [[0.5, 0.8], [0.8, 1.2], [1.3, 1.8], [2.2, 3.0]]   # x the card's base value ("Rare = the old flat value")
+const CARD_TIER_COLORS := [Color("d6d6d6"), Color("2f7bff"), Color("a64bff"), Color("ff7a18")]  # Salvaged/Lethal/Savage/Merciless loot colors
+const CARD_INT_AMOUNT := [1, 1, 1, 2]                 # Armor Piercing / Ricochet / Extra Barrel count per tier
+const CARD_INT_EPIC_DAMAGE_PCT := 0.10                # Epic Armor Piercing / Ricochet also grant +10% damage
+const CARD_BARREL_SHARE := [[0.40, 0.55], [0.55, 0.70], [0.70, 0.90], [1.0, 1.0]]  # Extra Barrel: damage share of each ADDED barrel
+const CARD_CRIT_CHANCE := [[3.0, 4.0], [4.0, 6.0], [7.0, 9.0], [11.0, 15.0]]       # Kill Shot: crit-chance points (chance only, no mult growth)
+const CARD_SECOND_WIND_TIER := 2                      # Second Wind never rolls; always shown as EPIC
+const UPGRADE_MOVE_SPEED_PCT := 0.10   # "Swift Feet" base (was hardcoded in UpgradeApply)
+const UPGRADE_MAX_HEALTH := 20.0       # "Tough Hide" base (was hardcoded)
+const UPGRADE_REGEN := 1.0             # "Regeneration" base HP/sec (was hardcoded)
+const UPGRADE_PICKUP_PCT := 0.25       # "Magnet" base (was hardcoded)
+
 # --- Weapon talents (loot procs) ---
 const TALENT_VULN_MAX := 1.0          # Marked: cap the bonus-damage-taken fraction (+100%)
 
