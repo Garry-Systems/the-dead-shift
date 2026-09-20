@@ -1,6 +1,7 @@
 The Dead Shift v0.1.75 — SURVIVABILITY PROBE OUTPUT (Survivability spec 2, Task 5)
 ================================================================================
-Date: 2026-09-20.  Code measured at commit b264b97 (Tasks 1-4 of v0.1.75, master, not pushed).
+Date: 2026-09-20.  Code measured at commit 4feb88a (Tasks 1-4 of v0.1.75 plus the "training pay"
+fix below, master, not pushed).
 Runner: Godot 4.6.3 headless, boot-scene probes under `.superpowers/` (untracked by convention —
 `.superpowers/` is never committed, so this file IS the record of what those probes printed).
 
@@ -17,6 +18,11 @@ XpGem.tscn exists and the game boots clean. They are removed below, as are the `
 v4.6.3…` banner and the engine's exit-time leaked-RID / ObjectDB warnings. Nothing a probe itself
 printed has been edited, reordered or abridged.
 
+ALL THIRTEEN PROBES ARE GREEN (`fails=0`): hygiene 28 · overtime_farm 16 · card_rolls 15 ·
+card_apply 26 · card_ui 26 · xp_curve 30 · fire_timing 24 · procs 15 · bosses 72 · power_curve 46 ·
+survivability 50 · speed_ramp 34 · probation 113.  Dual gate: 19 editor Busy lines (the known 19),
+0 boot script errors on Main.tscn and on MainMenu.tscn.
+
 SECTIONS
   1. probe_survivability — spec §3.2 hit i-frames, §3.3 the 70% single-hit cap, the tick-damage
      passthrough, and the §4 surrounded time-to-die table driven through the real
@@ -25,17 +31,15 @@ SECTIONS
      touch-damage curves proven byte-identical to v0.1.74.  34 PASS, fails=0.
   3. probe_probation     — spec §3.4: the on_probation truth table, Enemies.min_wave_for,
      DifficultyCurve.elite_chance, Spawner.first_boss_hp_mult, the byte-identical non-probation
-     path (full seeded id sequences, not just pool membership), and the banner/pay-stub wiring.
-     103 PASS, fails=0.
+     path (full seeded id sequences, not just pool membership), the banner/pay-stub wiring, and
+     the new "training pay" grant (behavioral, on a real booted Player).  113 PASS, fails=0.
   4. probe_power_curve   — the NEW report-only "FRESH ON PROBATION" section added for this task,
-     then the probe's whole CHECKS tail.  44 PASS / 1 FAIL, fails=1.
-     * the 44 PASS lines are every v0.1.74 spec-1 §4 check, byte-identical to the committed
-       docs/superpowers/analysis/2026-09-19/power-curve-probe-v0.1.74.txt run B. Neither the
-       speed ramp nor probation moved any of them (the threat model does not read enemy speed,
-       and the non-probation schedule is unchanged).
-     * the 1 FAIL is the NEW v0.1.75 §4 report row. It is a MEASUREMENT RESULT, not a regression:
-       see the DIAGNOSIS block printed immediately above the checks. Nothing was retuned to make
-       it pass — retuning balance is out of scope for this task.
+     including the training-pay tuning sweep, then the probe's whole CHECKS tail.  46 PASS,
+     fails=0.  The 44 v0.1.74 spec-1 §4 check lines are byte-identical to run B of
+     docs/superpowers/analysis/2026-09-19/power-curve-probe-v0.1.74.txt (verified by diff); the
+     2 added checks are the new §4 report row and the training-pay tuning guard. Neither the speed
+     ramp, probation, nor training pay moved a v0.1.74 number — the threat model reads no enemy
+     speed, and the non-probation schedule and its XP income are untouched.
 
 HEADLINE MEASURED NUMBERS (all detailed below)
   surrounded time-to-die, 100 HP, no defences, HARDCORE on ...... 3.600 / 2.400 / 1.600 / 0.800 s
@@ -45,11 +49,14 @@ HEADLINE MEASURED NUMBERS (all detailed below)
   tick damage during an i-frame window ........................... 100% applied, opens no window
   shambler speed at waves 1 / 7 / 11 / 14 / 17 / 18+ ............. 70 / 78.831 / 118.383 / 160.595
       / 217.859 / 240
-  FRESH power÷threat, probation vs normal ........................ 1:30 1.56/1.14 · 2:00 0.93/1.22
-      · 2:30 0.96/0.84 · 3:00 1.31/0.93 · 3:30 1.12/0.95 · 4:00 0.75/0.96  → NOT ≥ at every minute
-  wave-5 boss roster-mean TTK, FRESH ×1.3 gear ................... 67.8 s normal / 51.8 s probation
-      (40.7 s is what ×0.60 alone would give; the probation column's own one-level-lower DPS
-      gives 11.1 s of the softening back)
+  training pay, GameConfig.PROBATION_XP_BONUS .................... +15% (smallest 0.05 step that
+      works; full 0.00–0.35 sweep printed in section 4)
+  FRESH power÷threat, probation vs normal ........................ 1:30 1.56/1.14 · 2:00 1.18/1.22
+      · 2:30 1.23/0.84 · 3:00 1.33/0.93 · 3:30 1.13/0.95 · 4:00 0.96/0.96
+      → probation ÷ normal never below 0.97, bar is 0.95
+  FRESH level, probation vs normal, at 4:00 (convergence) ........ 14 vs 14 (was 13 vs 14)
+  wave-5 boss roster-mean TTK, FRESH ×1.3 gear ................... 67.8 s normal / 40.7 s probation
+      — level parity at 2:00 means the fresh hire gets the full ×0.60, not a fraction of it
 
 FINDING 1 — the probe's type-mix factor was a HARDCODED BRACKET TABLE, and it is exact.
   v0.1.74's `MIX_FACTOR` / `MIX_MAX_WAVE` consts are a wave-bracketed E[hp_mult] table copied out
@@ -61,26 +68,33 @@ FINDING 1 — the probe's type-mix factor was a HARDCODED BRACKET TABLE, and it 
   waves: worst 0.043% (w4: live 1.1355 vs table 1.135). The bracket table is a rounded snapshot of
   exactly this computation, so no drift, nothing to reconcile, and the v0.1.74 rows are unaffected.
 
-FINDING 2 — the v0.1.75 §4 probation row is NOT met at 2:00 and 4:00. Two separate causes.
-  (a) 2:00 / wave 5 — a limit of the THREAT PROXY, not of the shipped schedule. Threat here is
-      "HP to clear per second", so a row contributes its `hp_mult`. The exploder is hp_mult 0.80,
-      one of only two sub-1.0 rows, so it DILUTES the mean. Delaying it to wave 7 while the brute
-      (hp_mult 4.0) still arrives at wave 5 leaves probation's wave-5 pool with a HIGHER mean HP
-      than normal's: 1.1355 vs 1.0971, +3.5%. The proxy scores an exploder as *less* threat; in
-      the hand it is a discrete blast (spec §3.1) this model does not price at all. Wave 5 is also
-      the first boss wave and that boss — the wave's dominant threat — is softened ×0.60 and is
-      not in the trash threat number at all.
-  (b) 4:00 / wave 9 — a REAL cost of the shipped schedule. By 4:00 the two schedules have already
-      converged (probation threat ÷ normal threat = 1.000, identical pools) yet the probation
-      column is level 13 against 14. A lighter early game pays less XP: mean gem value per spawn
-      1.00 vs 1.48 at 1:30 and 2.29 vs 3.56 at 3:00. Probation buys safety with roughly one level
-      by 4:00, and a FRESH level is ~×1.28 DPS at that stage, so one level is the whole gap. The
-      same lag is what turns the first boss's ×0.60 into a 51.8 s fight instead of 40.7 s.
-  Neither is being retuned in v0.1.75. (b) in particular is a design question for Larry, and the
-  right instrument for it is a phone, not this simulation.
+FINDING 2 — a real defect in the probation feature, FIXED IN THIS RELEASE ("training pay").
+  The first run of this section measured the probation column arriving at 4:00 — the minute the two
+  schedules CONVERGE (probation threat ÷ normal threat = 1.000, identical pools) — at level 13
+  against a normal save's 14. Cause: a gentler opening drops fewer and lower-value gems (mean gem
+  value per spawn 1.00 vs 1.48 at 1:30, 2.29 vs 3.56 at 3:00), so probation was buying its safety
+  with roughly one whole gun card (~×1.28 DPS at that stage) — handed over at precisely the moment
+  the game stops being gentle. It also ate a third of the first boss's softening (51.8 s instead of
+  the 40.7 s that ×0.60 implies).
+  Fixed by `GameConfig.PROBATION_XP_BONUS := 0.15`, granted run-long in `Main._ready` through
+  `player.upgrade_xp_gain` (the same multiplicative `xp_mult` channel NIGHT SCHOOL and the Fast
+  Learner card use) whenever `RunConfig.probation`. 0.15 is the smallest 0.05 step that reaches
+  level parity at 4:00 and holds power÷threat at ≥ 0.95× the normal row at all six sampled minutes;
+  the whole 0.00–0.35 sweep is printed in section 4 and the probe asserts the shipped constant IS
+  that smallest passing candidate, so the constant and the tuning cannot drift apart.
+
+FINDING 3 — the remaining 2:00 deviation is a limit of the THREAT PROXY, and is tolerated.
+  Threat in this model is "HP to clear per second", so each enemy row contributes its `hp_mult`.
+  The exploder is `hp_mult` 0.80 — one of only two sub-1.0 rows — so it *dilutes* the mean.
+  Delaying it to wave 7 while the brute (`hp_mult` 4.0) still arrives at wave 5 leaves probation's
+  wave-5 pool with a **higher** mean HP than normal's: 1.1355 vs 1.0971, +3.5%. The proxy scores an
+  exploder as *less* threat; in the hand it is a discrete blast (spec §3.1) this model does not
+  price at all. Wave 5 is also the first boss wave, and that boss — the wave's dominant threat — is
+  softened ×0.60 and is not in the trash threat number at all. The §4 check therefore requires
+  ≥ 0.95× the normal row rather than ≥ 1.00×; measured worst is 0.97× at 2:00.
 
 ================================================================================
-1. probe_survivability  (.superpowers/probe_survivability.tscn)  fails=0
+1. probe_survivability  (.superpowers/probe_survivability.tscn)  50 PASS, fails=0
 ================================================================================
 
 PASS  discrete 10 dmg on a 100 HP player -> HP 90 (got 90.00)
@@ -136,7 +150,7 @@ PASS  GameConfig.PLAYER_IFRAME_BLINK_HZ == 12.0
 PROBE DONE fails=0
 
 ================================================================================
-2. probe_speed_ramp  (.superpowers/probe_speed_ramp.tscn)  fails=0
+2. probe_speed_ramp  (.superpowers/probe_speed_ramp.tscn)  34 PASS, fails=0
 ================================================================================
 
 PASS  enemy_stats(1).move_speed == ENEMY_MOVE_SPEED (70) (got 70.000)
@@ -176,7 +190,7 @@ PASS  enemy_stats() still caps speed at ENEMY_SPEED_CAP
 PROBE DONE fails=0
 
 ================================================================================
-3. probe_probation  (.superpowers/probe_probation.tscn)  fails=0
+3. probe_probation  (.superpowers/probe_probation.tscn)  113 PASS, fails=0
 ================================================================================
 
 PASS  compute_probation(0) true on a brand-new endless save
@@ -282,14 +296,25 @@ PASS  _finish_run reads games_played() into played_before BEFORE add_game_played
 PASS  _finish_run reads games_played() into played_after AFTER add_game_played()
 PASS  _finish_run threads played_before/played_after into _populate_stub(...)
 PASS  PauseMenu.gd (no pay-stub on abandon) never references probation_just_completed or PROBATION_COMPLETE_LINE
+PASS  GameConfig.PROBATION_XP_BONUS exists and is a sane run-long bonus (0 < b <= 0.35), got 0.15
+PASS  a freshly booted Player starts at xp_mult 1.0 (got 1.000000)
+PASS  training pay raises the real Player.xp_mult by (1 + PROBATION_XP_BONUS): 1.000000 -> 1.150000 (want 1.150000)
+PASS  upgrade_xp_gain is multiplicative, so a second grant compounds (got 1.322500, want 1.322500)
+PASS  Main.gd grants training pay via player.upgrade_xp_gain(GameConfig.PROBATION_XP_BONUS)
+PASS  Main.gd's training-pay grant is gated by `if RunConfig.probation:` on the line directly above it
+PASS  Main.gd grants training pay AFTER Characters.apply_base (so NIGHT SCHOOL's xp_mult stacks, not overwritten)
+PASS  Main.gd's OVERTIME head start still lands BEFORE apply_base, so training pay can never inflate it
+PASS  Main.gd grants training pay exactly ONCE (got 1 occurrences)
+PASS  PROBATION_XP_BONUS is referenced ONLY by GameConfig.gd (declaration) and Main.gd (the grant); offenders: []
 PROBE DONE fails=0
 
 ================================================================================
-4. probe_power_curve  (.superpowers/probe_power_curve.tscn)  fails=1
-   The NEW report-only FRESH-ON-PROBATION section, then the whole CHECKS tail. The rest of
-   the run (live constants, model assumptions, derived card-pick model, power table, boss
-   TTK, boss XP, poison, overtime) is unchanged from the v0.1.74 record and is not repeated
-   here — see docs/superpowers/analysis/2026-09-19/power-curve-probe-v0.1.74.txt run B.
+4. probe_power_curve  (.superpowers/probe_power_curve.tscn)  46 PASS, fails=0
+   The NEW report-only FRESH-ON-PROBATION section (including the training-pay tuning
+   sweep), then the whole CHECKS tail. The rest of the run (live constants, model
+   assumptions, derived card-pick model, power table, boss TTK, boss XP, poison, overtime)
+   is unchanged from the v0.1.74 record and is not repeated here — see
+   docs/superpowers/analysis/2026-09-19/power-curve-probe-v0.1.74.txt run B.
 ================================================================================
 
 -- FRESH ON PROBATION (Survivability v0.1.75 §4; report + one check) --
@@ -309,41 +334,58 @@ ok    live-vs-bracket type-mix gap: worst 0.043% at w4 (report threshold 10%) --
     3:00 w7   normal pool ["shambler", "runner", "brute", "exploder", "hive"]            probation pool ["shambler", "runner", "brute", "exploder"]
     3:30 w8   normal pool ["shambler", "runner", "brute", "exploder", "hive"]            probation pool ["shambler", "runner", "brute", "exploder"]
     4:00 w9   normal pool ["shambler", "runner", "brute", "exploder", "hive"]            probation pool ["shambler", "runner", "brute", "exploder", "hive"]
+  TRAINING PAY sweep (controller ruling 1) -- candidate PROBATION_XP_BONUS vs the two
+  acceptance conditions: (a) probation level >= normal level at 4:00, (b) probation ratio >=
+  0.95 x normal ratio at all 6 sampled minutes. Smallest passing candidate wins.
+    +0%  lvl@4:00 13 vs 14 no    ratio/normal: 1:30 1.37  2:00 0.76  2:30 1.15  3:00 1.42  3:30 1.18  4:00 0.79   worst 0.758 no    => fail
+    +5%  lvl@4:00 14 vs 14 OK    ratio/normal: 1:30 1.37  2:00 0.76  2:30 1.15  3:00 1.44  3:30 1.18  4:00 1.00   worst 0.758 no    => fail
+    +10%  lvl@4:00 14 vs 14 OK    ratio/normal: 1:30 1.37  2:00 0.76  2:30 1.47  3:00 1.44  3:30 1.18  4:00 1.00   worst 0.758 no    => fail
+    +15%  lvl@4:00 14 vs 14 OK    ratio/normal: 1:30 1.37  2:00 0.97  2:30 1.47  3:00 1.44  3:30 1.20  4:00 1.00   worst 0.966 OK    => PASS
+    +20%  lvl@4:00 14 vs 14 OK    ratio/normal: 1:30 1.38  2:00 0.97  2:30 1.47  3:00 1.44  3:30 1.20  4:00 1.00   worst 0.966 OK    => PASS
+    +25%  lvl@4:00 15 vs 14 OK    ratio/normal: 1:30 1.38  2:00 0.97  2:30 1.47  3:00 1.83  3:30 1.20  4:00 1.01   worst 0.966 OK    => PASS
+    +30%  lvl@4:00 15 vs 14 OK    ratio/normal: 1:30 1.38  2:00 0.97  2:30 1.47  3:00 1.83  3:30 1.20  4:00 1.01   worst 0.966 OK    => PASS
+    +35%  lvl@4:00 15 vs 14 OK    ratio/normal: 1:30 1.38  2:00 0.97  2:30 1.48  3:00 1.83  3:30 1.20  4:00 1.01   worst 0.966 OK    => PASS
+    SMALLEST PASSING CANDIDATE = +15%. Shipped GameConfig.PROBATION_XP_BONUS = +15%.
+PASS  training pay: shipped GameConfig.PROBATION_XP_BONUS (0.15) IS the smallest sweep candidate that meets both conditions (0.15)
   THREAT ONLY (the schedule's effect with the player held equal) -- threat = spawns/s x trash HP
   x mix x elite EHP factor; spawns/s and trash HP are wave functions, identical in both columns:
     probation threat / normal threat: 1:30 0.730  2:00 1.035  2:30 0.869  3:00 0.695  3:30 0.837  4:00 1.000   (< 1.00 = probation is lighter)
   FRESH build, live-derived mix + live PER-TYPE gem income on BOTH columns (a softer mix and later
-  elites also pay LESS XP, so the probation column levels on its own, slower, curve):
-     t     w |  NORMAL:  mix  elite  threat  lvl     dps  ratio |  PROB:  mix  elite  threat  lvl     dps  ratio |  delta
-    1:30     4 |        1.135  0.000     102    4     117   1.14 |  0.829  0.000      75    4     117   1.56 |  +0.42
-    2:00     5 |        1.097  0.000     120    6     148   1.22 |  1.135  0.000     125    5     116   0.93 |  -0.30
-    2:30     6 |        1.097  0.080     175    7     146   0.84 |  1.135  0.000     152    7     146   0.96 |  +0.13
-    3:00     7 |        1.311  0.085     257   11     238   0.93 |  1.097  0.000     179   10     235   1.31 |  +0.39
-    3:30     8 |        1.311  0.090     316   13     299   0.95 |  1.097  0.090     264   12     296   1.12 |  +0.17
-    4:00     9 |        1.311  0.095     388   14     372   0.96 |  1.311  0.095     388   13     293   0.75 |  -0.20
+  elites pay LESS XP, which TRAINING PAY (+15% xp_mult, live GameConfig.PROBATION_XP_BONUS)
+  compensates for; the probation column still levels on its own curve):
+     t     w |  NORMAL:  mix  elite  threat  lvl     dps  ratio |  PROB:  mix  elite  threat  lvl     dps  ratio |  delta   p/n
+    1:30     4 |        1.135  0.000     102    4     117   1.14 |  0.829  0.000      75    4     117   1.56 |  +0.42  1.37
+    2:00     5 |        1.097  0.000     120    6     148   1.22 |  1.135  0.000     125    6     148   1.18 |  -0.04  0.97
+    2:30     6 |        1.097  0.080     175    7     146   0.84 |  1.135  0.000     152    8     186   1.23 |  +0.39  1.47
+    3:00     7 |        1.311  0.085     257   11     238   0.93 |  1.097  0.000     179   11     238   1.33 |  +0.41  1.44
+    3:30     8 |        1.311  0.090     316   13     299   0.95 |  1.097  0.090     264   13     299   1.13 |  +0.19  1.20
+    4:00     9 |        1.311  0.095     388   14     372   0.96 |  1.311  0.095     388   14     372   0.96 |  +0.00  1.00
     mean gem value per spawn, normal/probation: 1:30 1.48/1.00  2:00 2.00/2.13  2:30 2.79/2.23  3:00 3.56/2.29  3:30 3.72/3.29  4:00 3.96/3.96  
   FIRST BOSS (wave 5, t=2:00), FRESH x1.3 reference gear, HP mult from the live
   Spawner.first_boss_hp_mult(5, probation) = 0.60 (normal 1.00):
     without the mult: ref DPS 191.8    roster mean TTK =  67.8s   MANA=79 MASC=78 TANK=76 BROO=72 FRYE=70 HEAT=68 SHOP=66 KARE=64 BRUT=64 COUR=58 STOC=51 
-    with    the mult: ref DPS 150.5    roster mean TTK =  51.8s   MANA=60 MASC=60 TANK=58 BROO=55 FRYE=53 HEAT=52 SHOP=50 KARE=49 BRUT=49 COUR=44 STOC=39 
-    => the wave-5 fight is 16.0s shorter for a fresh hire (76% of the normal length).
-    at EQUAL DPS the mult alone would give 40.7s (x0.60 of 67.8s); the probation column's own
-    lower DPS (150.5 vs 191.8, one level behind) gives back 11.1s of that softening.
-  DIAGNOSIS -- the spec §4 row ('>= the non-probation FRESH row at every sampled minute') is
-  NOT met at every minute. Two independent causes, reported, NOT retuned in this release:
-  (1) THREAT-PROXY LIMIT at 2:00 (wave 5). Threat here is HP-to-clear per second, so a row's
-      contribution is its hp_mult. The exploder is hp_mult 0.80 -- one of only two sub-1.0 rows
-      -- so it DILUTES the mean. Delaying it to wave 7 while the brute (hp_mult 4.0) still
-      arrives at wave 5 leaves a wave-5 pool with a HIGHER mean HP (1.1355 vs 1.0971, +3.5%).
-      The proxy scores an exploder as LESS threat; in the hand it is a discrete blast (spec §3.1)
-      that this model does not price at all. Wave 5 is also the first BOSS wave, and the boss --
-      the dominant threat of that wave -- is softened x0.60 and is NOT in the trash threat number.
-  (2) XP LAG, cumulative, visible at 4:00 (wave 9) where the two schedules have already
-      CONVERGED (probation threat / normal threat = 1.000, identical pools) yet the probation
-      column is level 13 against 14. A lighter early game pays less XP (mean gem value 1.00 vs
-      1.48 at 1:30, 2.29 vs 3.56 at 3:00), so probation buys safety at the cost of ~1 level by
-      4:00. That is a REAL consequence of the shipped schedule, not a modelling artifact.
-      FRESH levels are ~x1.28 DPS each at this stage, so one level is the whole gap.
+    with    the mult: ref DPS 191.8    roster mean TTK =  40.7s   MANA=47 MASC=47 TANK=46 BROO=43 FRYE=42 HEAT=41 SHOP=40 KARE=38 BRUT=38 COUR=35 STOC=31 
+    => the wave-5 fight is 27.1s shorter for a fresh hire (60% of the normal length).
+    at EQUAL DPS the mult alone would give 40.7s (x0.60 of 67.8s). Probation ref DPS here is
+    191.8, level 6 against 6 -- TRAINING PAY holds level parity at this minute, so the fresh
+    hire gets the FULL x0.60 softening, not a fraction of it.
+  DIAGNOSIS -- this section first measured TWO deviations from the §4 row. One was fixed in
+  code (controller ruling 1); the other is a limit of the proxy and is covered by the
+  documented 0.95 tolerance (controller ruling 2).
+  (1) FIXED IN CODE -- XP LAG at 4:00 (wave 9), where the two schedules have already CONVERGED
+      (probation threat / normal threat = 1.000, identical pools). A lighter opening pays less
+      XP -- mean gem value 1.00 vs 1.48 at 1:30 and 2.29 vs 3.56 at 3:00 -- so a new hire used
+      to arrive at 4:00 level 13 against 14, one whole gun card (~x1.28 DPS) behind, exactly
+      when the game stops being gentle. TRAINING PAY (GameConfig.PROBATION_XP_BONUS = +15%,
+      granted run-long in Main._ready) closes it: now level 14 against 14.
+  (2) TOLERATED -- THREAT-PROXY LIMIT at 2:00 (wave 5). Threat here is HP-to-clear per second,
+      so a row's contribution is its hp_mult. The exploder is hp_mult 0.80 -- one of only two
+      sub-1.0 rows -- so it DILUTES the mean. Delaying it to wave 7 while the brute (hp_mult
+      4.0) still arrives at wave 5 leaves a wave-5 pool with a HIGHER mean HP (1.1355 vs 1.0971,
+      +3.5%). The proxy scores an exploder as LESS threat; in the hand it is a discrete blast
+      (spec §3.1) this model does not price at all. Wave 5 is also the first BOSS wave, and that
+      boss -- the dominant threat of the wave -- is softened x0.60 and is NOT in the trash threat
+      number. This is why the check allows 0.95 x rather than 1.00 x.
 ---------------------------------- CHECKS (spec §4) ----------------------------------
 PASS  [pistol] the model's pool IS Weapons.upgrades_for (8 ids)
 PASS  [pistol] every card id the model picked is in Weapons.upgrades_for (offending: [])
@@ -388,5 +430,10 @@ PASS  reduction card 'dash_cooldown': base 0.15 x Legendary top 3.00 = 0.450 < 1
 PASS  reduction card 'reload': base 0.20 x Legendary top 3.00 = 0.600 < 1.0 (never goes negative)
 PASS  reduction card 'choke': base 0.30 x Legendary top 3.00 = 0.900 < 1.0 (never goes negative)
 PASS  reduction-card guard scanned the whole card catalog (23 ids, 4 of them reductions)
-FAIL  FRESH power/threat on probation >= the normal FRESH row at every sampled minute ["1:30", "2:00", "2:30", "3:00", "3:30", "4:00"] (tightest: 2:00 0.928 vs 1.224)
-PROBE DONE fails=1
+PASS  FRESH power/threat on probation >= 0.95 x the normal FRESH row at every sampled minute ["1:30", "2:00", "2:30", "3:00", "3:30", "4:00"] (tightest: 2:00 1.183 vs 1.224 = 0.966 x)
+      WHY 0.95 AND NOT 1.00: threat in this model is HP-to-clear per second, so removing the
+      LOW-HP exploder (hp_mult 0.80) from the wave-5 pool RAISES mean spawn HP by 3.5% --
+      an artifact of the proxy, not extra danger. An exploder's real threat is its blast,
+      which this model does not price; and wave 5's dominant threat, the first boss, is
+      softened x0.60 and is not in the trash threat number at all.
+PROBE DONE fails=0
