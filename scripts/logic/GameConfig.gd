@@ -411,7 +411,7 @@ const CHARGE_HIT_RADIUS := 56.0        # px distance from the dashing boss count
 
 # --- Night-shift staff bosses (Pack 7) ---
 # The Manager: tanky/slow. Calls in staff adds, jams the gun, ground-slams.
-const MANAGER_HP := 7200.0             # 1.30x base — the tank of the roster (roster max). Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
+const MANAGER_HP := 6900.0             # 1.24x base — still the tank of the roster (roster max), just above Mascot (6850). Task 8 fix round 3: the other nine roster consts are a flat x3.70 rescale of their pre-v0.1.74 values, but the Manager's multiplier was TRIMMED 1.30 -> 1.24 inside the spec §5.5 band, because at 1.30 he was the one boss in the whole 4x11 grid outside the fight-length band (83s at wave 5, ceiling 80s).
 const MANAGER_SPEED_MULT := 0.6        # persistent chase-speed multiplier (slow)
 const MANAGER_SUMMON_COUNT := 3        # staff adds per summon cast
 const MANAGER_JAM_DURATION := 2.2      # "Written Up" gun-jam length
@@ -438,7 +438,7 @@ const COURIER_SLOW_DURATION := 3.0     # slow-aura debuff length
 const COURIER_SLOW_FACTOR := 0.4       # slow-aura move-speed cut
 
 # --- THE KAREN (boss #8, v0.1.60) ---
-const KAREN_HP := 5550.0               # 1.00x base — above Courier (5000), well under Manager (7200) — kit is the pressure, not the tank. Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
+const KAREN_HP := 5550.0               # 1.00x base — above Courier (5000), well under Manager (6900) — kit is the pressure, not the tank. Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const KAREN_SPEED_MULT := 0.85         # persistent chase-speed multiplier — quick for a boss
 const KAREN_REVIEW_SLOW_FACTOR := 0.55 # "LEAVING A REVIEW" move-speed factor on the player
 const KAREN_REVIEW_SLOW_DURATION := 2.5  # seconds the review slow lasts
@@ -460,7 +460,7 @@ const TANKER_POOL_RADIUS := 70.0         # px pool radius
 const TANKER_POOL_DURATION := 4.0        # seconds a pool burns after igniting
 const TANKER_IGNITE_DELAY := 0.9         # puddle→ignite windup: cross the wet fuel early or lose the lane
 const TANKER_JACKKNIFE_RETELEGRAPH := 0.4  # pause between the two JACKKNIFE dashes (re-aims at the player)
-const TANKER_HP := 6650.0              # 1.20x base — third-tankiest, behind Manager (7200) and Mascot (6850) — a truck. Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
+const TANKER_HP := 6650.0              # 1.20x base — third-tankiest, behind Manager (6900) and Mascot (6850) — a truck. Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const TANKER_SPEED_MULT := 0.5         # crawls between bursts; the dashes ARE the mobility
 const TANKER_CHARGE_SPEED := 600.0     # px/sec dash (under Courier's 650 but lasts longer)
 const TANKER_CHARGE_DURATION := 1.0    # seconds per dash — a long haul so the trail matters
@@ -842,7 +842,7 @@ const SHOPPER_REVEALED_SCALE := 2.4         # revealed Sprite2D scale (Courier's
 # (radius 46 / scale 2.4) — NOT compounded onto the current value, so the ladder always reads
 # off the same fixed base. Speed climbs via each phase's own speed_mult (BossBase's existing
 # mechanism — no extra code needed). HP is front-loaded: L1's slow bulk carries most of the bar.
-const MASCOT_HP := 6850.0                 # 1.23x base — 2nd-tankiest costume boss — between Tanker (6650) and Manager (7200). Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
+const MASCOT_HP := 6850.0                 # 1.23x base — 2nd-tankiest costume boss — between Tanker (6650) and Manager (6900). Task 8: x3.70 with BOSS_BASE_HP (rounded to 50)
 const MASCOT_SCALE_L1 := 1.15             # FULL SUIT — bulked up above the Courier-clone base
 const MASCOT_SCALE_L2 := 0.9              # HALF SUIT — shrinking toward base
 const MASCOT_SCALE_L3 := 0.7              # THE PERFORMER — tiny, runner-fast

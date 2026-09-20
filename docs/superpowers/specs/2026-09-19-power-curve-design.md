@@ -55,12 +55,11 @@ the probe): **FRESH** Rusted pistol, no meta · **MID** Lethal AK-47, 1 talent l
 power-curve probe showed that is unreachable with one `BOSS_BASE_HP` + one `BOSS_HP_GROWTH`, because
 the reference player's DPS does not grow geometrically — ×1.435/wave from w5→w10 (that step is a
 *build* change, FRESH → MID), then ×1.254 and ×1.204 — while a single constant can only bend the
-curve one way. The tuned pair (5550 / 1.29) is the scan optimum and measures roster means
-**68.5 / 40.2 / 46.3 / 65.3 s** at w5 / w10 / w15 / w20, all four inside the amended 40–70 s band;
-43 of the 44 per-boss cells are inside 30–80 s. Residual: **THE MANAGER at wave 5 is 83 s**, 3 s over
-the ceiling, and it is provably unfixable without a third lever — at G = 1.29 the w5 and w10 rows are
-locked at a 1.702 ratio, so `mean(w10) ≥ 40` forces `mean(w5) ≥ 68.1`, while Manager's 1.30× top
-multiplier needs `mean(w5) ≤ 65.9` for him to fit under 80 (a 3.3 % gap).
+curve one way. The tuned pair (5550 / 1.29), with the Manager multiplier trimmed to 1.24 (see §5.5),
+measures roster means **68.2 / 40.0 / 46.1 / 65.0 s** at w5 / w10 / w15 / w20 — all four inside the
+amended 40–70 s band — and **every one of the 44 per-boss cells inside 30–80 s** (range 30.2 s, the
+wave-10 Night Stocker, to 79.6 s, the wave-5 Manager). The probe is green on the amended row; the
+original 45–60 / 35–75 remains out of reach without a third boss lever.
 
 Accepted consequence of steep rarity: a Merciless gun still kills a w10 boss in ~10 s; a fresh save
 takes >60 s at w5.
@@ -179,13 +178,12 @@ takes >60 s at w5.
     `BOSS_LATE_HP_GROWTH` double-compounding branch stays deleted.
   - **tuned: `BOSS_HP_GROWTH = 1.29`, `BOSS_BASE_HP = 5550`** (×3.70; the ten roster consts scaled
     by the same factor and rounded to 50 — every per-boss mult within 0.006 of its old value, order
-    and the 0.8-1.3 band intact). Probe roster means **w5 68.5 s · w10 40.2 s · w15 46.3 s ·
-    w20 65.3 s**, per-boss 30-83 s. **Residual: one cell.** One geometric rate cannot track the
+    and the 0.8-1.3 band intact), plus the Manager trim below. Probe roster means **w5 68.2 s ·
+    w10 40.0 s · w15 46.1 s · w20 65.0 s**, every boss 30.2-79.6 s. One geometric rate cannot track the
     reference DPS, which grows ×1.435/wave from w5→w10 (that step is a *build* change, FRESH → MID),
     ×1.254 w10→w15 and ×1.204 w15→w20. **§4's boss row was amended** (see the note under the §4
-    table) to roster mean 40–70 s / every boss 30–80 s; the tuned pair is the scan optimum against
-    those bands, with one residual cell (w5 Manager 83 s vs 80 s). Closing that needs a third lever
-    — deliberately not added.
+    table) to roster mean 40–70 s / every boss 30–80 s, and the tuned pair is the scan optimum
+    against those bands.
   - **`BOSS_HP_GROWTH` stops at the last scheduled boss.** New `BOSS_HP_GROWTH_LAST_WAVE = 20` (the
     wave the chopper lands on). `boss_stats(wave)` applies `BOSS_HP_GROWTH` for at most that many
     waves and `ENEMY_HP_GROWTH` for the remainder, so waves ≤ 20 are unchanged and late endless goes
@@ -204,6 +202,14 @@ takes >60 s at w5.
     Retuning endless can no longer silently retune Boss Rush.
 - Per-boss HP multipliers narrowed from 0.73–2.0 to **0.8–1.3**, order preserved (Manager tankiest …
   Night Stocker squishiest).
+  - **tuned:** nine of the ten roster consts are a flat ×3.70 rescale with `BOSS_BASE_HP`, so their
+    multipliers are unchanged. `MANAGER_HP` is the one deliberate exception: **trimmed 1.30 → 1.24
+    (6900 / 5550)**, still the roster max (just above Mascot's 1.234) and still inside the 0.8–1.3
+    band. At 1.30 the wave-5 Manager was the single cell of the 44 outside the fight-length band
+    (83 s against an 80 s ceiling); at 1.24 he is 79.6 s and the whole grid fits.
+  - Final roster: Manager 6900 · Mascot 6850 · Tanker 6650 · Brood Mother 6300 · Fryer 6100 ·
+    Heat Tyrant 5900 · Mystery Shopper 5750 · Karen 5550 · Brute 5550 (= base) · Courier 5000 ·
+    Night Stocker 4450.
 - Boss attack damage, speed, patterns: unchanged (spec 2).
 
 ## 6. Out of scope
