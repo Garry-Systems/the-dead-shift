@@ -423,6 +423,12 @@ func _die() -> void:
 	if _is_dead:
 		return
 	_is_dead = true
+	# Survivability fix round 1: pausing below stops _physics_process (and therefore the hit
+	# i-frame blink tick) dead. A corpse that happened to die on the blink's dim phase would stay
+	# stuck at IFRAME_BLINK_ALPHA forever with no further frame to reset it — clear the window and
+	# force one last blink update to opaque before the pause takes effect.
+	_hit_iframe_time = 0.0
+	_update_iframe_blink()
 	get_tree().paused = true
 	died.emit()
 
