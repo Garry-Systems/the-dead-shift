@@ -16,7 +16,7 @@ func _ready() -> void:
 	var loc := Locations.by_id(RunConfig.location)
 	if loc.is_empty():
 		loc = Locations.by_id("forecourt")
-	_apply_location(loc)
+	var location_banner_shown := _apply_location(loc)
 	# OVERTIME (Pack G): preset run_time AND the derived wave BEFORE any wave-reading system's
 	# first tick (Spawner's boss/elite gates, NightEvents' wave-diff check) — set explicitly here
 	# rather than waiting a frame for DifficultyManager's own _process to recompute wave, so
@@ -60,18 +60,24 @@ func _ready() -> void:
 		# PROBATION (Survivability, v0.1.75): the one player-facing surface of the flag — a
 		# multi-second HUD banner (Hud.show_banner, the same idiom NightEvents/Extraction use —
 		# see _show_probation_banner below), NOT CombatText.callout: that's a pooled 0.6s proc-word
-		# system, the wrong tool for a two-line sentence meant to actually be read. Delayed
-		# GameConfig.PROBATION_BANNER_DELAY seconds via a pause-safe SceneTreeTimer (process_always
-		# = false, same idiom AirDropMarker's telegraph uses — a pause/level-up card HOLDS the
-		# countdown instead of burning it down behind the overlay) because on a BRAND-NEW save
-		# (games_played == 0, where probation is unconditionally true) Hud._ready() — a sibling
-		# child that readies before this parent — has ALREADY called FirstRunHints.setup(), which
-		# shows "DRAG ANYWHERE TO MOVE" synchronously; firing this banner on the same frame would
-		# stack two full-screen scrims immediately. The delay does not GUARANTEE zero overlap
-		# (hint 1 clears on the player's own cumulative move time, not a fixed clock) but avoids
-		# the worst case of both landing in the literal same frame.
+		# system, the wrong tool for a two-line sentence meant to actually be read. Banners are
+		# independent full-screen overlays that never queue themselves — two shown at once stack
+		# (double scrim, overlapping centered text) — so this NEVER fires alongside another one;
+		# it SEQUENCES after whichever banner already claimed the screen, via a pause-safe
+		# SceneTreeTimer (process_always = false, same idiom AirDropMarker's telegraph uses — a
+		# pause/level-up card HOLDS the countdown instead of burning it down behind the overlay):
+		# - `location_banner_shown` (_apply_location's TONIGHT'S SHIFT banner, non-forecourt only)
+		#   waits the full PROBATION_BANNER_DELAY_AFTER_LOCATION (that banner's own 3.0s lifetime,
+		#   plus a hair of margin) so probation announces itself once it's gone.
+		# - otherwise the shorter PROBATION_BANNER_DELAY (1.5s) — chosen against FirstRunHints'
+		#   "DRAG ANYWHERE TO MOVE" strip, already showing on a brand-new save by the time this
+		#   runs (Hud is a sibling child that readies — and calls FirstRunHints.setup() — before
+		#   this parent). That strip clears on the player's own cumulative move time, not a fixed
+		#   clock, so this delay reduces but doesn't guarantee zero overlap with it — accepted, see
+		#   the Task 4 report's "for the designer's phone pass" note.
 		if RunConfig.probation:
-			get_tree().create_timer(GameConfig.PROBATION_BANNER_DELAY, false, false).timeout.connect(_show_probation_banner)
+			var delay := GameConfig.PROBATION_BANNER_DELAY_AFTER_LOCATION if location_banner_shown else GameConfig.PROBATION_BANNER_DELAY
+			get_tree().create_timer(delay, false, false).timeout.connect(_show_probation_banner)
 		# OVERTIME (Pack G, final-review fix): headstart XP BEFORE Characters.apply_base — that call
 		# multiplies player.xp_mult by NIGHT SCHOOL's Benefits.xp_mult(), and OVERTIME_HEADSTART_XP is
 		# calibrated assuming xp_mult == 1.0 (see its doc comment). Granting it after apply_base let
@@ -114,14 +120,12 @@ func _show_probation_banner() -> void:
 ##   effect is presetting DifficultyManager.run_time to OVERTIME_START_SECONDS (240s, "2:00 AM")
 ##   — well short of ShiftClock.dawn_run_time() (480s), the sole other banner trigger in this
 ##   codebase (Hud's DAWN banner / Extraction's CHOPPER INBOUND, both gated on that same crossing
-##   and un-fireable on frame 1 even under OVERTIME's headstart). CORRECTION (Survivability,
-##   v0.1.75): this is no longer true unconditionally — _show_probation_banner below is now ALSO
-##   a run-start banner, fired GameConfig.PROBATION_BANNER_DELAY seconds later. A probation-era
-##   save (games_played < GameConfig.PROBATION_SHIFTS) that has unlocked a non-forecourt location
-##   (rank >= GameConfig.LOC_MART_RANK is reachable well inside the first 10 games) CAN see this
-##   TONIGHT'S SHIFT banner still fading (BANNER_HOLD 2.6s + BANNER_FADE 0.4s = 3.0s from t=0)
-##   when the probation banner fires at PROBATION_BANNER_DELAY (1.5s) — flagged, not yet fixed;
-##   see the Task 4 report.
+##   and un-fireable on frame 1 even under OVERTIME's headstart). SEQUENCING (Survivability,
+##   v0.1.75): _show_probation_banner is ALSO a run-start banner now, and banners are independent
+##   full-screen overlays that never queue themselves (two at once = stacked text + double scrim)
+##   — so the return value below tells _ready() whether THIS banner fired, and it delays the
+##   probation banner by GameConfig.PROBATION_BANNER_DELAY_AFTER_LOCATION (this banner's own
+##   ~3.0s lifetime) instead of the shorter PROBATION_BANNER_DELAY, so the two never stack.
 ## - Bias: hands the row's spawn_mults/obstacle_mults dicts to the three Enemies.pick/
 ##   Obstacles.pick call sites (Spawner, ObstacleField, Basement — verified exhaustively, see
 ##   Locations.gd's field doc). forecourt's spawn_mults AND obstacle_mults are both {} — Enemies'/
@@ -132,9 +136,12 @@ func _show_probation_banner() -> void:
 ##   ObstacleField._ready() — same read-once-at-run-start moment as its `_gimmick`, NOT threaded
 ##   through this function), rather than via a per-location mults pin, so forecourt's
 ##   obstacle_mults no longer needs a "shelf": 0.0 entry to stay byte-identical.
-func _apply_location(loc: Dictionary) -> void:
+## Returns true iff the TONIGHT'S SHIFT banner was actually shown this run (non-forecourt AND the
+## "hud" group resolved) — _ready() uses this to pick the probation banner's delay.
+func _apply_location(loc: Dictionary) -> bool:
 	if loc.is_empty():
-		return
+		return false
+	var banner_shown := false
 	if String(loc.get("id", "forecourt")) != "forecourt":
 		var ground_path := String(loc.get("ground", ""))
 		if ground_path != "" and ResourceLoader.exists(ground_path):
@@ -154,6 +161,7 @@ func _apply_location(loc: Dictionary) -> void:
 		var hud := get_tree().get_first_node_in_group("hud")
 		if hud != null:
 			hud.call("_show_banner", "TONIGHT'S SHIFT: %s" % String(loc.get("name", "")), String(loc.get("banner_sub", "")))
+			banner_shown = true
 	var spawn_mults: Dictionary = loc.get("spawn_mults", {})
 	var obstacle_mults: Dictionary = loc.get("obstacle_mults", {})
 	var spawner := get_tree().get_first_node_in_group("spawner")
@@ -165,6 +173,7 @@ func _apply_location(loc: Dictionary) -> void:
 	var basement := get_tree().get_first_node_in_group("basement")
 	if basement != null:
 		basement.location_spawn_mults = spawn_mults
+	return banner_shown
 
 ## Configures the gun from the player's equipped loot weapon, then applies the character's
 ## weapon-specific perk (this is what the old weapon-select StartUI used to do). The menu
