@@ -58,6 +58,7 @@ var shot_sfx_id := "shot_pistol"  # SoundManager id for this weapon's fire sound
 var loot_rarity := 0
 var loot_name := ""
 var talent_payload := {}           # resolved active-talent effects (see TalentEngine)
+var _kill_shot_mult_granted := false   # Kill Shot card: the x2 crit multiplier is granted once, by the first pick
 var _frenzy_mult := 0.0            # Bloodrush fire-rate surge (fraction; 0 = none)
 var _frenzy_time := 0.0
 var _surge_pierce := 0             # Overflow: bonus pierce on the next shots
@@ -530,16 +531,21 @@ func upgrade_reload_speed(pct: float) -> void:
 func upgrade_mag_size(pct: float) -> void:
 	mag_size = int(ceil(mag_size * (1.0 + pct)))   # ceil so small mags still gain >= 1
 
-## "Kill Shot" level-up card (Power Curve, chance-only): folds a gun-level crit-CHANCE bonus
-## directly into talent_payload so TalentEngine.roll_damage consumes it through the SAME roll as
-## talent crit (Killshot) — crit_chance adds, stacking exactly like multiple crit talents already
-## do in TalentEngine.resolve_payload. No longer touches crit_mult: the old flat mult_bonus made
-## every pick an outright damage-doubler on top of the chance, which the rolled-value pass
-## replaced with an honest chance-only card (weapon "crit" talents still grow crit_mult on their
-## own). Safe to mutate talent_payload directly here: apply_loot() (which rebuilds talent_payload
-## from scratch) only runs once, at run start, before any level-up card can possibly fire.
+## "Kill Shot" level-up card: folds a gun-level crit-CHANCE bonus directly into talent_payload so
+## TalentEngine.roll_damage consumes it through the SAME roll as talent crit (Killshot) —
+## crit_chance adds on EVERY pick, stacking exactly like multiple crit talents already do in
+## TalentEngine.resolve_payload. The x2 crit-multiplier bonus is granted ONCE, by the first pick
+## of the run only (_kill_shot_mult_granted) — without it, a crit on a gun with no crit talent
+## would deal the same damage as a normal hit (TalentEngine.roll_damage's crit_mult defaults to
+## 1.0), making a chance-only card do nothing; later picks add chance only, matching the card's
+## "(2x Damage)" text without re-doubling an already-doubled crit. Safe to mutate talent_payload
+## directly here: apply_loot() (which rebuilds talent_payload from scratch) only runs once, at run
+## start, before any level-up card can possibly fire.
 func upgrade_crit(chance_pct: float) -> void:
 	talent_payload["crit_chance"] = float(talent_payload.get("crit_chance", 0.0)) + chance_pct
+	if not _kill_shot_mult_granted:
+		_kill_shot_mult_granted = true
+		talent_payload["crit_mult"] = float(talent_payload.get("crit_mult", 1.0)) + GameConfig.CARD_CRIT_MULT_BONUS_ONCE
 
 func _fire_lightning(dir: Vector2) -> bool:
 	# POWER SURGE (night event, Pack A): +2 chain jumps, additive at fire time only — jump_count
