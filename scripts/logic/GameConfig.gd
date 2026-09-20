@@ -44,6 +44,7 @@ const CARD_BARREL_SHARE := [[0.40, 0.55], [0.55, 0.70], [0.70, 0.90], [1.0, 1.0]
 const CARD_CRIT_CHANCE := [[3.0, 4.0], [4.0, 6.0], [7.0, 9.0], [11.0, 15.0]]       # Kill Shot: crit-chance points (chance only, no mult growth)
 const CARD_CRIT_MULT_BONUS_ONCE := 1.0   # Kill Shot: crit-multiplier bonus granted ONCE by the first pick (x2 crits); later picks add chance only
 const CARD_SECOND_WIND_TIER := 2                      # Second Wind never rolls; always shown as EPIC
+const CARD_LEGENDARY_FLASH_ALPHA := 0.35   # Legendary card offer: peak alpha of the white screen flash
 const UPGRADE_MOVE_SPEED_PCT := 0.10   # "Swift Feet" base (was hardcoded in UpgradeApply)
 const UPGRADE_MAX_HEALTH := 20.0       # "Tough Hide" base (was hardcoded)
 const UPGRADE_REGEN := 1.0             # "Regeneration" base HP/sec (was hardcoded)

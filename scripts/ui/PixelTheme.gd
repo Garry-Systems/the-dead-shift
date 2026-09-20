@@ -91,6 +91,14 @@ static func style_cursed_button(b: Button, min_size: Vector2 = Vector2(806, 135)
 	b.add_theme_color_override("font_focus_color", ACCENT)
 	b.add_theme_color_override("font_disabled_color", TEXT_DIM)
 
+## Level-up card tinted by its rolled rarity tier (Power Curve): style_button's frame with the
+## tier color as a 4px border in every state. Loot-rarity colors are palette-exempt.
+static func style_tier_button(b: Button, tier_color: Color, min_size: Vector2, font_size: int = 39) -> void:
+	style_button(b, min_size, font_size)
+	b.add_theme_stylebox_override("normal", _box(BTN_BG, tier_color, 4))
+	b.add_theme_stylebox_override("hover", _box(BTN_HOVER, tier_color, 4))
+	b.add_theme_stylebox_override("pressed", _box(tier_color, tier_color, 4))
+
 ## Title text: Press Start 2P, amber, with a hard 1:1 pixel drop shadow.
 static func style_title(l: Label, size: int = 40) -> void:
 	l.add_theme_font_override("font", title_font())

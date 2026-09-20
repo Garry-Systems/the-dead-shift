@@ -12,8 +12,17 @@ var _root: Control
 var _title: Label
 var _buttons: Array[Button] = []
 var _card_titles: Array[Label] = []
+var _tier_labels: Array[Label] = []
 var _descs: Array[Label] = []
+var _bands: Array[Label] = []
 var _reroll_btn: Button
+
+# Power Curve (Task 3): every offered card is rolled through CardRolls.roll, which needs an
+# RNG. A per-instance member (randomized once in _ready) instead of a fresh local created
+# inside _pick_three each call — this UI is rebuilt fresh every run (see _rerolls_left above),
+# so a _ready()-time randomize is still effectively per-run, just without re-instantiating a
+# RandomNumberGenerator on every card offer/reroll.
+var _rng := RandomNumberGenerator.new()
 
 # SECOND OPINION (Employee Benefits Pack A): per-run reroll charges. Read ONCE here at
 # _ready() — Main.tscn (and this UI with it) is reloaded fresh at the start of every run
@@ -34,6 +43,7 @@ func _ready() -> void:
 	if _player:
 		_player.leveled_up.connect(_on_player_leveled_up)
 
+	_rng.randomize()
 	_build_ui()
 	_rerolls_left = Benefits.reroll_charges()
 	_update_reroll_button()
@@ -73,7 +83,11 @@ func _build_ui() -> void:
 	for i in 3:
 		var b := Button.new()
 		b.clip_contents = true
-		PixelTheme.style_button(b, Vector2(760, 188))   # pass size — the default would force 806x135 (too short)
+		# Card height 188 -> 214 (Power Curve, Task 3): fits the new tier/title/desc/band 4-row
+		# stack. Actual border color comes from PixelTheme.style_tier_button in _paint_cards —
+		# this initial style_button call is overwritten before the card is ever shown (root
+		# starts hidden; _show_next always repaints via _refresh_cards -> _paint_cards first).
+		PixelTheme.style_button(b, Vector2(760, 214))
 		b.text = ""
 		b.pressed.connect(_on_card_pressed.bind(i))
 
@@ -88,6 +102,15 @@ func _build_ui() -> void:
 		content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(content)
 
+		# Tier label (Power Curve): COMMON/RARE/EPIC/LEGENDARY, tinted to match the card's
+		# rolled rarity color in _paint_cards.
+		var tier_lbl := Label.new()
+		tier_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tier_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		PixelTheme.style_label(tier_lbl, 20, PixelTheme.TEXT_DIM)
+		content.add_child(tier_lbl)
+		_tier_labels.append(tier_lbl)
+
 		var name_lbl := Label.new()
 		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -100,9 +123,19 @@ func _build_ui() -> void:
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.custom_minimum_size = Vector2(700, 0)
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		PixelTheme.readable_label(desc, 24, PixelTheme.TEXT)
+		# Font 24 -> 30 (Power Curve, Task 3): the rolled number IS the headline now.
+		PixelTheme.readable_label(desc, 30, PixelTheme.TEXT)
 		content.add_child(desc)
 		_descs.append(desc)
+
+		# Band label (Power Curve): the tier's roll range in small text, e.g. "band 10-16%".
+		# Hidden for cards that never roll (band == "", e.g. Second Wind).
+		var band_lbl := Label.new()
+		band_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		band_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		PixelTheme.readable_label(band_lbl, 18, PixelTheme.TEXT_DIM)
+		content.add_child(band_lbl)
+		_bands.append(band_lbl)
 
 		_buttons.append(b)
 		vbox.add_child(b)
@@ -110,11 +143,12 @@ func _build_ui() -> void:
 	# SECOND OPINION: half-height pixel button under the card row. Hidden whenever the
 	# player has no charges left (default 0 charges = never shown, matching every other
 	# unowned Benefits track reading as absent rather than as a dead/disabled control).
-	# Deep Clean (Task 3): clip_contents=true + height 94 (exact half of the 188px card buttons
-	# above, matching their own clip_contents=true) — was 92 (uncropped, off by 2 from "exact half").
+	# Deep Clean (v0.1.67): clip_contents=true + exact-half height of the card buttons above
+	# (matching their own clip_contents=true). Power Curve (Task 3): card height 188 -> 214,
+	# so this stays exactly half: 94 -> 107.
 	_reroll_btn = Button.new()
 	_reroll_btn.clip_contents = true
-	PixelTheme.style_button(_reroll_btn, Vector2(760, 94), 24)
+	PixelTheme.style_button(_reroll_btn, Vector2(760, 107), 24)
 	_reroll_btn.pressed.connect(_on_reroll_pressed)
 	vbox.add_child(_reroll_btn)
 
@@ -131,16 +165,43 @@ func _show_next() -> void:
 	_root.visible = true
 	get_tree().paused = true
 
-## Populates the 3 card labels from a fresh `_pick_three` draw for `_current_level`, and
-## syncs the reroll button. Shared by the initial offer (`_show_next`) and a reroll
-## (`_on_reroll_pressed`) — both just need the SAME offer parity redrawn, repeats allowed.
+## Rolls a fresh `_pick_three` draw for `_current_level`, repaints the 3 cards, and syncs the
+## reroll button. Shared by the initial offer (`_show_next`) and a reroll (`_on_reroll_pressed`)
+## — both just need the SAME offer parity redrawn, repeats allowed (a reroll re-rolls tiers and
+## values too — intended).
 func _refresh_cards() -> void:
 	_current_cards = _pick_three(_current_level)
+	_paint_cards()
+	_update_reroll_button()
+
+## Paints the 3 already-rolled `_current_cards` onto the card buttons: tier label + colored
+## border (rolled rarity), title, the rolled number as the headline `desc`, and the small-text
+## roll `band` (hidden for cards that never roll, e.g. Second Wind). A Legendary among the three
+## gets a sting + a full-screen white flash — same trigger for the initial offer and a reroll,
+## since both go through here.
+func _paint_cards() -> void:
+	var best_tier := 0
 	for i in 3:
 		var c: Dictionary = _current_cards[i]
+		var tier := int(c.get("tier", 0))
+		best_tier = maxi(best_tier, tier)
+		var col: Color = GameConfig.CARD_TIER_COLORS[tier]
+		PixelTheme.style_tier_button(_buttons[i], col, Vector2(760, 214))
+		_tier_labels[i].text = String(GameConfig.CARD_TIER_NAMES[tier])
+		_tier_labels[i].add_theme_color_override("font_color", col)
 		_card_titles[i].text = String(c["title"]).to_upper()
 		_descs[i].text = String(c["desc"])
-	_update_reroll_button()
+		_bands[i].text = String(c.get("band", ""))
+		_bands[i].visible = _bands[i].text != ""
+	if best_tier == 3:
+		SoundManager.play("relic_choice")   # Legendary offer sting (existing SFX id)
+		# ScreenFlash (scripts/ScreenFlash.gd) has no static flash(tree,color) helper and no
+		# color param — it's always a white full-screen flash, and `alpha` must be set BEFORE
+		# add_child (read in its own _ready()). It's PROCESS_MODE_ALWAYS, so it still fades out
+		# while this screen has the tree paused.
+		var f := ScreenFlash.new()
+		f.alpha = GameConfig.CARD_LEGENDARY_FLASH_ALPHA
+		add_child(f)
 
 func _update_reroll_button() -> void:
 	_reroll_btn.visible = _rerolls_left > 0
@@ -175,8 +236,4 @@ func _on_card_pressed(index: int) -> void:
 func _pick_three(level: int) -> Array:
 	var pool := Upgrades.cards_for_level(level, _player, RunConfig.hardcore)
 	pool.shuffle()
-	# Task 3 owns the roll-presentation UI; this temporary roll keeps the game playable this
-	# commit (desc already shows the rolled text — see CardRolls.roll).
-	var rng := RandomNumberGenerator.new()
-	rng.randomize()
-	return pool.slice(0, 3).map(func(c): return CardRolls.roll(c, rng))
+	return pool.slice(0, 3).map(func(c): return CardRolls.roll(c, _rng))
