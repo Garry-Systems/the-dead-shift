@@ -21,6 +21,7 @@ const GUN_RANGE := 600.0              # px; bullet max travel distance
 const BULLET_SPEED := 800.0           # px/sec
 const BULLET_DAMAGE := 25.0
 const BULLET_LIFETIME := 1.5          # seconds before a bullet despawns
+const GUN_MAX_SHOTS_PER_FRAME := 4    # Power Curve: bounded per-frame fire catch-up — a long frame hitch drops the remaining debt instead of banking a burst
 
 # --- Weapon upgrade cards (Phase 3 step 2; distinct from loot "talents") ---
 const UPGRADE_DAMAGE_PCT := 0.20       # "Hollow Points" damage card
@@ -933,7 +934,7 @@ const ABILITY_JACKPOT_NUKE_FORCE := 1400.0        # NUKE: Shockwave.blast knockb
 const ABILITY_JACKPOT_FREEZE_DUR := 3.0           # DEEP FREEZE: apply_freeze duration
 const ABILITY_JACKPOT_PAYDAY_COINS := 2           # PAYDAY: bonus coins per kill while armed
 const ABILITY_JACKPOT_PAYDAY_DURATION := 10.0     # PAYDAY: window length (seconds)
-const ABILITY_JACKPOT_FRENZY := 0.4               # TRIGGER HAPPY: gun.add_frenzy fire-rate bonus
+const ABILITY_JACKPOT_FRENZY := 0.667             # TRIGGER HAPPY: gun.add_frenzy fire-rate bonus. Honest-frenzy math (Power Curve D6, interval/(1+mult) not interval*(1-mult)) means the old 0.4 (which gave x1.667 under the OLD formula) must become 0.667 to keep the ability's real x1.667 strength unchanged
 const ABILITY_JACKPOT_FRENZY_DUR := 6.0           # TRIGGER HAPPY: frenzy duration (seconds)
 
 # CLOSING TIME (The Janitor): one giant slick + a per-kill coin window inside it (Task 8).

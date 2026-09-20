@@ -238,16 +238,47 @@ func _process(delta: float) -> void:
 	if fire_mode == "projectile" and bullet_scene == null:
 		return
 
-	# Hold fire while moving (stop-to-shoot) or before the player has aimed.
+	# Hold fire while moving (stop-to-shoot) or before the player has aimed. Clamp the carried
+	# debt to 0 while holding — the ORIGINAL behavior is that a gun that's been holding fire
+	# shoots immediately the instant the player stops, so banked negative debt here would let a
+	# long hold fire off a burst the moment the trigger is pulled again.
 	if hold_fire or aim_direction == Vector2.ZERO:
+		_cooldown = maxf(_cooldown, 0.0)
 		return
 
-	if not _fire(aim_direction):
-		return                      # no shot happened (e.g. Tesla with no target) — don't waste ammo/cooldown
-	_cooldown = (fire_interval * (1.0 - _frenzy_mult)) if _frenzy_time > 0.0 else fire_interval
-	_ammo -= 1
-	if _ammo <= 0:
-		_start_reload()
+	# Frame-rate independent fire cadence (Power Curve): carry the overshoot into the next
+	# interval and allow a bounded catch-up burst, so a 0.05-0.07s gun fires the same shots/sec
+	# at 60 and 120 fps (resetting to the full interval every shot cost the LMG/Nailgun ~16% of
+	# their shots at 60 fps). Talent/ability frenzy is HONEST (D6): +70% = 1.7x shots/sec —
+	# computed once per frame, not re-derived per shot.
+	var interval := (fire_interval / (1.0 + _frenzy_mult)) if _frenzy_time > 0.0 else fire_interval
+	var due := shots_due(_cooldown, interval, GameConfig.GUN_MAX_SHOTS_PER_FRAME)
+	var shots: int = due[0]
+	var new_cooldown: float = due[1]
+	for _i in shots:
+		if not _fire(aim_direction):
+			_cooldown = 0.0
+			return                  # no shot happened (e.g. Tesla with no target) — don't waste ammo/cooldown
+		_ammo -= 1
+		if _ammo <= 0:
+			_cooldown = maxf(new_cooldown, 0.0)   # never carry fire debt through a reload (would burst on the first frame after it)
+			_start_reload()
+			return
+	_cooldown = new_cooldown
+
+## Frame-rate-independent fire cadence (Power Curve). Given the current (<= 0 means due) cooldown,
+## returns [shots_due, new_cooldown]: fire `shots_due` times this frame, then keep `new_cooldown`.
+## Overshoot carries into the next interval; at most `max_shots` fire per frame, and hitting that
+## cap drops the remaining debt (a long frame hitch must not bank a burst).
+static func shots_due(cooldown: float, interval: float, max_shots: int) -> Array:
+	if cooldown > 0.0 or interval <= 0.0 or max_shots <= 0:
+		return [0, cooldown]
+	var due := int(floor(-cooldown / interval)) + 1
+	var shots := mini(due, max_shots)
+	var next := cooldown + float(shots) * interval
+	if due > max_shots:
+		next = maxf(next, 0.0)
+	return [shots, next]
 
 ## Graveyard Shift (`lowhp_frenzy`): while the player is below the rolled HP threshold, refresh
 ## the shared frenzy channel (max-wins across Bloodrush/Adrenaline/Rampage — a deliberate,
