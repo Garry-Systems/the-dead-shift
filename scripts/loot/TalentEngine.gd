@@ -227,8 +227,9 @@ static func process_hit(body, hit_pos: Vector2, base_damage: float, killed: bool
 	# Constant-stream guns (Flamethrower, fire_mode == "cone") have no real fire rate — they'd
 	# otherwise roll every proc on every ~0.05s tick per target (~20 rolls/sec). Gun._fire_cone
 	# passes proc_scale = fire_interval so a talent's listed chance means "per second, per
-	# target" for cone guns (Power Curve D4). ON-KILL procs (explode/ammo/bolt/pool) are exempt:
-	# they're gated by `killed`, a per-enemy event, not a per-tick roll, so they're never scaled.
+	# target" for cone guns (Power Curve D4). proc_scale applies to ON-HIT rolls only. Kill-gated
+	# arms (explode/ammo/bolt/pool/spread/mine) are per-enemy events, not per-tick, and always
+	# roll their listed chance unscaled.
 	var scale: float = float(ctx.get("proc_scale", 1.0))
 	for proc in payload.get("procs", []):
 		match String(proc["kind"]):
@@ -298,10 +299,10 @@ static func process_hit(body, hit_pos: Vector2, base_damage: float, killed: bool
 				if killed and _roll(proc["chance"]) and tree != null:
 					_spawn_bile_pool(hit_pos, proc, tree)
 			"spread":
-				if killed and _roll(float(proc["chance"]) * scale) and body.has_method("status_snapshot"):
+				if killed and _roll(proc["chance"]) and body.has_method("status_snapshot"):
 					_spread_status(hit_pos, body, body.status_snapshot(), float(proc["radius"]), tree)
 			"mine":
-				if killed and _roll(float(proc["chance"]) * scale):
+				if killed and _roll(proc["chance"]):
 					Mine.spawn(hit_pos, float(proc["dmg"]), float(proc["radius"]), tree)
 			"fear":
 				if alive and _roll(float(proc["chance"]) * scale) and body.has_method("apply_fear"):
