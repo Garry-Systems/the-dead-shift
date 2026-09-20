@@ -32,8 +32,11 @@ Weapons.upgrades_for(<build weapon>) and checks its own offer rates against the 
 
 FINAL CONSTANTS (old -> new) — the complete list, relative to v0.1.73:
   scripts/logic/GameConfig.gd
-    XP_BASE                  8      -> 11
-    XP_GROWTH                1.17   -> 1.16
+    XP_BASE                  5      -> 11    v0.1.73 was LINEAR (XP_BASE 5 + XP_PER_LEVEL 3 per
+                                              extra level), not geometric — XP_GROWTH did not exist
+                                              until this spec, so there is no single old->new pair
+                                              for the growth rate itself (see XP_GROWTH below)
+    XP_GROWTH                (n/a)  -> 1.16  new constant, replaces v0.1.73's flat XP_PER_LEVEL 3
     OVERTIME_HEADSTART_XP    124    -> 160   (sum xp_for_level(0..7) = 157, rounded up to a multiple
                                               of 5; level 8 costs 36 more, so 160 can't buy a 9th)
     UPGRADE_DAMAGE_PCT       0.20   -> 0.60  } the ONLY two card bases raised, ratio held at 4:3.
@@ -49,16 +52,18 @@ FINAL CONSTANTS (old -> new) — the complete list, relative to v0.1.73:
                                               run out, so bosses fall back to ENEMY_HP_GROWTH
     BOSS_RUSH_BASE_HP        (new)  -> 1500  Boss Rush's own wave-1 boss HP (its curve is outside
                                               this spec and keeps the pre-v0.1.74 numbers)
-    MANAGER_HP               1950   -> 5150  (mult TRIMMED 1.30 -> 1.24, still the roster max)
-    MASCOT_HP                1850   -> 5100  } these nine are a flat x2.77 rescale with
-    TANKER_HP                1800   -> 4950  } BOSS_BASE_HP, rounded to 50 — every multiplier
-    BROOD_HP                 1700   -> 4700  } within 0.006 of its pre-v0.1.74 value, order
-    FRYER_HP                 1650   -> 4550  } unchanged, band 0.8-1.3 held
-    HEAT_HP                  1600   -> 4400  }
-    SHOPPER_HP               1550   -> 4300  }
-    KAREN_HP                 1500   -> 4150  }
-    COURIER_HP               1350   -> 3750  }
-    STOCKER_HP               1200   -> 3350  }
+    MANAGER_HP               3000   -> 5150  (mult vs BOSS_BASE_HP TRIMMED 1.30 -> 1.24 in Task 8,
+                                              still the roster max — see note below)
+    MASCOT_HP                2600   -> 5100  } NOTE: this spec first re-based all ten roster consts
+    TANKER_HP                2400   -> 4950  } once (an earlier task, before Task 8) to
+    BROOD_HP                 2200   -> 4700  } 1950/1850/1800/1700/1650/1600/1550/1500/1350/1200 —
+    FRYER_HP                 2000   -> 4550  } THEN Task 8 rescaled THOSE intermediate values by a
+    HEAT_HP                  1900   -> 4400  } flat x2.77 with BOSS_BASE_HP, rounded to 50 (every
+    SHOPPER_HP               1800   -> 4300  } multiplier within 0.006 of ITS pre-Task-8 value,
+    KAREN_HP                 1600   -> 4150  } order unchanged, band 0.8-1.3 held). So old->new in
+    COURIER_HP               1400   -> 3750  } THIS column is NOT a flat ratio — versus the true
+    STOCKER_HP               1100   -> 3350  } v0.1.73 figures the ratios run 1.72x (Manager) to
+                                              } 3.05x (Stocker), not a uniform 2.77x.
     BOSS_XP_REWARD           30     -> 35    (gem COUNT only)
     BOSS_GEM_VALUE_MULT      (new)  -> 0.8   scale on XpCurve.boss_gem_value (ENDLESS only)
   scripts/logic/DifficultyCurve.gd — boss_stats HP on BOSS_HP_GROWTH, capped at

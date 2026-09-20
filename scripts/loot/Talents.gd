@@ -103,7 +103,7 @@ static func all() -> Array:
 		{
 			"id": "executioner", "name": "Executioner", "kind": "onhit_execute", "tier": 3,
 			"color": Color("8b0000"), "level_required": {"min": 15, "max": 25},
-			"desc": "Instantly kills enemies below %s%% health",
+			"desc": "Instantly kills non-boss enemies below %s%% health",
 			"mods": [ {"min": 8, "max": 15} ],
 		},
 		# --- Data talents (reuse existing behaviors) ---
@@ -158,7 +158,7 @@ static func all() -> Array:
 		{
 			"id": "mercy", "name": "Mercy", "kind": "onhit_execute", "tier": 2,
 			"color": Color("a05050"), "level_required": {"min": 10, "max": 18},
-			"desc": "Instantly kills enemies below %s%% health",
+			"desc": "Instantly kills non-boss enemies below %s%% health",
 			"mods": [ {"min": 5, "max": 10} ],
 		},
 		{
@@ -200,7 +200,7 @@ static func all() -> Array:
 		{
 			"id": "reaper", "name": "Reaper", "kind": "onhit_execute", "tier": 3,
 			"color": Color("700000"), "level_required": {"min": 18, "max": 28},
-			"desc": "Instantly kills enemies below %s%% health",
+			"desc": "Instantly kills non-boss enemies below %s%% health",
 			"mods": [ {"min": 15, "max": 25} ],
 		},
 		# --- New behaviors (engine arms in TalentEngine, hooks in Enemy/Gun/Bullet) ---
@@ -275,7 +275,7 @@ static func all() -> Array:
 		{
 			"id": "pink_slip", "name": "Pink Slip", "kind": "onhit_execute", "tier": 1,
 			"color": Color("990000"), "level_required": {"min": 2, "max": 5},
-			"desc": "Instantly kills enemies below %s%% health",
+			"desc": "Instantly kills non-boss enemies below %s%% health",
 			"mods": [ {"min": 3, "max": 6} ],
 			"callout": "FIRED.",
 		},

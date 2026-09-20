@@ -255,8 +255,10 @@ func _process(delta: float) -> void:
 	var due := shots_due(_cooldown, interval, GameConfig.GUN_MAX_SHOTS_PER_FRAME)
 	var shots: int = due[0]
 	var new_cooldown: float = due[1]
-	for _i in shots:
-		if not _fire(aim_direction):
+	for i in shots:
+		# Only the first shot of a catch-up burst plays the fire SFX — a hitch that banks several
+		# shots in one frame must not also bank several overlapping copies of the sound.
+		if not _fire(aim_direction, i == 0):
 			_cooldown = 0.0
 			return                  # no shot happened (e.g. Tesla with no target) — don't waste ammo/cooldown
 		_ammo -= 1
@@ -371,7 +373,7 @@ func reload_progress() -> float:
 	var dur := maxf(reload_time * reload_mult, GameConfig.RELOAD_TIME_FLOOR)
 	return clampf(1.0 - _reload_timer / dur, 0.0, 1.0)
 
-func _fire(dir: Vector2) -> bool:
+func _fire(dir: Vector2, play_sfx: bool = true) -> bool:
 	# Clock In (first_shot_bonus) + Last Call (low_mag_bonus): one shot-level damage multiplier,
 	# computed BEFORE ammo is decremented (Last Call reads how empty the mag still is). Applied
 	# by temporarily scaling `damage` for the duration of this call and restoring it right after
@@ -393,7 +395,8 @@ func _fire(dir: Vector2) -> bool:
 	# category-mapped sound exactly once per trigger-pull, not once per pellet/target.
 	if fired:
 		_first_shot_armed = false   # Clock In consumed only by a shot that actually happened (a no-target Tesla pull keeps the bonus armed)
-		SoundManager.play(shot_sfx_id)
+		if play_sfx:
+			SoundManager.play(shot_sfx_id)
 	return fired
 
 func _fire_projectile(dir: Vector2) -> bool:
@@ -699,7 +702,9 @@ func _fire_cone(dir: Vector2) -> bool:
 	var candidates := _enemies_in_cone(global_position, dir, gun_range, cone_angle * 0.5, raw_enemies)
 	var hits := LineOfSight.filter_visible(global_position, candidates, get_world_2d().direct_space_state)
 	var player := get_parent() as Player
-	var bdps := GameConfig.FLAME_BURN_DPS + burn_dps      # base burn + incendiary upgrades (was maxf(...), which ate the first 3 Incendiary picks since their dps didn't clear the base until stacked past it)
+	# base burn + incendiary upgrades (was maxf(...), which ate the first 3 Incendiary picks
+	# since their dps didn't clear the base until stacked past it)
+	var bdps := GameConfig.FLAME_BURN_DPS + burn_dps
 	var btime := maxf(GameConfig.FLAME_BURN_TIME, burn_duration)
 	for e in hits:
 		if not is_instance_valid(e):

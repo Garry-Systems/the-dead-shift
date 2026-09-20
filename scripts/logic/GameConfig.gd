@@ -21,7 +21,7 @@ const GUN_RANGE := 600.0              # px; bullet max travel distance
 const BULLET_SPEED := 800.0           # px/sec
 const BULLET_DAMAGE := 25.0
 const BULLET_LIFETIME := 1.5          # seconds before a bullet despawns
-const GUN_MAX_SHOTS_PER_FRAME := 4    # Power Curve: bounded per-frame fire catch-up — a long frame hitch drops the remaining debt instead of banking a burst
+const GUN_MAX_SHOTS_PER_FRAME := 8    # Hitch guard, not a DPS ceiling: a long frame must not bank a burst. Even at a 30fps hitch this caps a gun at 240 shots/sec, far above any reachable fire-rate-stacked build.
 
 # --- Weapon upgrade cards (Phase 3 step 2; distinct from loot "talents") ---
 # Task 8 retune (power-curve probe): the two PURE-DPS cards tripled, 0.20 -> 0.60 and 0.15 -> 0.45,

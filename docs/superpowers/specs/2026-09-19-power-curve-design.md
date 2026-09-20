@@ -49,6 +49,11 @@ per-gun-level multipliers. It asserts that every id the model can pick is in
 `Weapons.upgrades_for(<build weapon>)`, so a policy that picks a card the gun does not offer (the
 first pass did: it applied Extra Barrel, which is in neither reference weapon's pool) cannot recur.
 
+A level-up reroll (`LevelUpUI._refresh_cards`) re-rolls TIERS as well as which cards are offered —
+not just a reshuffle of the same rolled numbers — so SECOND OPINION and the truck's `TRUCK_REROLL_COST`
+reroll charge are a stronger lever than the model assumes; the sim replays a single no-reroll offer
+per level, so its expected multipliers are a **floor** on player power, not a centre.
+
 ## 4. Targets
 
 | target | value | tolerance |
@@ -254,6 +259,11 @@ level gating, rarity odds · making placed things (turret, mines, drones) scale 
 No save-format change: cards are per-run state; affixes untouched; talents keep their rolled numbers
 (only how fire-rate numbers are *applied* changes). No commendation, challenge, or save field keys on
 player level or card-pick counts (grepped 2026-09-19), so nothing persistent depends on the old pacing.
+
+Quantified, for saved weapons that already rolled a fire-rate talent: Rampage's listed "+70%" was
+`x3.33` shots/sec under the old `*= (1 − p)` math and is honestly `x1.70` under §5.3's `/ (1 + p)` —
+Adrenaline ≈ −25%, Graveyard Shift ≈ −15%, Bloodrush ≈ −9% shots/sec at their rolled values. This is a
+deliberate consequence of decision D6 (honest fire-rate text), not a balance regression to chase.
 
 ## 8. Testing
 1. **Roll probe** (seeded): tier frequencies within ±2 pts of 60/27/10/3 over 10k rolls; every value
