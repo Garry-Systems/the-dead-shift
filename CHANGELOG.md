@@ -4,6 +4,17 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.75 — Workplace Safety (2026-09-20)
+
+Legal reviewed the incident reports. Most of them were the same incident: an employee surrounded for half a second. New safety measures follow. None of them make the job safe.
+- **You get a moment after every hit.** Taking a hit now makes you untouchable for about a third of a second — you blink while it lasts. A horde that closes around you used to land ten bites a second; now it lands about three. At dawn that's the difference between dying in under half a second and having about a second and a half to get out. Stay in the pile and you still die.
+- **Standing in it still hurts.** Fire, acid, a boss's zone attacks, the drive-by lane, and standing inside a boss all burn straight through the blink. There is no clever trick where a small fire makes you bite-proof.
+- **Nothing one-shots a healthy employee.** No single hit can take more than 70% of your max health — not the TANKER's rupture, not an exploder, not a volatile elite. It's one mistake, not zero: the next hit can still finish you. This applies in HARDCORE too.
+- **The horde speeds up gradually.** Zombies used to stay slow until about 5:00 and then more than double their pace by 8:00. They now pick up speed steadily from 3:00 and reach the same top speed at the same time. Minutes 5 to 7 are a little faster than before; the cliff is gone.
+- **PROBATIONARY PERIOD.** A new hire's first ten shifts get a gentler opening: brutes, exploders, elites and hives each show up 30–60 seconds later than usual, and the first boss arrives with 60% of its health. New hires also draw TRAINING PAY — +15% XP for the whole shift — because a quieter opening drops less of it. From 4:30 on it's a normal shift. After ten shifts, HR stops watching and the game is exactly what it always was. You cannot quit your way out of probation — a shift only counts if you actually worked it.
+- The dash is unchanged. It does not make you invulnerable. Corporate considered it.
+- Known and intended: the moment you get after a hit also protects you from a boss's swing, so a boss lands fewer hits while the horde is chewing on you. QUICK STEP and SPIKE ARMOR are worth less inside a full surround than they were (a dodged bite is replaced by the next zombie's). All three are on the list for the next pass.
+
 ## v0.1.74 — Performance-Based Pay (2026-09-20)
 
 Corporate reviewed the compensation structure. Raises are now random, promotions are slower, and management has been told to stop dying in four seconds.
