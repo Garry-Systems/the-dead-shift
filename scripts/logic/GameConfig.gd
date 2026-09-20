@@ -588,7 +588,7 @@ const PROBATION_ELITE_MIN_WAVE := 8                # elites start at 3:30 on pro
 const PROBATION_FIRST_BOSS_HP_MULT := 0.6          # the wave-5 boss only; every later boss is normal
 const PROBATION_XP_BONUS := 0.15                   # "training pay": run-long +XP on probation. The gentler opening drops fewer/lower-value gems; without this a new hire reaches 4:00 (where the schedules converge) about one level — one gun card — behind a non-probation save. Tuned by the power-curve probe so probation level >= normal level at 4:00.
 const PROBATION_CALLOUT_FMT := "PROBATIONARY PERIOD\nSHIFT %d OF %d"   # run-start HUD banner (Hud.show_banner) — %d args are (games_played + 1, PROBATION_SHIFTS)
-const PROBATION_BANNER_DELAY := 1.5                # seconds Main._ready waits before firing the probation banner, so it doesn't stack on top of FirstRunHints' "DRAG ANYWHERE TO MOVE" strip (already visible by the time Main._ready runs, on the SAME brand-new-save run probation is guaranteed true)
+const PROBATION_BANNER_DELAY := 1.5                # seconds Main._ready waits before firing the probation banner — reduces but cannot guarantee zero overlap with FirstRunHints' "DRAG ANYWHERE TO MOVE" strip (already visible by the time Main._ready runs, on the SAME brand-new-save run probation is guaranteed true); the strip clears on the player's own cumulative movement, not a fixed clock (accepted; designer phone-pass item)
 const PROBATION_BANNER_DELAY_AFTER_LOCATION := 3.2   # seconds: the TONIGHT'S SHIFT banner holds 2.6s + fades 0.4s; probation announces itself once it is gone
 const PROBATION_COMPLETE_LINE := "PROBATION COMPLETE. HR HAS STOPPED WATCHING."   # SHIFT'S OVER pay-stub, only on the games_played 9 -> 10 crossing
 

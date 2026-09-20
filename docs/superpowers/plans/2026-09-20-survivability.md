@@ -221,6 +221,8 @@ Boss Rush (`_process_boss_rush`) is untouched. Confirm `boss_stats()` returns a 
 
 ### Task 4: Probation presentation — run-start callout + pay-stub line
 
+> **Superseded during execution:** the run-start message shipped on the HUD banner (two lines, no dash, sequenced after the TONIGHT'S SHIFT banner), not CombatText.callout — see spec §3.4 and the SDD ledger.
+
 **Files:** Modify `scripts/Main.gd` (after the player is positioned in `_ready`), `scripts/GameOver.gd` (pay-stub, near the `★ PROMOTED` lines ~365-372; `add_game_played()` is at ~222), `scripts/logic/GameConfig.gd` (two copy consts). Extend `.superpowers/probe_probation.gd`.
 
 Copy (exact, house deadpan, ≤ 70 chars): callout `PROBATIONARY PERIOD — SHIFT %d OF %d` (n = `games_played + 1`, total = `PROBATION_SHIFTS`); pay-stub line `PROBATION COMPLETE. HR HAS STOPPED WATCHING.`

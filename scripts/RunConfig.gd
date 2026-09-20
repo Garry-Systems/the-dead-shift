@@ -38,7 +38,8 @@ func compute_probation(games_played: int) -> bool:
 	return mode == "endless" and not daily and not hardcore and not overtime \
 		and games_played < GameConfig.PROBATION_SHIFTS
 
-## Task 4: the run-start callout shown over the player's head when `probation` is true. `n` is
+## Task 4: the run-start callout shown as a two-line full-screen HUD banner (Hud.show_banner) when
+## `probation` is true — not over the player's head; see Main.gd's _show_probation_banner. `n` is
 ## 1-indexed (the shift about to be played, not the count of shifts already banked), so a
 ## brand-new save (games_played == 0) reads "SHIFT 1 OF 10", not "SHIFT 0 OF 10".
 func probation_callout(games_played: int) -> String:

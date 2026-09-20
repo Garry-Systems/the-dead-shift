@@ -56,7 +56,9 @@ else about those callers changes.
 
 ### 3.2 Hit i-frames
 - After a **discrete** hit deals damage, the player ignores further **discrete** hits for
-  `PLAYER_HIT_IFRAMES := 0.35` s. The timer ticks in `_process` like `_revive_invuln_time`.
+  `PLAYER_HIT_IFRAMES := 0.35` s. Both `_hit_iframe_time` and `_revive_invuln_time` tick in
+  `_physics_process`, not `_process` — a fixed 60 Hz step, so the window is exactly 0.35 s at any
+  frame rate *(amended after the final review)*.
 - **Tick damage neither triggers nor respects i-frames** — otherwise standing in a weak fire pool would
   grant bite immunity, and a pool would be nullified by its own first tick.
 - Order inside `take_damage`: revive-invuln return → **hit-i-frame return (discrete only)** → Thorns →
@@ -72,6 +74,16 @@ else about those callers changes.
   outlive its owner, and the death path is the only place that can end it early).
 - The enemy side is unchanged: a biter still bounces off and goes on its own 0.6 s cooldown whether or
   not its bite was blocked.
+- **Bite-opened windows also block boss hits** *(added after the final review)* — a window opened by
+  any landed discrete hit, including a trash bite, blocks boss patterns (`ExpandingRing`, `AimedBand`,
+  `ChargeDash`) and `BossProjectile` hits for its 0.35 s; while a six-biter surround is chewing on the
+  player they are inside a window ~87.5% of the time, and at wave 20 an ~18 HP runner bite can erase a
+  70 HP (capped) slam. Verdict of the final review, accepted by the controller: ship as is — it is the
+  standard i-frame contract, the window always costs a hit that really damaged the player (up to
+  ~62 HP/s in a dawn surround), and the structural alternative (heavy hits piercing windows opened by
+  light ones) is a design change for spec 3. Boss BODY contact is tick damage and is never blocked.
+  The §4 boss-fight figures from spec 1 assume patterns land at full rate; with trash on the player
+  they land less often.
 
 Surrounded, 100 HP, no defenses (analytic; the probe prints the live table):
 
@@ -84,8 +96,13 @@ Surrounded, 100 HP, no defenses (analytic; the probe prints the live table):
 | 20:00 | 70 | 0.14 s | 0.35 s |
 
 Bite damage and its growth are **unchanged**. Max incoming bite DPS becomes `bite / 0.35` (62 HP/s at
-dawn vs ~218 today), which is what makes Tough Hide / Iron Skin / Regeneration / Quick Step rolls and
-lifesteal worth taking.
+dawn vs ~218 today), which is what makes Tough Hide / Iron Skin / Regeneration rolls and lifesteal
+worth taking. Quick Step (dodge) is the exception against a DENSE surround — a dodged bite does not
+start a window, so the next biter's attempt ~0.1 s later replaces it and 40% dodge buys only ~13%
+mitigation there (the hit cycle goes 0.45 s → 0.52 s); dodge keeps its full value against sparse
+damage (boss patterns, exploders, a lone chaser). Likewise Spike Armor now reflects once per LANDED
+bite, roughly a quarter of its old output inside a surround. Both are intended consequences of S1, not
+retuned here — see §5. *(added after the final review)*
 
 ### 3.3 No one-shots from healthy
 - A single **discrete** hit is clamped to `PLAYER_MAX_HIT_FRAC := 0.70 × max_hp()`, applied **after**
@@ -170,13 +187,18 @@ lifesteal worth taking.
   `ENEMY_SPEED_CAP` (240) — reached at wave 18, same as today. Speed gets its **own** knee; HP keeps
   `ENEMY_LATE_WAVE` (10) untouched. `ENEMY_LATE_SPEED_GROWTH` is deleted.
 
-| time | 1:00 | 3:00 | 5:00 | 6:30 | 8:00 | 8:30+ |
-|---|---|---|---|---|---|---|
-| today | 73 | 79 | 96 | 146 | 222 | 240 |
-| new | 73 | 79 | 118 | 160 | 217 | 240 |
+| time | 1:00 | 3:00 | 3:30 | 4:00 | 4:30 | 5:00 | 6:30 | 8:00 | 8:30+ |
+|---|---|---|---|---|---|---|---|---|---|
+| today | 73 | 79 | 80.4 | 82.0 | 83.7 | 96 | 146 | 222 | 240 |
+| new | 73 | 79 | 87.3 | 96.6 | 106.9 | 118 | 160 | 217 | 240 |
 
-- Accepted cost (S3): 5:00–6:30 is faster than today (+22 / +14 px/s) and runners (×1.7) pass the
-  player's 220 at ~5:30 instead of ~6:30. Hit i-frames land in the same release.
+- Accepted cost (S3) *(amended after the final review — the original text understated the faster
+  stretch as only 5:00–6:30)*: the stretch that is faster than v0.1.74 is waves 8–16 (3:30–7:30), not
+  only 5:00–6:30; it peaks at wave 10 / 4:30 (+23 px/s, +27.8%: 83.7 → 106.9), is +23.1% at 5:00
+  (96.2 → 118.4), converges by dawn and is slightly slower at 8:00 (222.5 → 217.9). In absolute terms
+  107 px/s against a 220 px/s player is still easily outrun. Note that 4:30 is also the minute a
+  probation shift's schedule has just converged with the normal one. Hit i-frames land in the same
+  release.
 - Runner cap (360), per-type `spd_mult`, elite speed mods and boss speeds are untouched. Probation
   saves get the same ramp.
 
@@ -196,6 +218,11 @@ Measured 2026-09-20 at commit `4feb88a`; full probe output in
 | Probation schedule | exactly the §3.4 table; normal schedule byte-identical to v0.1.74 when not on probation | **MET** — 113/113 checks, including full seeded `Enemies.pick` id sequences diffed against the pre-flag path (not just pool membership) and a behavioral training-pay assertion on a real booted `Player` |
 | FRESH power ÷ threat on probation, 1:30–4:00 (power-curve sim, report) | ≥ **0.95 ×** the non-probation FRESH row at every sampled minute (tolerance widened from 1.00 × during implementation — reason below) | **MET** — probation vs normal: 1:30 1.56/1.14 (1.37×) · 2:00 1.18/1.22 (**0.97×**, the tightest) · 2:30 1.23/0.84 (1.47×) · 3:00 1.33/0.93 (1.44×) · 3:30 1.13/0.95 (1.20×) · 4:00 0.96/0.96 (1.00×). Level at 4:00, where the schedules converge: **14 vs 14** |
 | v0.1.74 §4 targets | all still pass (the threat model does not use enemy speed) | **MET** — all 44 checks pass and are byte-identical to the v0.1.74 record (verified by diff). Neither the speed ramp, probation, nor training pay moved one |
+
+**Note on the surrounded-TTD row** *(added after the final review)*: the measured values sit ~+14%
+above target by construction (six biters attempt on a 0.1 s grid, so hits land every 0.4 s, not
+0.35 s); a future change to bite damage or `ENEMY_CONTACT_HIT_CD` may trip the ±15% band spuriously —
+re-derive before treating it as a regression.
 
 **On the FRESH-on-probation row.** The threat model was upgraded for this measurement: the probe's
 type-mix factor was a hardcoded wave-bracket table (`MIX_FACTOR`, copied from map_difficulty.md
@@ -234,6 +261,14 @@ damage growth, boss pattern damage values, lifesteal/regen numbers (re-measured 
 revisited if broken) · enemy HP, spawn rates, weapon stats, card values (spec 1, shipped) · Boss Rush's
 own pass.
 
+**Carried to spec 3 (found by the final review):** retune Quick Step and Spike Armor against the
+post-i-frame damage model; decide whether heavy hits should pierce windows opened by light ones
+(source weight); boss pattern `_hit_player` latches fire even when the hit was blocked, so a pattern
+whose active time outlives the window (ChargeDash 0.55–1.0 s) is deleted rather than delayed;
+NightEvents (Blood Moon can roll from wave 5) are not excluded from probation; the blink can freeze on
+its dim phase behind a pause/level-up overlay; a heavy defensive build (5+ Iron Skin + lifesteal/regen)
+is now net-positive against trash bites at dawn — re-measure.
+
 ## 6. Save / compatibility
 No save-format change. Probation derives from the existing `games_played`. `take_damage`'s new parameter
 is defaulted, so every untouched caller keeps compiling and keeps discrete-hit semantics.
@@ -268,4 +303,7 @@ is defaulted, so every untouched caller keeps compiling and keeps discrete-hit s
    cap. Also worth a look, from what §4 measured: does the probation opening still *feel* slower to
    level now that training pay is in (the model says level parity by 4:00, but +15% XP on a gentler
    wave 4 is an easy thing to over- or under-feel), and does wave 5 — brutes arriving the same minute
-   the softened boss does — land harder than waves 4 and 6 around it.
+   the softened boss does — land harder than waves 4 and 6 around it. *(added after the final
+   review)*: fight a wave-20 boss with trash on you — do slams visibly stop landing; does Quick Step
+   still feel worth taking; the 4:00–4:30 speed step on a brand-new save right as probation's schedule
+   converges; a Blood Moon during a probation shift.
