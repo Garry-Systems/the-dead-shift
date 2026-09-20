@@ -31,7 +31,7 @@ func _active(delta: float) -> void:
 		return
 	if player != null and is_instance_valid(player):
 		if global_position.distance_to(player.global_position) <= _radius:
-			player.take_damage(_dps * delta)
+			player.take_damage(_dps * delta, null, false, true)
 	_time_left -= delta
 	if _time_left <= 0.0:
 		queue_free()

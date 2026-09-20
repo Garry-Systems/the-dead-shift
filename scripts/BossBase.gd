@@ -190,7 +190,9 @@ func _physics_process(delta: float) -> void:
 		if _touching_player():
 			# is_contact=true so Armor reduces boss touch damage; attacker stays null ON PURPOSE —
 			# Thorns is bite-only (a per-frame reflect on this continuous touch would shred bosses).
-			_target.take_damage(touch_damage * delta, null, true)
+			# is_tick=true (Survivability): continuous dps x delta contact never gates on/opens the
+			# hit i-frame window and is never subject to the 70% single-hit cap.
+			_target.take_damage(touch_damage * delta, null, true, true)
 
 	# Cast the next pattern when the clock runs out — held entirely while the target is beyond
 	# BOSS_CAST_RANGE (a surface boss that wandered toward THE BASEMENT's fixed +24k offset must

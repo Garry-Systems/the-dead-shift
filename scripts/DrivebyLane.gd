@@ -104,7 +104,7 @@ func _apply(dt: float) -> void:
 		if e.has_method("take_damage") and _in_lane((e as Node2D).global_position):
 			e.take_damage(_dps * dt)
 	if _player != null and is_instance_valid(_player) and _in_lane((_player as Node2D).global_position):
-		_player.take_damage(_dps * dt)
+		_player.take_damage(_dps * dt, null, false, true)
 
 ## AimedBand._check_hit's exact band-projection math (scripts/patterns/AimedBand.gd:33-42),
 ## reimplemented here against a band centered on `global_position` (not anchored to one end like

@@ -5,6 +5,7 @@ extends CharacterBody2D
 
 const FLASH_SHADER := preload("res://shaders/flash.gdshader")
 const HURT_FLASH_COOLDOWN := 0.18   # min gap between red pulses (contact damage is per-frame)
+const IFRAME_BLINK_ALPHA := 0.35    # low-alpha half of the hit i-frame blink (Survivability, v0.1.75)
 
 ## Ryan's 8 directional rotations, indexed by 45° sector of the facing angle.
 ## Godot 2D angles: +x = east, +y = south (down), so the order below maps
@@ -61,6 +62,7 @@ var _revive_invuln_time := 0.0   # seconds remaining of post-UNION-REP-revive in
                                   # this codebase — grepped invuln/spawn_protect/_protect across
                                   # every .gd file and found nothing to reuse; this is a new,
                                   # minimal timer, gated the same way _fire_lock_time is)
+var _hit_iframe_time := 0.0        # seconds remaining of post-hit invulnerability to DISCRETE hits (Survivability, v0.1.75)
 
 ## The player's weapon node (gun upgrade cards modify it). Set in _ready.
 var gun: Gun
@@ -120,6 +122,9 @@ func _physics_process(delta: float) -> void:
 		_fire_lock_time -= delta
 	if _revive_invuln_time > 0.0:
 		_revive_invuln_time -= delta
+	if _hit_iframe_time > 0.0:
+		_hit_iframe_time -= delta
+		_update_iframe_blink()
 	if _ghost_time > 0.0:
 		_ghost_time -= delta
 	if _aimbot_time > 0.0:
@@ -297,14 +302,39 @@ func _spawn_delivery_mine() -> void:
 func is_dashing() -> bool:
 	return _dash.is_dashing()
 
+## True while a landed discrete hit is still shielding the player from further discrete hits.
+func hit_iframes_active() -> bool:
+	return _hit_iframe_time > 0.0
+
+## Alpha blink while hit i-frames run. Uses self_modulate so it cannot fight the tint tweens that
+## already own `_sprite.modulate` (hurt tint, lifesteal_blip).
+func _update_iframe_blink() -> void:
+	if _sprite == null:
+		return
+	if _hit_iframe_time <= 0.0:
+		_sprite.self_modulate.a = 1.0
+		return
+	var phase := int(_hit_iframe_time * GameConfig.PLAYER_IFRAME_BLINK_HZ * 2.0)
+	_sprite.self_modulate.a = IFRAME_BLINK_ALPHA if phase % 2 == 0 else 1.0
+
 ## Called by enemies while they touch the player. `attacker` (default null) is the biter,
 ## passed ONLY from Enemy's contact-bite site (Thorns needs someone to reflect damage onto);
 ## every other caller (bosses, hazards, patterns) leaves it null and is unaffected. `is_contact`
-## marks a melee bite/touch hit (vs. a ranged/AoE hit) — Armor and Thorns key off it.
-func take_damage(amount: float, attacker = null, is_contact: bool = false) -> void:
+## marks a melee bite/touch hit (vs. a ranged/AoE hit) — Armor and Thorns key off it. `is_tick`
+## (Survivability, v0.1.75) marks continuous `dps x delta` damage (hazard pools, boss zone fills,
+## the drive-by lane, a boss's body contact) — as opposed to a DISCRETE one-number-per-event hit
+## (bites, boss projectiles/patterns, explosions). Hit i-frames and the 70% single-hit cap apply
+## to discrete hits only.
+func take_damage(amount: float, attacker = null, is_contact: bool = false, is_tick: bool = false) -> void:
 	# EMPLOYEE BENEFITS (Pack A) UNION REP: post-revive invulnerability window — total immunity,
 	# same shape as the dodge-roll early-return below.
 	if _revive_invuln_time > 0.0:
+		return
+	# Hit i-frames (Survivability): a landed DISCRETE hit shields against further discrete hits for
+	# PLAYER_HIT_IFRAMES. A blocked hit is a non-event — no Thorns, no hurt-nova, no relic hook.
+	# Tick damage (dps x delta: pools, zone fills, drive-by, boss body) passes straight through and
+	# never starts a window, or standing in a weak pool would grant bite immunity.
+	if not is_tick and _hit_iframe_time > 0.0:
 		return
 	# Thorns fires off the raw incoming bite damage, independent of dodge/armor below (a spike
 	# that jabs back whether or not the bite itself lands). Guard the attacker being alive so a
@@ -318,8 +348,13 @@ func take_damage(amount: float, attacker = null, is_contact: bool = false) -> vo
 
 	if is_contact:
 		amount *= _armor_mult
+	# No one-shots from healthy (Survivability): clamp ONE discrete hit, after armor. Every mode.
+	if not is_tick:
+		amount = minf(amount, max_hp() * GameConfig.PLAYER_MAX_HIT_FRAC)
 
 	_health.take_damage(amount)
+	if not is_tick and amount > 0.0:
+		_hit_iframe_time = GameConfig.PLAYER_HIT_IFRAMES
 	_hurt_flash()
 	if amount > 0.0:
 		CameraShake.add_trauma(GameConfig.SHAKE_TRAUMA_PLAYER_HURT)   # Pack D

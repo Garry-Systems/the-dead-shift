@@ -7,6 +7,9 @@ const PLAYER_MOVE_SPEED := 220.0      # px/sec
 const PLAYER_MAX_HEALTH := 100.0
 const PLAYER_HEALTH_REGEN := 0.0      # HP/sec at start (upgrades raise this)
 const PLAYER_SHOVE_DECAY := 1200.0     # px/sec^2 linear decay of an external shove impulse (Karen's scream) — 600 px/s dies in 0.5s ≈ 150px total
+const PLAYER_HIT_IFRAMES := 0.35      # seconds the player ignores further DISCRETE hits after one lands (Survivability, v0.1.75). Tick damage (pools, zone fills, drive-by, boss body) neither triggers nor respects it.
+const PLAYER_MAX_HIT_FRAC := 0.70     # "no one-shots from healthy": one DISCRETE hit never exceeds this fraction of max HP (after armor). Every mode, HARDCORE included.
+const PLAYER_IFRAME_BLINK_HZ := 12.0  # sprite alpha blink rate while hit i-frames are active (palette-safe tell)
 
 # --- Dash ---
 const DASH_SPEED := 700.0             # px/sec while dashing

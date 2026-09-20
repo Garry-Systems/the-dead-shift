@@ -105,7 +105,7 @@ func _apply(dt: float) -> void:
 		if player != null and is_instance_valid(player):
 			if (player as Node2D).global_position.distance_squared_to(global_position) <= r2:
 				if _dps > 0.0:   # Transfer Stores freezer patches: dps 0 must never flash/shake the hit reaction
-					player.take_damage(_dps * dt * GameConfig.PLAYER_HAZARD_DMG_MULT)
+					player.take_damage(_dps * dt * GameConfig.PLAYER_HAZARD_DMG_MULT, null, false, true)
 				if _slow > 0.0 and player.has_method("apply_slow"):
 					player.apply_slow(_slow, _slow_dur)
 
