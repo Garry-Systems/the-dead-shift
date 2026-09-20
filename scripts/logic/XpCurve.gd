@@ -14,11 +14,20 @@ static func xp_for_level(level: int) -> int:
 static func gem_value_for_hp(max_health: float) -> int:
 	return clampi(roundi(max_health / GameConfig.ENEMY_MAX_HEALTH), 1, GameConfig.XP_GEM_VALUE_MAX)
 
-## XP value of ONE boss gem on `wave` (Power Curve): the wave-current basic-zombie gem value times the
-## wave's spawn rate relative to wave 1 — trash XP income grows with BOTH, so a flat count of
-## trash-valued gems fell to ~0.2x of a fight's worth of income by wave 20. Deliberately NOT capped by
-## XP_GEM_VALUE_MAX (that cap exists to stop elite/late trash gems running away, not boss payouts).
+## XP value of ONE boss gem on `wave` in ENDLESS (Power Curve): the wave-current basic-zombie gem
+## value times the wave's spawn rate relative to wave 1 — trash XP income grows with BOTH, so a flat
+## count of trash-valued gems fell to ~0.2x of a fight's worth of income by wave 20. Deliberately NOT
+## capped by XP_GEM_VALUE_MAX (that cap exists to stop elite/late trash gems running away, not boss
+## payouts). ENDLESS ONLY — Boss Rush must use boss_rush_gem_value() below.
 static func boss_gem_value(wave: int) -> int:
 	var trash_hp: float = float(DifficultyCurve.enemy_stats(wave)["max_health"])
 	var rate := DifficultyCurve.spawn_interval(1) / DifficultyCurve.spawn_interval(wave)
 	return maxi(1, roundi(float(gem_value_for_hp(trash_hp)) * rate * GameConfig.BOSS_GEM_VALUE_MULT))
+
+## XP value of ONE boss gem in BOSS RUSH: the plain wave-current TRASH gem value, capped as usual.
+## boss_gem_value()'s spawn-rate factor and BOSS_GEM_VALUE_MULT are calibrated for ONE endless boss
+## roughly every 50s; Boss Rush kills BOSS_RUSH_BASE_COUNT+ concurrent bosses continuously while its
+## `wave` still advances off run time, so it would inherit that scaling per kill (x2 from ~4:45, x3.8
+## from ~9:45) on top of a much higher kill rate. No spawn-rate factor, no BOSS_GEM_VALUE_MULT.
+static func boss_rush_gem_value(wave: int) -> int:
+	return gem_value_for_hp(float(DifficultyCurve.enemy_stats(wave)["max_health"]))

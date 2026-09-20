@@ -254,11 +254,16 @@ func _reward() -> void:
 	# x the wave's spawn rate relative to wave 1, because trash XP income grows with both. A boss
 	# fight only HALVES trash spawns (BOSS_SPAWN_RATE_MULT), so this is tuned to pay ~0.5-1.0x of
 	# 50s of normal income: killing the boss is never an XP loss, and never worth farming either.
+	# BOSS RUSH takes the OTHER static: that scaling assumes ONE boss roughly every 50s, while Boss
+	# Rush has 3+ alive at once dying continuously and its `wave` still advances off run time, so it
+	# would inherit the per-kill spawn-rate scaling (x2 from ~4:45, x3.8 from ~9:45). It pays the
+	# plain wave-current TRASH gem value instead -- no spawn-rate factor, no BOSS_GEM_VALUE_MULT.
 	if xp_gem_scene != null:
 		var gems := GameConfig.BOSS_XP_REWARD
 		if boss_rush:
 			gems = int(gems * GameConfig.BOSS_RUSH_REWARD_MULT)
-		var gem_value := XpCurve.boss_gem_value(DifficultyManager.wave)
+		var gem_value := XpCurve.boss_rush_gem_value(DifficultyManager.wave) if boss_rush \
+			else XpCurve.boss_gem_value(DifficultyManager.wave)
 		for i in gems:
 			var gem = xp_gem_scene.instantiate()
 			gem.value = gem_value
