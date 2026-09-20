@@ -38,6 +38,18 @@ func compute_probation(games_played: int) -> bool:
 	return mode == "endless" and not daily and not hardcore and not overtime \
 		and games_played < GameConfig.PROBATION_SHIFTS
 
+## Task 4: the run-start callout shown over the player's head when `probation` is true. `n` is
+## 1-indexed (the shift about to be played, not the count of shifts already banked), so a
+## brand-new save (games_played == 0) reads "SHIFT 1 OF 10", not "SHIFT 0 OF 10".
+func probation_callout(games_played: int) -> String:
+	return GameConfig.PROBATION_CALLOUT_FMT % [games_played + 1, GameConfig.PROBATION_SHIFTS]
+
+## Task 4: true only for the exact (PROBATION_SHIFTS - 1, PROBATION_SHIFTS) pair — the single
+## games_played crossing (9 -> 10, today) that ends probation — so GameOver's pay-stub shows the
+## completion line on that one shift only, never on an earlier or later save state.
+func probation_just_completed(played_before: int, played_after: int) -> bool:
+	return played_before == GameConfig.PROBATION_SHIFTS - 1 and played_after == GameConfig.PROBATION_SHIFTS
+
 # --- Daily Shift (Pack C, v0.1.53) ---
 ## True only for a Daily Shift run (always mode == "endless" underneath). `daily_rng` is seeded
 ## from the date string's hash and consumed ONLY by NightEvents' event/kind rolls, Spawner's

@@ -57,6 +57,13 @@ func _ready() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Player
 	if player != null:
 		player.global_position = GameConfig.FORECOURT_PLAYER_SPAWN   # the forecourt apron, clear of the store + pump row
+		# PROBATION (Survivability, v0.1.75): the one player-facing surface of the flag — a callout
+		# above the player's head at the very first frame of a run that will play noticeably
+		# gentler than a veteran's. CombatText.instance is set in the pooled node's own _ready();
+		# CombatText is a sibling child of this scene root, and Godot readies children before their
+		# parent, so instance already exists here — no call_deferred needed.
+		if RunConfig.probation:
+			CombatText.callout(player.global_position + Vector2(0, -90), RunConfig.probation_callout(SaveManager.games_played()), PixelTheme.ACCENT)
 		# OVERTIME (Pack G, final-review fix): headstart XP BEFORE Characters.apply_base — that call
 		# multiplies player.xp_mult by NIGHT SCHOOL's Benefits.xp_mult(), and OVERTIME_HEADSTART_XP is
 		# calibrated assuming xp_mult == 1.0 (see its doc comment). Granting it after apply_base let

@@ -219,7 +219,12 @@ func _finish_run(is_win: bool) -> void:
 	if RunConfig.hardcore:
 		SaveManager.record_hardcore_best_clockout(DifficultyManager.run_time)
 
+	# Probation (Survivability, v0.1.75): before/after games_played, same before/after-the-mutator
+	# pattern as rank_before/rank_after above, so the pay-stub can detect the exact 9 -> 10 crossing
+	# that ends probation (RunConfig.probation_just_completed).
+	var played_before := SaveManager.games_played()
 	SaveManager.add_game_played()   # counts toward the every-10-games free reward (granted at the menu)
+	var played_after := SaveManager.games_played()
 	if is_win:
 		SaveManager.add_shift_survived()
 	# Lifetime records (Pack D): flushed exactly once per run — this whole block only runs past
@@ -282,7 +287,7 @@ func _finish_run(is_win: bool) -> void:
 	if RunConfig.daily:
 		_daily_header.text = "DAILY SHIFT — %s" % SaveManager.today_string()
 
-	_populate_stub(wave, bosses, kills, bonus, mult, vested, earned, is_new_best, inst, xp_amount, is_win, promoted, rank_after, basements, clawback, snacks)
+	_populate_stub(wave, bosses, kills, bonus, mult, vested, earned, is_new_best, inst, xp_amount, is_win, promoted, rank_after, basements, clawback, snacks, played_before, played_after)
 	_root.visible = true
 	if is_new_best or is_win or promoted:
 		_celebrate()
@@ -292,7 +297,8 @@ func _finish_run(is_win: bool) -> void:
 ## and the weapon XP line.
 func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float, vested: int, earned: int,
 		is_new_best: bool, inst: Dictionary, xp_amount: int, is_win: bool = false,
-		promoted: bool = false, rank_after: int = 0, basements: int = 0, clawback: int = 0, snacks: int = 0) -> void:
+		promoted: bool = false, rank_after: int = 0, basements: int = 0, clawback: int = 0, snacks: int = 0,
+		played_before: int = 0, played_after: int = 0) -> void:
 	for c in _stub_vbox.get_children():
 		c.queue_free()
 
@@ -363,6 +369,13 @@ func _populate_stub(wave: int, bosses: int, kills: int, bonus: int, mult: float,
 	if is_new_best:
 		_stub_vbox.add_child(_spacer(4))
 		_centered_line(_stub_vbox, "★ NEW BEST ★", PixelTheme.ACCENT, 28)
+
+	# Probation (Survivability, v0.1.75): the completion line, shown exactly once — on the shift
+	# whose games_played crossing ends probation — above the PROMOTED block below (a rank promotion
+	# and a probation graduation are different milestones; this one reads first).
+	if RunConfig.probation_just_completed(played_before, played_after):
+		_stub_vbox.add_child(_spacer(4))
+		_centered_line(_stub_vbox, GameConfig.PROBATION_COMPLETE_LINE, PixelTheme.ACCENT, 18)
 
 	if promoted:
 		_stub_vbox.add_child(_spacer(4))
