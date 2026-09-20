@@ -151,8 +151,12 @@ const RELIC_OVERSTOCK_HP_LOSS := 20.0    # overstocked: max HP lost on pickup
 const RELIC_VEST_HEAL_CAP := 0.5         # dead_mans_vest: incoming healing capped at this fraction of max HP while held
 
 # --- XP / Leveling ---
-const XP_BASE := 5                    # XP needed to reach level 1
-const XP_PER_LEVEL := 3               # extra XP required for each later level
+# Power Curve v0.1.74: the level cost used to be linear (a flat per-level increment), which let XP
+# income (gem value tracks enemy HP, ~12%/wave) outrun it -- ~57 level-ups/shift. Geometric
+# instead: xp_for_level(level) = XP_BASE * XP_GROWTH^level (see XpCurve.gd). Starters -- Task 8
+# may retune both.
+const XP_BASE := 8                    # XP needed to reach level 1
+const XP_GROWTH := 1.17               # per-level cost growth multiplier (geometric curve)
 const XP_GEM_VALUE := 1               # XP granted per gem
 const XP_GEM_VALUE_MAX := 15          # cap on hp-scaled gem value (elite/late kills pay more)
 const PICKUP_RADIUS := 80.0           # px; gems within this drift to the player
@@ -646,7 +650,10 @@ const OVERTIME_START_SECONDS := 240.0 # OVERTIME: DifficultyManager.run_time pre
 # Enough raw XP for ~8 level-ups at run start. xp_mult IS guaranteed 1.0 there (fixed, final-review
 # round): Main.gd grants this headstart BEFORE Characters.apply_base applies NIGHT SCHOOL's
 # xp_mult bonus — previously it ran AFTER, so NIGHT SCHOOL inflated the headstart into a free extra
-# level on every OVERTIME run. Sum of XpCurve.xp_for_level(0..7) = (5+0*3)+(5+1*3)+...+(5+7*3) = 124.
+# level on every OVERTIME run. Power Curve v0.1.74: XpCurve.xp_for_level went linear -> geometric,
+# but 124 still lands exactly on level 8 with the new curve too -- sum of XpCurve.xp_for_level(0..7)
+# with starters XP_BASE=8/XP_GROWTH=1.17 is 119 (8+9+11+13+15+18+21+24), so the unchanged 124 still
+# buys the same ~8 level-ups (5 XP left over into level 8's bar) it did under the old linear curve.
 const OVERTIME_HEADSTART_XP := 124
 
 # --- Commendations wall (Pack H: v0.1.59) ---

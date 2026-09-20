@@ -652,7 +652,8 @@ func _drop_gem() -> void:
 	var gem = xp_gem_scene.instantiate()
 	# Elite/late kills pay proportionally: gem value scales with this enemy's baked
 	# max HP over the wave-1 base (capped), so killing the big thing beats runner-farming.
-	var value := roundi(max_health / GameConfig.ENEMY_MAX_HEALTH)
+	# (base value shared with BossBase._reward via XpCurve.gem_value_for_hp)
+	var value := XpCurve.gem_value_for_hp(max_health)
 	if is_elite:
 		value = roundi(value * GameConfig.ELITE_GEM_VALUE_MULT * RelicEffects.nametag_gem_mult)
 	value = roundi(value * NightEvents.gem_value_mult(get_tree()))   # Fog Bank: x2 while active
