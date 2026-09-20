@@ -57,13 +57,21 @@ func _ready() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Player
 	if player != null:
 		player.global_position = GameConfig.FORECOURT_PLAYER_SPAWN   # the forecourt apron, clear of the store + pump row
-		# PROBATION (Survivability, v0.1.75): the one player-facing surface of the flag — a callout
-		# above the player's head at the very first frame of a run that will play noticeably
-		# gentler than a veteran's. CombatText.instance is set in the pooled node's own _ready();
-		# CombatText is a sibling child of this scene root, and Godot readies children before their
-		# parent, so instance already exists here — no call_deferred needed.
+		# PROBATION (Survivability, v0.1.75): the one player-facing surface of the flag — a
+		# multi-second HUD banner (Hud.show_banner, the same idiom NightEvents/Extraction use —
+		# see _show_probation_banner below), NOT CombatText.callout: that's a pooled 0.6s proc-word
+		# system, the wrong tool for a two-line sentence meant to actually be read. Delayed
+		# GameConfig.PROBATION_BANNER_DELAY seconds via a pause-safe SceneTreeTimer (process_always
+		# = false, same idiom AirDropMarker's telegraph uses — a pause/level-up card HOLDS the
+		# countdown instead of burning it down behind the overlay) because on a BRAND-NEW save
+		# (games_played == 0, where probation is unconditionally true) Hud._ready() — a sibling
+		# child that readies before this parent — has ALREADY called FirstRunHints.setup(), which
+		# shows "DRAG ANYWHERE TO MOVE" synchronously; firing this banner on the same frame would
+		# stack two full-screen scrims immediately. The delay does not GUARANTEE zero overlap
+		# (hint 1 clears on the player's own cumulative move time, not a fixed clock) but avoids
+		# the worst case of both landing in the literal same frame.
 		if RunConfig.probation:
-			CombatText.callout(player.global_position + Vector2(0, -90), RunConfig.probation_callout(SaveManager.games_played()), PixelTheme.ACCENT)
+			get_tree().create_timer(GameConfig.PROBATION_BANNER_DELAY, false, false).timeout.connect(_show_probation_banner)
 		# OVERTIME (Pack G, final-review fix): headstart XP BEFORE Characters.apply_base — that call
 		# multiplies player.xp_mult by NIGHT SCHOOL's Benefits.xp_mult(), and OVERTIME_HEADSTART_XP is
 		# calibrated assuming xp_mult == 1.0 (see its doc comment). Granting it after apply_base let
@@ -84,6 +92,16 @@ func _ready() -> void:
 	if spawner != null:
 		spawner.mode = RunConfig.mode
 
+## PROBATION (Survivability, v0.1.75): fired by the delayed SceneTreeTimer scheduled in _ready.
+## Same group-lookup + hud.call(...) idiom NightEvents._banner / Extraction._banner use to reach
+## Hud from a sibling scene node. games_played() is re-read here rather than captured at schedule
+## time — safe, since SaveManager.add_game_played() only runs at run END (GameOver), long after
+## this fires.
+func _show_probation_banner() -> void:
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud != null:
+		hud.call("show_banner", RunConfig.probation_callout(SaveManager.games_played()))
+
 ## TRANSFER STORES (Task 2): applies the resolved location row for the whole run.
 ## - Ground: swaps the Ground/Sprite2D texture to `loc.ground`, skipped entirely for forecourt
 ##   (leaves the .tscn-baked art/ground.png alone — the pack's #1 regression risk is any change
@@ -96,8 +114,14 @@ func _ready() -> void:
 ##   effect is presetting DifficultyManager.run_time to OVERTIME_START_SECONDS (240s, "2:00 AM")
 ##   — well short of ShiftClock.dawn_run_time() (480s), the sole other banner trigger in this
 ##   codebase (Hud's DAWN banner / Extraction's CHOPPER INBOUND, both gated on that same crossing
-##   and un-fireable on frame 1 even under OVERTIME's headstart). No existing code shows any
-##   banner at run start, so this location banner never collides with anything.
+##   and un-fireable on frame 1 even under OVERTIME's headstart). CORRECTION (Survivability,
+##   v0.1.75): this is no longer true unconditionally — _show_probation_banner below is now ALSO
+##   a run-start banner, fired GameConfig.PROBATION_BANNER_DELAY seconds later. A probation-era
+##   save (games_played < GameConfig.PROBATION_SHIFTS) that has unlocked a non-forecourt location
+##   (rank >= GameConfig.LOC_MART_RANK is reachable well inside the first 10 games) CAN see this
+##   TONIGHT'S SHIFT banner still fading (BANNER_HOLD 2.6s + BANNER_FADE 0.4s = 3.0s from t=0)
+##   when the probation banner fires at PROBATION_BANNER_DELAY (1.5s) — flagged, not yet fixed;
+##   see the Task 4 report.
 ## - Bias: hands the row's spawn_mults/obstacle_mults dicts to the three Enemies.pick/
 ##   Obstacles.pick call sites (Spawner, ObstacleField, Basement — verified exhaustively, see
 ##   Locations.gd's field doc). forecourt's spawn_mults AND obstacle_mults are both {} — Enemies'/

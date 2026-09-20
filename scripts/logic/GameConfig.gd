@@ -586,7 +586,8 @@ const PROBATION_SHIFTS := 10                       # completed shifts (SaveManag
 const PROBATION_MIN_WAVE := {"brute": 5, "exploder": 7, "hive": 9}   # delayed arrival waves (normal: 4 / 5 / 7); ids not listed keep their Enemies.gd min_wave
 const PROBATION_ELITE_MIN_WAVE := 8                # elites start at 3:30 on probation (normal ELITE_MIN_WAVE 6 = 2:30)
 const PROBATION_FIRST_BOSS_HP_MULT := 0.6          # the wave-5 boss only; every later boss is normal
-const PROBATION_CALLOUT_FMT := "PROBATIONARY PERIOD — SHIFT %d OF %d"   # run-start callout; %d args are (games_played + 1, PROBATION_SHIFTS)
+const PROBATION_CALLOUT_FMT := "PROBATIONARY PERIOD\nSHIFT %d OF %d"   # run-start HUD banner (Hud.show_banner) — %d args are (games_played + 1, PROBATION_SHIFTS)
+const PROBATION_BANNER_DELAY := 1.5                # seconds Main._ready waits before firing the probation banner, so it doesn't stack on top of FirstRunHints' "DRAG ANYWHERE TO MOVE" strip (already visible by the time Main._ready runs, on the SAME brand-new-save run probation is guaranteed true)
 const PROBATION_COMPLETE_LINE := "PROBATION COMPLETE. HR HAS STOPPED WATCHING."   # SHIFT'S OVER pay-stub, only on the games_played 9 -> 10 crossing
 
 # --- Night-shift events (Pack A: Run variety, v0.1.50) ---
