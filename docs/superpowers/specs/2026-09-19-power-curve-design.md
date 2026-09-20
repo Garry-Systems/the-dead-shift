@@ -1,6 +1,8 @@
 # Power Curve — balance pass v2, spec 1 of 3 (design)
 
-**Date:** 2026-09-19 · **Target release:** v0.1.74 · **Status:** design approved section-by-section by Larry (buttons), awaiting spec read-through.
+**Date:** 2026-09-19 · **Target release:** v0.1.74 · **Status:** implemented in v0.1.74 (tasks 1-8). Starter
+constants below carry a `tuned:` line where the Task 8 power-curve probe retuned them; probe output is
+`docs/superpowers/analysis/2026-09-19/power-curve-probe-v0.1.74.txt`.
 
 **Source:** `docs/superpowers/analysis/2026-09-19/ECONOMY-DIFFICULTY-MAP.md` (+ the four analyst reports beside it).
 Balance pass v2 is split in three specs: **1 Power Curve (this)** · 2 Survivability + new-player wall
@@ -58,15 +60,27 @@ takes >60 s at w5.
 - `XpCurve.xp_for_level(level) = round(XP_BASE × XP_GROWTH^level)`; starters `XP_BASE = 8`,
   `XP_GROWTH = 1.17`. `XP_PER_LEVEL` is deleted. XP **income** (gem value = HP/50, cap 15, elite ×3)
   is unchanged.
+  - **tuned: `XP_BASE = 11`, `XP_GROWTH = 1.16`** (probe levels 3 / 11 / 17 / 26 / 30 at 1:00 / 3:00 /
+    5:00 / 8:00 / 9:35). `OVERTIME_HEADSTART_XP` re-derived 124 → **160** to still buy exactly 8 levels.
+  - **As implemented:** boss and trash gem values share one helper, `XpCurve.gem_value_for_hp(max_health)`
+    — a boss gem IS worth what a wave-current trash kill's gem is worth, under the same `XP_GEM_VALUE_MAX`
+    clamp.
 - **Boss XP scales with wave**: boss gem drop is worth what ~50 s of wave-current trash would pay
   (starter: `BOSS_XP_REWARD` gems each worth the wave-current shambler gem value, under the same
   `XP_GEM_VALUE_MAX` cap, instead of 30 flat value-1 gems).
   Exact constant tuned in the probe so a boss fight is XP-neutral vs. skipping it.
+  - **tuned: `BOSS_XP_REWARD = 35`** — XP-neutral at the wave-5 boss (0.78× of 50 s of income) only.
+    w10/w15/w20 land at 0.37 / 0.21 / 0.20 and cannot be lifted: each gem is valued off the plain
+    shambler while income is the type-mix + elite-weighted mean (1.7-2.8× higher), and the 3-4× gem
+    count that would close the gap adds ~12 levels by 9:35, breaking the §4 level targets.
 - **Boss spawn-suppression limit**: the ×0.5 trash spawn rate while a revealed boss lives
   (`Spawner.gd:41-42`, `BOSS_SPAWN_RATE_MULT`) applies for at most `BOSS_SUPPRESS_MAX_SECONDS = 75` per
   boss, then trash returns to the normal interval. The boss still blocks the next boss spawn (unchanged).
   Closes the "keep the boss as a pet" loop. Timer counts only revealed time (a concealed Mystery
   Shopper already doesn't suppress — v0.1.69).
+  - **As implemented:** the 75 s budget is **per boss** — it pauses (does not reset) while a boss is
+    alive but concealed, and resets only when no boss is alive at all, so re-cloaking never buys a
+    fresh 75 s.
 
 ### 5.2 Card rolls
 - Every offered card (`LevelUpUI` builds 3 from `Upgrades.cards_for_level`) independently rolls a
@@ -81,6 +95,14 @@ takes >60 s at w5.
   Applies to every percent/flat-number card: Hollow Points, Hair Trigger, Overpressure, Long Barrel,
   Tighter Choke, Fast Hands, Extended Mag, Swift Feet, Tough Hide, Regeneration, Magnet, Iron Skin,
   Quick Step, Quick Reset, Fast Learner, Silver Tongue, Spike Armor (reflect mult), Incendiary (burn dps).
+  - **tuned: a uniform ×1.82 on every band — Common 0.9–1.45 · Rare 1.45–2.2 · Epic 2.4–3.3 ·
+    Legendary 4.05–5.5 (mean ≈ 1.63 v).** This BREAKS the "Rare = today's value" anchor above and is
+    the one place Task 8 overrode a design line: at the starter bands the §4 MID power/threat band
+    (1.5–3.0, 3:00–9:35) failed at 5 of 8 sampled minutes (down to 0.56 at 9:35 — overrun), and a
+    uniform band scale is the only in-scope lever that reaches it. Side effect: EVERY percent/flat
+    card — Swift Feet, Tough Hide, Iron Skin, Regeneration, Fast Learner, Silver Tongue included —
+    is now ~1.8× its old value. Needs Larry's phone pass; the cleaner alternative is to raise the
+    DPS cards' base values (`UPGRADE_DAMAGE_PCT` etc.) instead and restore this anchor.
 - **No caps** on any card. The only ceiling that remains is the existing `DODGE_CAP` 40% total dodge.
 - **Integer cards** (Armor Piercing, Ricochet): Common/Rare +1 · Epic +1 and +10% damage · Legendary +2.
 - **Extra Barrel**: tiers as integer cards for the count (+1/+1/+1/+2), and each barrel *added by the
@@ -88,6 +110,9 @@ takes >60 s at w5.
   Gun tracks bonus barrels with their share; base projectiles unaffected.
 - **Kill Shot**: rolls crit **chance only** — Common +3–4 · Rare +4–6 · Epic +7–9 · Legendary +11–15
   points. `UPGRADE_CRIT_MULT_BONUS` is deleted (no +1.0 multiplier per pick); crit stays ×2 + talents.
+  - **As implemented:** the FIRST Kill Shot pick of a run also grants the ×2 crit multiplier once
+    (`CARD_CRIT_MULT_BONUS_ONCE`). The code's base crit multiplier is 1.0, so on a gun with no crit
+    talent a chance-only card would have done literally nothing; later picks add chance only.
 - **Second Wind**: no roll (one-time flag); always presented as Epic. Existing exclusions unchanged.
 - **Silver Tongue / Fast Learner**: roll like any percent card, uncapped (halved pick count + geometric
   XP already tame them).
@@ -111,6 +136,8 @@ takes >60 s at w5.
 
 ### 5.4 Procs
 - Per-bullet chance stays the rule (D4).
+- **As implemented:** every **kill-gated** proc (explode / ammo / bolt / pool / spread / mine) rolls
+  **unscaled** on cone guns — only per-hit procs take the `chance × tick_interval` per-second scaling.
 - **Constant-stream guns** (`fire_mode == "cone"`, i.e. Flamethrower): a proc's listed chance is per
   second per target — per-tick chance = `chance × tick_interval`. On-kill procs are unaffected.
 - **Shatter**: a shatter **consumes the freeze** (target thaws); re-freezing needs a fresh chance roll.
@@ -122,6 +149,14 @@ takes >60 s at w5.
 - `DifficultyCurve.boss_stats`: single compounding — `BOSS_BASE_HP × ENEMY_HP_GROWTH^(w−1)`; the
   `BOSS_LATE_HP_GROWTH` branch and constant are deleted.
 - `BOSS_BASE_HP` is re-set by the probe to hit §4 boss TTK.
+  - **tuned: `BOSS_BASE_HP = 7500` (×5; all ten roster consts scaled by the same 5, every per-boss
+    mult byte-identical).** This hits 45-60 s for the **wave-5** row only (roster mean 54 s, 41-66 s).
+    §4's "every boss in roster within 35-75 s" CANNOT be met at more than one boss wave with a single
+    constant: over w5→w20 the reference player's DPS grows ×1.287/wave (gear ladder × compounding
+    cards) while boss HP grows ×1.12/wave, so the four rows want BOSS_BASE_HP = 7.2k / 25k / 44k /
+    57k. Flat TTK needs a boss-only HP growth of ≈1.29/wave — which is what the deleted double
+    compounding (1.12² = 1.2544) was accidentally providing. Out of scope here; reopen §5.5 if Larry
+    wants late bosses to stay 45-60 s.
 - Per-boss HP multipliers narrowed from 0.73–2.0 to **0.8–1.3**, order preserved (Manager tankiest …
   Night Stocker squishiest).
 - Boss attack damage, speed, patterns: unchanged (spec 2).

@@ -37,7 +37,13 @@ const FLAME_BURN_TIME := 3.0           # Flamethrower burn duration, refreshed e
 # --- Level-up card rolls (Power Curve v0.1.74): every offered card rolls a tier, then a value ---
 const CARD_TIER_NAMES := ["COMMON", "RARE", "EPIC", "LEGENDARY"]
 const CARD_TIER_WEIGHTS := [60, 27, 10, 3]            # per offered card, independent; no luck/pity
-const CARD_TIER_BANDS := [[0.5, 0.8], [0.8, 1.2], [1.3, 1.8], [2.2, 3.0]]   # x the card's base value ("Rare = the old flat value")
+# Task 8 retune: a UNIFORM x1.82 on every band. The spec's starter anchor was "Rare = the old flat
+# value" ([[0.5,0.8],[0.8,1.2],[1.3,1.8],[2.2,3.0]], mean 0.89x). The power-curve probe could not
+# hold spec §4's power/threat band (MID 1.5-3.0 from 3:00 to 9:35) at those bands: halving the level
+# count (~57 -> ~30) AND cutting each card to 0.89x its old flat value took ~5x off end-of-shift
+# DPS, so MID fell to 0.56x the incoming HP/s by 9:35 (overrun). Rare is now ~1.8x the pre-v0.1.74
+# flat value. See docs/superpowers/analysis/2026-09-19/power-curve-probe-v0.1.74.txt.
+const CARD_TIER_BANDS := [[0.9, 1.45], [1.45, 2.2], [2.4, 3.3], [4.05, 5.5]]   # x the card's base value
 const CARD_TIER_COLORS := [Color("d6d6d6"), Color("2f7bff"), Color("a64bff"), Color("ff7a18")]  # Salvaged/Lethal/Savage/Merciless loot colors
 const CARD_INT_AMOUNT := [1, 1, 1, 2]                 # Armor Piercing / Ricochet / Extra Barrel count per tier
 const CARD_INT_EPIC_DAMAGE_PCT := 0.10                # Epic Armor Piercing / Ricochet also grant +10% damage
@@ -83,12 +89,12 @@ const ENEMY_LATE_SPEED_GROWTH := 1.15  # per-wave speed multiplier past ENEMY_LA
 
 # --- Boss (Phase 4 step 2) ---
 const BOSS_WAVE_INTERVAL := 5         # a boss spawns every Nth wave (5, 10, 15, ...)
-const BOSS_BASE_HP := 1500.0          # boss max health on wave 1 (scales with ENEMY_HP_GROWTH)
+const BOSS_BASE_HP := 7500.0          # boss max health on wave 1 (scales with ENEMY_HP_GROWTH). Task 8 retune: x5 from 1500 (every roster const below scaled by the same 5, so each per-boss mult is byte-identical) so the FIRST boss -- wave 5, fresh-tier gear -- lands in spec §4's 45-60s band (probe: roster mean 54s, 41-66s). Later boss waves come out far under the band and a single constant cannot fix that; see the probe doc.
 const BOSS_TOUCH_DAMAGE := 25.0       # boss contact damage/sec on wave 1 (scales w/ ENEMY_DMG_GROWTH)
 const BOSS_MOVE_SPEED := 45.0         # px/sec; deliberately slow, does not scale
 const BOSS_SPAWN_RATE_MULT := 0.5     # normal spawns run at this fraction of rate while a REVEALED boss lives
 const BOSS_SUPPRESS_MAX_SECONDS := 75.0  # BOSS_SPAWN_RATE_MULT applies for at most this many seconds per boss (Power Curve): keeping a boss alive as a pet to thin the horde must not work forever
-const BOSS_XP_REWARD := 30            # number of XP gems dropped on boss death
+const BOSS_XP_REWARD := 35            # number of XP gems dropped on boss death (Task 8 retune: 30 -> 35 puts the WAVE-5 boss at 0.78x of 50s of wave-current trash income, inside spec §5.1's 0.7-1.3 band; w10+ stays under it because each gem is valued off the plain shambler while income is the mix+elite-weighted mean, and the 3-4x more gems that would close it adds ~12 levels by 9:35 and breaks spec §4's level targets)
 
 # --- Boss ground slam ---
 const SLAM_INTERVAL := 4.0            # seconds between slams
@@ -154,10 +160,12 @@ const RELIC_VEST_HEAL_CAP := 0.5         # dead_mans_vest: incoming healing capp
 # --- XP / Leveling ---
 # Power Curve v0.1.74: the level cost used to be linear (a flat per-level increment), which let XP
 # income (gem value tracks enemy HP, ~12%/wave) outrun it -- ~57 level-ups/shift. Geometric
-# instead: xp_for_level(level) = XP_BASE * XP_GROWTH^level (see XpCurve.gd). Starters -- Task 8
-# may retune both.
-const XP_BASE := 8                    # XP needed to reach level 1
-const XP_GROWTH := 1.17               # per-level cost growth multiplier (geometric curve)
+# instead: xp_for_level(level) = XP_BASE * XP_GROWTH^level (see XpCurve.gd). Task 8 retuned both
+# from the 8 / 1.17 starters against the power-curve probe: 11 / 1.16 trades two early levels for a
+# flatter mid-run climb, which is what lets the MID power/threat ratio stay inside spec §4's
+# 1.5-3.0 band all the way to 9:35 (probe levels 3 / 11 / 17 / 26 / 30 at 1 / 3 / 5 / 8 / 9:35).
+const XP_BASE := 11                   # XP needed to reach level 1
+const XP_GROWTH := 1.16               # per-level cost growth multiplier (geometric curve)
 const XP_GEM_VALUE := 1               # XP granted per gem
 const XP_GEM_VALUE_MAX := 15          # cap on hp-scaled gem value (elite/late kills pay more)
 const PICKUP_RADIUS := 80.0           # px; gems within this drift to the player
@@ -237,13 +245,13 @@ const DEBUFF_SLOW_FACTOR := 0.5        # default move-speed cut (0.5 = half spee
 const DEBUFF_SLOW_DURATION := 2.5      # default slow length (seconds)
 
 # Brood Mother
-const BROOD_HP := 1700.0               # 1.13x base — wave-1 HP (scales with wave like the brute)
+const BROOD_HP := 8500.0               # 1.13x base — wave-1 HP (scales with wave like the brute). Task 8: x5 with BOSS_BASE_HP
 const BROOD_SUMMON_COUNT := 3          # adds spawned per summon cast
 const BROOD_ZONE_DPS := 18.0           # acid-nest damage/sec
 const BROOD_RING_COUNT := 8            # projectiles in the radial spit
 
 # Heat Tyrant
-const HEAT_HP := 1600.0                # 1.07x base — wave-1 HP
+const HEAT_HP := 8000.0                # 1.07x base — wave-1 HP. Task 8: x5 with BOSS_BASE_HP
 const HEAT_BAND_DAMAGE := 30.0         # solar-flare beam damage
 const HEAT_JAM_DURATION := 2.0         # "Forced Vent" gun-jam length
 
@@ -389,25 +397,25 @@ const CHARGE_HIT_RADIUS := 56.0        # px distance from the dashing boss count
 
 # --- Night-shift staff bosses (Pack 7) ---
 # The Manager: tanky/slow. Calls in staff adds, jams the gun, ground-slams.
-const MANAGER_HP := 1950.0             # 1.30x base — the tank of the roster (roster max)
+const MANAGER_HP := 9750.0             # 1.30x base — the tank of the roster (roster max). Task 8: x5 with BOSS_BASE_HP
 const MANAGER_SPEED_MULT := 0.6        # persistent chase-speed multiplier (slow)
 const MANAGER_SUMMON_COUNT := 3        # staff adds per summon cast
 const MANAGER_JAM_DURATION := 2.2      # "Written Up" gun-jam length
 
 # The Night Stocker: fast, squishy, charges the player and litters cover behind it.
-const STOCKER_HP := 1200.0             # 0.80x base — glass cannon, dies fast if you land hits (roster min)
+const STOCKER_HP := 6000.0             # 0.80x base — glass cannon, dies fast if you land hits (roster min). Task 8: x5 with BOSS_BASE_HP
 const STOCKER_SPEED_MULT := 1.7        # persistent chase-speed multiplier (fast)
 const STOCKER_CRATE_SIZE := 22.0       # px rect half-extent of a dropped crate obstacle
 const STOCKER_CRATE_DROP_DIST := 70.0  # px behind the boss a dropped crate lands
 const STOCKER_CRATE_MAX := 6           # live stocker crates at once — can pressure but never seal a ring around the player (oldest evicted at cap)
 
 # The Fryer: medium pace, denies ground with fire pools + heat-lamp bands.
-const FRYER_HP := 1650.0               # 1.10x base — medium
+const FRYER_HP := 8250.0               # 1.10x base — medium. Task 8: x5 with BOSS_BASE_HP
 const FRYER_ZONE_DPS := 20.0           # fry-oil pool damage/sec
 const FRYER_BAND_DAMAGE := 26.0        # heat-lamp band damage
 
 # The Courier: mobile arena-crosser. Charges, radial parcel bursts, a slow-you-down aura.
-const COURIER_HP := 1350.0             # 0.90x base — relies on mobility, not tankiness
+const COURIER_HP := 6750.0             # 0.90x base — relies on mobility, not tankiness. Task 8: x5 with BOSS_BASE_HP
 const COURIER_SPEED_MULT := 1.3        # persistent chase-speed multiplier (brisk)
 const COURIER_CHARGE_SPEED := 650.0    # px/sec — crosses more of the arena than the Stocker's charge
 const COURIER_CHARGE_DURATION := 0.9   # seconds
@@ -416,7 +424,7 @@ const COURIER_SLOW_DURATION := 3.0     # slow-aura debuff length
 const COURIER_SLOW_FACTOR := 0.4       # slow-aura move-speed cut
 
 # --- THE KAREN (boss #8, v0.1.60) ---
-const KAREN_HP := 1500.0               # 1.00x base — above Courier (1350), well under Manager (1950) — kit is the pressure, not the tank
+const KAREN_HP := 7500.0               # 1.00x base — above Courier (6750), well under Manager (9750) — kit is the pressure, not the tank. Task 8: x5 with BOSS_BASE_HP
 const KAREN_SPEED_MULT := 0.85         # persistent chase-speed multiplier — quick for a boss
 const KAREN_REVIEW_SLOW_FACTOR := 0.55 # "LEAVING A REVIEW" move-speed factor on the player
 const KAREN_REVIEW_SLOW_DURATION := 2.5  # seconds the review slow lasts
@@ -438,7 +446,7 @@ const TANKER_POOL_RADIUS := 70.0         # px pool radius
 const TANKER_POOL_DURATION := 4.0        # seconds a pool burns after igniting
 const TANKER_IGNITE_DELAY := 0.9         # puddle→ignite windup: cross the wet fuel early or lose the lane
 const TANKER_JACKKNIFE_RETELEGRAPH := 0.4  # pause between the two JACKKNIFE dashes (re-aims at the player)
-const TANKER_HP := 1800.0              # 1.20x base — third-tankiest, behind Manager (1950) and Mascot (1850) — a truck
+const TANKER_HP := 9000.0              # 1.20x base — third-tankiest, behind Manager (9750) and Mascot (9250) — a truck. Task 8: x5 with BOSS_BASE_HP
 const TANKER_SPEED_MULT := 0.5         # crawls between bursts; the dashes ARE the mobility
 const TANKER_CHARGE_SPEED := 600.0     # px/sec dash (under Courier's 650 but lasts longer)
 const TANKER_CHARGE_DURATION := 1.0    # seconds per dash — a long haul so the trail matters
@@ -652,10 +660,11 @@ const OVERTIME_START_SECONDS := 240.0 # OVERTIME: DifficultyManager.run_time pre
 # round): Main.gd grants this headstart BEFORE Characters.apply_base applies NIGHT SCHOOL's
 # xp_mult bonus — previously it ran AFTER, so NIGHT SCHOOL inflated the headstart into a free extra
 # level on every OVERTIME run. Power Curve v0.1.74: XpCurve.xp_for_level went linear -> geometric,
-# but 124 still lands exactly on level 8 with the new curve too -- sum of XpCurve.xp_for_level(0..7)
-# with starters XP_BASE=8/XP_GROWTH=1.17 is 119 (8+9+11+13+15+18+21+24), so the unchanged 124 still
-# buys the same ~8 level-ups (5 XP left over into level 8's bar) it did under the old linear curve.
-const OVERTIME_HEADSTART_XP := 124
+# and Task 8 retuned it to XP_BASE=11 / XP_GROWTH=1.16, so this was re-derived to keep buying
+# exactly 8 level-ups: sum of XpCurve.xp_for_level(0..7) = 11+13+15+17+20+23+27+31 = 157, rounded up
+# to the next multiple of 5 = 160, and level 8 costs another 36 (cumulative 193) so 160 can never
+# buy a 9th. 3 XP left over into level 8's bar.
+const OVERTIME_HEADSTART_XP := 160
 
 # --- Commendations wall (Pack H: v0.1.59) ---
 # 18 one-time lifetime badges (scripts/logic/Commendations.gd) — every target lives here per
@@ -799,7 +808,7 @@ const GARAGE_ARM_HP := 40.0   ## breakable gate arm — walk-through props must 
 # --- THE MYSTERY SHOPPER (boss #10, Night Shift Stories v0.1.68): concealed-boss seam ---
 # Starts disguised as ordinary horde filler (shared enemy.png, no boss bar/toast) and reveals
 # on either trigger below, then re-cloaks at every phase edge (0.66 / 0.33 health fraction).
-const SHOPPER_HP := 1550.0                  # 1.03x base — between Karen (1500) and Fryer (1650)
+const SHOPPER_HP := 7750.0                  # 1.03x base — between Karen (7500) and Fryer (8250). Task 8: x5 with BOSS_BASE_HP
 const SHOPPER_REVEAL_DAMAGE := 60.0         # cumulative damage taken since the last cloak that forces a reveal
 const SHOPPER_REVEAL_RANGE := 120.0         # px — player closing to this range also forces a reveal (strike range)
 const SHOPPER_BROWSE_TIMEOUT := 45.0        # seconds of any one cloak before she loses patience and reveals HERSELF — concealment must be bounded: a browsing shopper occupies the one-boss slot with no bar/toast, and a kiting player may never trip the damage/range triggers (v0.1.69 "where did everyone go" fix, with Spawner._revealed_boss_alive)
@@ -819,7 +828,7 @@ const SHOPPER_REVEALED_SCALE := 2.4         # revealed Sprite2D scale (Courier's
 # (radius 46 / scale 2.4) — NOT compounded onto the current value, so the ladder always reads
 # off the same fixed base. Speed climbs via each phase's own speed_mult (BossBase's existing
 # mechanism — no extra code needed). HP is front-loaded: L1's slow bulk carries most of the bar.
-const MASCOT_HP := 1850.0                 # 1.23x base — 2nd-tankiest costume boss — between Tanker (1800) and Manager (1950)
+const MASCOT_HP := 9250.0                 # 1.23x base — 2nd-tankiest costume boss — between Tanker (9000) and Manager (9750). Task 8: x5 with BOSS_BASE_HP
 const MASCOT_SCALE_L1 := 1.15             # FULL SUIT — bulked up above the Courier-clone base
 const MASCOT_SCALE_L2 := 0.9              # HALF SUIT — shrinking toward base
 const MASCOT_SCALE_L3 := 0.7              # THE PERFORMER — tiny, runner-fast
