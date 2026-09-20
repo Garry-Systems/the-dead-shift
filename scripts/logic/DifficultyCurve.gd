@@ -35,15 +35,14 @@ static func elite_chance(wave: int) -> float:
 		return 0.0
 	return minf(GameConfig.ELITE_CHANCE_BASE + GameConfig.ELITE_CHANCE_PER_WAVE * float(wave), GameConfig.ELITE_CHANCE_CAP)
 
-## Scaled stats for a boss spawned on the given wave. Reuses the enemy HP/damage
-## growth curves on top of the boss base values; move speed is fixed (bosses are slow).
+## Scaled stats for a boss spawned on the given wave. Reuses the enemy HP/damage growth curves
+## on top of the boss base values; move speed is fixed (bosses are slow). Power Curve: bosses
+## scale on the SAME single ENEMY_HP_GROWTH as trash for every wave — the old extra late-wave
+## compounding (past ENEMY_LATE_WAVE) only existed to chase runaway player power, which earlier
+## tasks in this rebase removed, so it's gone here too.
 static func boss_stats(wave: int) -> Dictionary:
 	var w := maxi(wave - 1, 0)
 	var hp: float = GameConfig.BOSS_BASE_HP * pow(GameConfig.ENEMY_HP_GROWTH, w)
 	var growth := pow(GameConfig.ENEMY_DMG_GROWTH, w)
 	var dmg: float = GameConfig.BOSS_TOUCH_DAMAGE * growth
-	# Past the late wave, bosses ramp like trash does — otherwise trash HP outgrows
-	# bosses and every 5th late wave becomes the EASY part of the run.
-	if wave > GameConfig.ENEMY_LATE_WAVE:
-		hp *= pow(GameConfig.BOSS_LATE_HP_GROWTH, wave - GameConfig.ENEMY_LATE_WAVE)
 	return {"max_health": hp, "move_speed": GameConfig.BOSS_MOVE_SPEED, "touch_damage": dmg, "special_mult": growth}

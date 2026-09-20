@@ -86,8 +86,8 @@ const BOSS_WAVE_INTERVAL := 5         # a boss spawns every Nth wave (5, 10, 15,
 const BOSS_BASE_HP := 1500.0          # boss max health on wave 1 (scales with ENEMY_HP_GROWTH)
 const BOSS_TOUCH_DAMAGE := 25.0       # boss contact damage/sec on wave 1 (scales w/ ENEMY_DMG_GROWTH)
 const BOSS_MOVE_SPEED := 45.0         # px/sec; deliberately slow, does not scale
-const BOSS_SPAWN_RATE_MULT := 0.5     # normal spawns run at this fraction of rate while a boss lives
-const BOSS_LATE_HP_GROWTH := 1.12     # extra per-wave boss HP multiplier past ENEMY_LATE_WAVE (mirrors trash)
+const BOSS_SPAWN_RATE_MULT := 0.5     # normal spawns run at this fraction of rate while a REVEALED boss lives
+const BOSS_SUPPRESS_MAX_SECONDS := 75.0  # BOSS_SPAWN_RATE_MULT applies for at most this many seconds per boss (Power Curve): keeping a boss alive as a pet to thin the horde must not work forever
 const BOSS_XP_REWARD := 30            # number of XP gems dropped on boss death
 
 # --- Boss ground slam ---
@@ -237,13 +237,13 @@ const DEBUFF_SLOW_FACTOR := 0.5        # default move-speed cut (0.5 = half spee
 const DEBUFF_SLOW_DURATION := 2.5      # default slow length (seconds)
 
 # Brood Mother
-const BROOD_HP := 2200.0               # wave-1 HP (scales with wave like the brute)
+const BROOD_HP := 1700.0               # 1.13x base — wave-1 HP (scales with wave like the brute)
 const BROOD_SUMMON_COUNT := 3          # adds spawned per summon cast
 const BROOD_ZONE_DPS := 18.0           # acid-nest damage/sec
 const BROOD_RING_COUNT := 8            # projectiles in the radial spit
 
 # Heat Tyrant
-const HEAT_HP := 1900.0                # wave-1 HP
+const HEAT_HP := 1600.0                # 1.07x base — wave-1 HP
 const HEAT_BAND_DAMAGE := 30.0         # solar-flare beam damage
 const HEAT_JAM_DURATION := 2.0         # "Forced Vent" gun-jam length
 
@@ -389,25 +389,25 @@ const CHARGE_HIT_RADIUS := 56.0        # px distance from the dashing boss count
 
 # --- Night-shift staff bosses (Pack 7) ---
 # The Manager: tanky/slow. Calls in staff adds, jams the gun, ground-slams.
-const MANAGER_HP := 3000.0             # ~2x base — the tank of the roster
+const MANAGER_HP := 1950.0             # 1.30x base — the tank of the roster (roster max)
 const MANAGER_SPEED_MULT := 0.6        # persistent chase-speed multiplier (slow)
 const MANAGER_SUMMON_COUNT := 3        # staff adds per summon cast
 const MANAGER_JAM_DURATION := 2.2      # "Written Up" gun-jam length
 
 # The Night Stocker: fast, squishy, charges the player and litters cover behind it.
-const STOCKER_HP := 1100.0             # below base — glass cannon, dies fast if you land hits
+const STOCKER_HP := 1200.0             # 0.80x base — glass cannon, dies fast if you land hits (roster min)
 const STOCKER_SPEED_MULT := 1.7        # persistent chase-speed multiplier (fast)
 const STOCKER_CRATE_SIZE := 22.0       # px rect half-extent of a dropped crate obstacle
 const STOCKER_CRATE_DROP_DIST := 70.0  # px behind the boss a dropped crate lands
 const STOCKER_CRATE_MAX := 6           # live stocker crates at once — can pressure but never seal a ring around the player (oldest evicted at cap)
 
 # The Fryer: medium pace, denies ground with fire pools + heat-lamp bands.
-const FRYER_HP := 2000.0               # medium
+const FRYER_HP := 1650.0               # 1.10x base — medium
 const FRYER_ZONE_DPS := 20.0           # fry-oil pool damage/sec
 const FRYER_BAND_DAMAGE := 26.0        # heat-lamp band damage
 
 # The Courier: mobile arena-crosser. Charges, radial parcel bursts, a slow-you-down aura.
-const COURIER_HP := 1400.0             # below base — relies on mobility, not tankiness
+const COURIER_HP := 1350.0             # 0.90x base — relies on mobility, not tankiness
 const COURIER_SPEED_MULT := 1.3        # persistent chase-speed multiplier (brisk)
 const COURIER_CHARGE_SPEED := 650.0    # px/sec — crosses more of the arena than the Stocker's charge
 const COURIER_CHARGE_DURATION := 0.9   # seconds
@@ -416,7 +416,7 @@ const COURIER_SLOW_DURATION := 3.0     # slow-aura debuff length
 const COURIER_SLOW_FACTOR := 0.4       # slow-aura move-speed cut
 
 # --- THE KAREN (boss #8, v0.1.60) ---
-const KAREN_HP := 1600.0               # above Courier (1400), well under Manager (3000) — kit is the pressure, not the tank
+const KAREN_HP := 1500.0               # 1.00x base — above Courier (1350), well under Manager (1950) — kit is the pressure, not the tank
 const KAREN_SPEED_MULT := 0.85         # persistent chase-speed multiplier — quick for a boss
 const KAREN_REVIEW_SLOW_FACTOR := 0.55 # "LEAVING A REVIEW" move-speed factor on the player
 const KAREN_REVIEW_SLOW_DURATION := 2.5  # seconds the review slow lasts
@@ -438,7 +438,7 @@ const TANKER_POOL_RADIUS := 70.0         # px pool radius
 const TANKER_POOL_DURATION := 4.0        # seconds a pool burns after igniting
 const TANKER_IGNITE_DELAY := 0.9         # puddle→ignite windup: cross the wet fuel early or lose the lane
 const TANKER_JACKKNIFE_RETELEGRAPH := 0.4  # pause between the two JACKKNIFE dashes (re-aims at the player)
-const TANKER_HP := 2400.0              # second-tankiest after Manager (3000) — a truck
+const TANKER_HP := 1800.0              # 1.20x base — third-tankiest, behind Manager (1950) and Mascot (1850) — a truck
 const TANKER_SPEED_MULT := 0.5         # crawls between bursts; the dashes ARE the mobility
 const TANKER_CHARGE_SPEED := 600.0     # px/sec dash (under Courier's 650 but lasts longer)
 const TANKER_CHARGE_DURATION := 1.0    # seconds per dash — a long haul so the trail matters
@@ -799,7 +799,7 @@ const GARAGE_ARM_HP := 40.0   ## breakable gate arm — walk-through props must 
 # --- THE MYSTERY SHOPPER (boss #10, Night Shift Stories v0.1.68): concealed-boss seam ---
 # Starts disguised as ordinary horde filler (shared enemy.png, no boss bar/toast) and reveals
 # on either trigger below, then re-cloaks at every phase edge (0.66 / 0.33 health fraction).
-const SHOPPER_HP := 1800.0                  # between Karen (1600) and Fryer (2000)
+const SHOPPER_HP := 1550.0                  # 1.03x base — between Karen (1500) and Fryer (1650)
 const SHOPPER_REVEAL_DAMAGE := 60.0         # cumulative damage taken since the last cloak that forces a reveal
 const SHOPPER_REVEAL_RANGE := 120.0         # px — player closing to this range also forces a reveal (strike range)
 const SHOPPER_BROWSE_TIMEOUT := 45.0        # seconds of any one cloak before she loses patience and reveals HERSELF — concealment must be bounded: a browsing shopper occupies the one-boss slot with no bar/toast, and a kiting player may never trip the damage/range triggers (v0.1.69 "where did everyone go" fix, with Spawner._revealed_boss_alive)
@@ -819,7 +819,7 @@ const SHOPPER_REVEALED_SCALE := 2.4         # revealed Sprite2D scale (Courier's
 # (radius 46 / scale 2.4) — NOT compounded onto the current value, so the ladder always reads
 # off the same fixed base. Speed climbs via each phase's own speed_mult (BossBase's existing
 # mechanism — no extra code needed). HP is front-loaded: L1's slow bulk carries most of the bar.
-const MASCOT_HP := 2600.0                 # 2nd-tankiest costume boss — between Tanker (2400) and Manager (3000)
+const MASCOT_HP := 1850.0                 # 1.23x base — 2nd-tankiest costume boss — between Tanker (1800) and Manager (1950)
 const MASCOT_SCALE_L1 := 1.15             # FULL SUIT — bulked up above the Courier-clone base
 const MASCOT_SCALE_L2 := 0.9              # HALF SUIT — shrinking toward base
 const MASCOT_SCALE_L3 := 0.7              # THE PERFORMER — tiny, runner-fast

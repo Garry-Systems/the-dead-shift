@@ -16,6 +16,7 @@ var _player: Node2D
 var _timer := 0.0
 var _last_boss_wave := 0
 var _last_boss_id := ""
+var _suppress_time := 0.0   # seconds the CURRENT revealed boss has been suppressing trash spawns
 
 func _ready() -> void:
 	add_to_group("spawner")
@@ -38,12 +39,20 @@ func _process_endless(delta: float) -> void:
 	_check_boss()
 	_timer += delta
 	var interval := DifficultyManager.spawn_interval()
-	if _revealed_boss_alive():
+	var revealed := _revealed_boss_alive()
+	_suppress_time = (_suppress_time + delta) if revealed else 0.0
+	if suppression_active(_suppress_time, revealed):
 		interval /= GameConfig.BOSS_SPAWN_RATE_MULT   # mult 0.5 -> interval doubles -> fewer
 	if _timer < interval:
 		return
 	_timer = 0.0
 	_spawn_enemy()
+
+## Trash runs at BOSS_SPAWN_RATE_MULT only for the first BOSS_SUPPRESS_MAX_SECONDS a revealed boss
+## lives (Power Curve): the slowdown clears room for a duel; it must not reward keeping a boss
+## alive as a pet. The boss still blocks the next boss spawn either way (see _check_boss).
+static func suppression_active(suppress_time: float, revealed_boss_alive: bool) -> bool:
+	return revealed_boss_alive and suppress_time < GameConfig.BOSS_SUPPRESS_MAX_SECONDS
 
 func _check_boss() -> void:
 	if mode == "horde":

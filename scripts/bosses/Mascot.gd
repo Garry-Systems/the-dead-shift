@@ -7,7 +7,7 @@ extends BossBase
 ## MASCOT_SPEED_MULT_L* (0.55 -> 0.9 -> 1.35). L1 FULL SUIT: slow, tanky — ground slam (RING) +
 ## summon 2 fans (SUMMON). L2 HALF SUIT: charges (RING) at Courier-class speed + slam (RING). L3
 ## THE PERFORMER: tiny, runner-fast, relentless melee + short erratic dashes (CHARGE, low
-## cadence). HP is front-loaded (MASCOT_HP 2600) — the L1 tank IS most of the bar. Combat-model
+## cadence). HP is front-loaded (MASCOT_HP 1850) — the L1 tank IS most of the bar. Combat-model
 ## exploit: pacing — a DPS-check opener that becomes a dodge-check closer.
 ##
 ## Sprite: 3 generator variants (mascot_a/b/c, one per phase — layers visually shrinking). Each
