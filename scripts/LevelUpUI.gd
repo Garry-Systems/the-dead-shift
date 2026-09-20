@@ -3,6 +3,14 @@ extends CanvasLayer
 ## it pauses the game, dims the screen, and offers 3 random cards. Odd levels offer
 ## player-stat cards; even levels offer gun cards. Queues multiple level-ups.
 
+# --- Layout (Power Curve, Task 3): named so the same dimension isn't hardcoded independently
+# in _build_ui() (initial style) and _paint_cards() (repainted every offer/reroll). ---
+const CARD_SIZE := Vector2(760, 214)          # one offered card: tier / title / rolled number / band
+const REROLL_SIZE := Vector2(760, 107)        # SECOND OPINION button: exactly half a card's height
+const TIER_FONT_SIZE := 20
+const ROLLED_FONT_SIZE := 30                  # the rolled number is the headline
+const BAND_FONT_SIZE := 18
+
 var _player: Player
 var _queue: Array[int] = []        # levels waiting for an upgrade pick
 var _current_cards: Array = []
@@ -83,11 +91,11 @@ func _build_ui() -> void:
 	for i in 3:
 		var b := Button.new()
 		b.clip_contents = true
-		# Card height 188 -> 214 (Power Curve, Task 3): fits the new tier/title/desc/band 4-row
-		# stack. Actual border color comes from PixelTheme.style_tier_button in _paint_cards —
-		# this initial style_button call is overwritten before the card is ever shown (root
-		# starts hidden; _show_next always repaints via _refresh_cards -> _paint_cards first).
-		PixelTheme.style_button(b, Vector2(760, 214))
+		# CARD_SIZE (Power Curve, Task 3): fits the tier/title/desc/band 4-row stack. Actual
+		# border color comes from PixelTheme.style_tier_button in _paint_cards — this initial
+		# style_button call is overwritten before the card is ever shown (root starts hidden;
+		# _show_next always repaints via _refresh_cards -> _paint_cards first).
+		PixelTheme.style_button(b, CARD_SIZE)
 		b.text = ""
 		b.pressed.connect(_on_card_pressed.bind(i))
 
@@ -107,7 +115,7 @@ func _build_ui() -> void:
 		var tier_lbl := Label.new()
 		tier_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		tier_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		PixelTheme.style_label(tier_lbl, 20, PixelTheme.TEXT_DIM)
+		PixelTheme.style_label(tier_lbl, TIER_FONT_SIZE, PixelTheme.TEXT_DIM)
 		content.add_child(tier_lbl)
 		_tier_labels.append(tier_lbl)
 
@@ -123,8 +131,8 @@ func _build_ui() -> void:
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.custom_minimum_size = Vector2(700, 0)
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# Font 24 -> 30 (Power Curve, Task 3): the rolled number IS the headline now.
-		PixelTheme.readable_label(desc, 30, PixelTheme.TEXT)
+		# ROLLED_FONT_SIZE (Power Curve, Task 3): the rolled number IS the headline now (was 24).
+		PixelTheme.readable_label(desc, ROLLED_FONT_SIZE, PixelTheme.TEXT)
 		content.add_child(desc)
 		_descs.append(desc)
 
@@ -133,7 +141,7 @@ func _build_ui() -> void:
 		var band_lbl := Label.new()
 		band_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		band_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		PixelTheme.readable_label(band_lbl, 18, PixelTheme.TEXT_DIM)
+		PixelTheme.readable_label(band_lbl, BAND_FONT_SIZE, PixelTheme.TEXT_DIM)
 		content.add_child(band_lbl)
 		_bands.append(band_lbl)
 
@@ -144,11 +152,11 @@ func _build_ui() -> void:
 	# player has no charges left (default 0 charges = never shown, matching every other
 	# unowned Benefits track reading as absent rather than as a dead/disabled control).
 	# Deep Clean (v0.1.67): clip_contents=true + exact-half height of the card buttons above
-	# (matching their own clip_contents=true). Power Curve (Task 3): card height 188 -> 214,
-	# so this stays exactly half: 94 -> 107.
+	# (matching their own clip_contents=true). REROLL_SIZE (Power Curve, Task 3) stays exactly
+	# half of CARD_SIZE.
 	_reroll_btn = Button.new()
 	_reroll_btn.clip_contents = true
-	PixelTheme.style_button(_reroll_btn, Vector2(760, 107), 24)
+	PixelTheme.style_button(_reroll_btn, REROLL_SIZE, 24)
 	_reroll_btn.pressed.connect(_on_reroll_pressed)
 	vbox.add_child(_reroll_btn)
 
@@ -186,7 +194,7 @@ func _paint_cards() -> void:
 		var tier := int(c.get("tier", 0))
 		best_tier = maxi(best_tier, tier)
 		var col: Color = GameConfig.CARD_TIER_COLORS[tier]
-		PixelTheme.style_tier_button(_buttons[i], col, Vector2(760, 214))
+		PixelTheme.style_tier_button(_buttons[i], col, CARD_SIZE)
 		_tier_labels[i].text = String(GameConfig.CARD_TIER_NAMES[tier])
 		_tier_labels[i].add_theme_color_override("font_color", col)
 		_card_titles[i].text = String(c["title"]).to_upper()
@@ -198,10 +206,16 @@ func _paint_cards() -> void:
 		# ScreenFlash (scripts/ScreenFlash.gd) has no static flash(tree,color) helper and no
 		# color param — it's always a white full-screen flash, and `alpha` must be set BEFORE
 		# add_child (read in its own _ready()). It's PROCESS_MODE_ALWAYS, so it still fades out
-		# while this screen has the tree paused.
+		# while this screen has the tree paused. Parented on current_scene, same as every other
+		# ScreenFlash call site (AbilityController/Basement/Player/Gun) — not under this
+		# CanvasLayer — with a self-fallback so a headless probe (no current_scene) still works.
 		var f := ScreenFlash.new()
 		f.alpha = GameConfig.CARD_LEGENDARY_FLASH_ALPHA
-		add_child(f)
+		var scene := get_tree().current_scene
+		if scene != null:
+			scene.add_child(f)
+		else:
+			add_child(f)
 
 func _update_reroll_button() -> void:
 	_reroll_btn.visible = _rerolls_left > 0
