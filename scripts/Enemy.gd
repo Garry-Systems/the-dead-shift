@@ -6,7 +6,21 @@ extends CharacterBody2D
 ## stats even into wave 9.
 
 const FLASH_SHADER := preload("res://shaders/flash.gdshader")
-const RUNNER_SCENE := preload("res://scenes/Runner.tscn")   # Elites (Splitter): the children it spawns on death
+# Elites (Splitter): the children it spawns on death. LOADED ON FIRST USE, never preloaded
+# (v0.1.77 hotfix). Runner.tscn's own script is THIS file, so `const := preload(...)` here was a
+# loader self-cycle: Enemy.gd -> Runner.tscn -> Enemy.gd. It only ever resolved by luck of script
+# load order, and when it lost, Enemy.gd never compiled -> every enemy scene instantiated with no
+# script -> Spawner's configure() call failed -> the run came up with NO ENEMIES AT ALL while the
+# clock, props, gun and movement all worked (Larry's Android report on v0.1.74/.75). A lazy load
+# touches nothing while this script is still compiling. NEVER preload a scene whose script is this
+# file or a base of it -- probe_load_cycle asserts the project has zero such cycles.
+static var _runner_scene: PackedScene
+
+## The Runner scene, loaded once on first splitter death and cached for the rest of the process.
+static func runner_scene() -> PackedScene:
+	if _runner_scene == null:
+		_runner_scene = load("res://scenes/Runner.tscn")
+	return _runner_scene
 const KNOCKBACK_DECAY := 900.0    # px/s^2 the talent knockback impulse bleeds off
 const FROZEN_TINT := Color("3D0099")   # C2 indigo — frozen tell (palette-compliant)
 const PIN_TINT := Color("E0E5FF")      # C4 lavender — Nail Gun "nailed" tell (palette-compliant)
@@ -162,7 +176,7 @@ func _spawn_splitter_children() -> void:
 		stats = Enemies.stats_for(runner_row, DifficultyManager.wave)
 	stats["max_health"] = splitter_child_hp(max_health)
 	for i in GameConfig.ELITE_SPLITTER_CHILD_COUNT:
-		var child = RUNNER_SCENE.instantiate()
+		var child = runner_scene().instantiate()
 		child.configure(stats)
 		tree.current_scene.add_child(child)
 		var ang := TAU * float(i) / float(GameConfig.ELITE_SPLITTER_CHILD_COUNT)

@@ -4,6 +4,12 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.77 — Mandatory Overtime (2026-09-20)
+
+HOTFIX, again. The staffing system had a second fault in it.
+- **Zombies spawn again.** v0.1.76 fixed one tangle in how the game loads itself; there was a second one right next to it, and it was the one actually emptying the floor. The zombie script loaded a zombie scene that pointed straight back at that same script. Whenever the phone loaded those two in the wrong order the zombie script never finished loading at all — so every zombie that tried to clock in arrived with no body, the shift computer threw it out, and you got a quiet, working, completely empty gas station. Both scenes are now fetched the moment they're needed instead of while the script is still loading, so the order can't matter.
+- **A broken build now says so.** If enemy scripts ever fail to load again, the game puts STAFFING SYSTEM OFFLINE on screen instead of pretending it's a peaceful night.
+
 ## v0.1.76 — Staffing Shortage (2026-09-20)
 
 HOTFIX. The night shift showed up. The zombies didn't.

@@ -7,6 +7,7 @@ extends Node2D
 
 var mode := "endless"
 var boss_rush_count := 0      # bosses spawned so far in boss_rush (drives scaling + HUD)
+var _spawn_fault_reported := false   # v0.1.77: one-shot guard for _report_spawn_fault
 var suspended := false   # THE BASEMENT (Pack E): controller pauses surface spawning/scatter while below
 var location_spawn_mults: Dictionary = {}   # TRANSFER STORES (Task 2): set once by Main.gd from
 # the run's Locations row; passed straight through to Enemies.pick(). {} (forecourt/default) is
@@ -149,10 +150,30 @@ func _spawn_enemy() -> void:
 	# probation is the exact pre-existing code path).
 	var entry := Enemies.pick(DifficultyManager.wave, location_spawn_mults, RunConfig.probation)
 	var enemy = (entry["scene"] as PackedScene).instantiate()
+	# Load-failure guard (v0.1.77). If a scene comes up WITHOUT its script -- the signature of a
+	# loader cycle breaking on an exported build -- configure() would error, abort this function,
+	# and leave the floor permanently empty with no other symptom. Say so once, loudly and on
+	# screen, instead of shipping a silent empty map again.
+	if not enemy.has_method("configure"):
+		enemy.free()
+		_report_spawn_fault(String(entry.get("id", "?")))
+		return
 	enemy.configure(Enemies.stats_for(entry, DifficultyManager.wave))
 	_maybe_apply_elite(enemy)
 	get_tree().current_scene.add_child(enemy)
 	enemy.global_position = _pick_spawn_pos()
+
+## Load-failure report (v0.1.77): fires at most once per run. An enemy scene that instantiates
+## without its script means the resource loader failed, not that the game is balanced oddly --
+## that state is unplayable, so make it visible rather than leaving the player on an empty map.
+func _report_spawn_fault(id: String) -> void:
+	if _spawn_fault_reported:
+		return
+	_spawn_fault_reported = true
+	push_error("Spawner: '%s' instantiated with no script -- enemy scripts failed to load. No enemies can spawn." % id)
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud != null:
+		hud.call("show_banner", GameConfig.SPAWN_FAULT_LINE)
 
 ## Elites (Pack A): a wave-gated, capped chance to promote a freshly-configured trash spawn to
 ## an elite. Endless + HORDE NIGHT only (Pack G extended the gate from endless-only to

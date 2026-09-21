@@ -590,6 +590,11 @@ const PROBATION_XP_BONUS := 0.15                   # "training pay": run-long +X
 const PROBATION_CALLOUT_FMT := "PROBATIONARY PERIOD\nSHIFT %d OF %d"   # run-start HUD banner (Hud.show_banner) — %d args are (games_played + 1, PROBATION_SHIFTS)
 const PROBATION_BANNER_DELAY := 1.5                # seconds Main._ready waits before firing the probation banner — reduces but cannot guarantee zero overlap with FirstRunHints' "DRAG ANYWHERE TO MOVE" strip (already visible by the time Main._ready runs, on the SAME brand-new-save run probation is guaranteed true); the strip clears on the player's own cumulative movement, not a fixed clock (accepted; designer phone-pass item)
 const PROBATION_BANNER_DELAY_AFTER_LOCATION := 3.2   # seconds: the TONIGHT'S SHIFT banner holds 2.6s + fades 0.4s; probation announces itself once it is gone
+# Shown on the HUD banner by Spawner._report_spawn_fault when an enemy scene instantiates without
+# its script (a resource-loader failure). Never seen in a healthy build -- it exists so a broken
+# export announces itself instead of looking like an empty, working game.
+const SPAWN_FAULT_LINE := "STAFFING SYSTEM OFFLINE\nNO ONE IS COMING IN"
+
 const PROBATION_COMPLETE_LINE := "PROBATION COMPLETE. HR HAS STOPPED WATCHING."   # SHIFT'S OVER pay-stub, only on the games_played 9 -> 10 crossing
 
 # --- Night-shift events (Pack A: Run variety, v0.1.50) ---

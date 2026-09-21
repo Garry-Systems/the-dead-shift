@@ -4,7 +4,16 @@ extends Enemy
 ## Periodically births shambler enemies near itself, up to a lifetime cap, so it forces a
 ## priority kill. High HP. Inherits all of Enemy's health / flash / status / gem behavior.
 
-const SHAMBLER_SCENE := preload("res://scenes/Enemy.tscn")
+# Same lazy-load rule as Enemy.runner_scene() (v0.1.77): Enemy.tscn's script is Enemy.gd, which
+# THIS script extends, so preloading it here loads a scene whose script is our own base class
+# while that base is still compiling. Lazy load keeps the hive out of the loader cycle.
+static var _shambler_scene: PackedScene
+
+## The shambler scene, loaded once on the hive's first birth and cached.
+static func shambler_scene() -> PackedScene:
+	if _shambler_scene == null:
+		_shambler_scene = load("res://scenes/Enemy.tscn")
+	return _shambler_scene
 
 var _spawn_cd := 0.0
 var _brood_spawned := 0
@@ -27,7 +36,7 @@ func _act(delta: float) -> void:
 		_spawn_one()
 
 func _spawn_one() -> void:
-	var baby = SHAMBLER_SCENE.instantiate()
+	var baby = shambler_scene().instantiate()
 	baby.configure(DifficultyManager.enemy_stats())
 	get_tree().current_scene.add_child(baby)
 	baby.global_position = global_position + Vector2(randf_range(-40.0, 40.0), randf_range(-40.0, 40.0))
