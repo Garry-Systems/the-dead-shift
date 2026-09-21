@@ -4,6 +4,11 @@ What's new in each build. The version you have is shown in-app and under
 **Settings ▸ Apps ▸ The Dead Shift** (`0.1.<build>`). Grab the latest APK from the
 [**android-latest** release](https://github.com/Garry-Systems/the-dead-shift/releases/tag/android-latest).
 
+## v0.1.76 — Staffing Shortage (2026-09-20)
+
+HOTFIX. The night shift showed up. The zombies didn't.
+- **Zombies spawn again on phones.** On the installed Android build of v0.1.74 and v0.1.75 an endless run could come up with no zombies at all — the clock ran, the barrels were there, the gun fired, and nothing ever walked in. The XP gem was quietly tangled up with the player, the gun and every zombie in a loading loop that only worked when the pieces happened to load in the right order; last night's update changed the order. The gem no longer knows who the player is — it just pays whoever picks it up — so the order can't matter any more.
+
 ## v0.1.75 — Workplace Safety (2026-09-20)
 
 Legal reviewed the incident reports. Most of them were the same incident: an employee surrounded for half a second. New safety measures follow. None of them make the job safe.
